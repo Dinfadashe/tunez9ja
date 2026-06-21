@@ -1,0 +1,790 @@
+﻿import React, { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase.js'
+import Sidebar from '../components/Sidebar.jsx'
+import { Avatar, StatusBadge, Modal, ConfirmModal, EmptyState, SearchBar, MusicArt } from '../components/UI.jsx'
+import { RejectMusicModal, RejectPostModal } from '../components/RejectModal.jsx'
+import RichTextEditor from '../components/RichTextEditor.jsx'
+import { StatusBadge as _SB } from '../components/UI.jsx'
+import { LayoutDashboard, Music, Newspaper, Users, CheckCircle, XCircle, Clock, Trash2, Eye, TrendingUp, Mic2, AlertCircle, Video, Youtube } from 'lucide-react'
+
+const NAV = (pending) => [
+  { key: 'overview',      label: 'Overview',       icon: LayoutDashboard },
+  { key: 'music-review',  label: 'Music Review',   icon: Music,      badge: pending.music || null },
+  { key: 'posts-review',  label: 'Blog Review',    icon: Newspaper,  badge: pending.posts || null },
+  { key: 'video-review',  label: 'Video Review',   icon: Video,      badge: pending.videos || null },
+  { key: 'users',         label: 'Manage Users',   icon: Users },
+]
+
+export default function AdminDashboard({ setPage, currentUser: propUser, setCurrentUser: propSetUser, onRoleSwitch }) {
+  const [active, setActive]           = useState('overview')
+  const [currentUser, setCurrentUser] = useState(null)
+  const [pending, setPending]         = useState({ music: 0, posts: 0 })
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles').select('*').eq('id', session.user.id).single()
+        setCurrentUser(profile)
+      }
+    })
+    fetchPending()
+  }, [])
+
+  const fetchPending = async () => {
+    const [{ count: music }, { count: posts }, { count: videos }] = await Promise.all([
+      supabase.from('music_tracks').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('blog_posts').select('*',   { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('videos').select('*',       { count: 'exact', head: true }).eq('status', 'pending'),
+    ])
+    setPending({ music: music || 0, posts: posts || 0, videos: videos || 0 })
+  }
+
+  if (!currentUser) return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--grey-300)', fontFamily: 'var(--font-mono)', letterSpacing: 2 }}>
+      LOADING...
+    </div>
+  )
+
+  return (
+    <div className="dashboard-layout">
+      <Sidebar items={NAV(pending)} activePage={active} setActivePage={setActive} setPage={setPage} currentUser={currentUser} onRoleSwitch={onRoleSwitch} />
+      <main className="dashboard-main">
+        <div className="dashboard-header">
+          <div>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>ADMIN PORTAL</span>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>
+              {NAV(pending).find(n => n.key === active)?.label}
+            </h1>
+          </div>
+          {pending.music + pending.posts > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--red-glow)', border: '1px solid var(--border-red)', borderRadius: 6, padding: '6px 12px', fontSize: 13 }}>
+              <AlertCircle size={14} color="var(--red)" />
+              {pending.music + pending.posts} items awaiting review
+            </div>
+          )}
+        </div>
+        <div className="dashboard-content">
+          {active === 'overview'     && <AdminOverview setActive={setActive} fetchPending={fetchPending} />}
+          {active === 'music-review' && <MusicReview fetchPending={fetchPending} />}
+          {active === 'posts-review' && <PostsReview fetchPending={fetchPending} />}
+          {active === 'users'        && <UsersPanel />}
+          {active === 'video-review'  && <VideoReview fetchPending={fetchPending} />}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function AdminOverview({ setActive, fetchPending }) {
+  const [stats, setStats] = useState({})
+  const [recentMusic, setRecentMusic] = useState([])
+  const [recentPosts, setRecentPosts]  = useState([])
+
+  useEffect(() => {
+    const load = async () => {
+      const [
+        { count: totalArtists },
+        { count: totalBloggers },
+        { count: totalTracks },
+        { count: pendingTracks },
+        { count: approvedTracks },
+        { count: totalPosts },
+        { count: pendingPosts },
+        { count: approvedPosts },
+        { data: music },
+        { data: posts },
+      ] = await Promise.all([
+        supabase.from('profiles').select('*',     { count: 'exact', head: true }).eq('role', 'artist'),
+        supabase.from('profiles').select('*',     { count: 'exact', head: true }).eq('role', 'blogger'),
+        supabase.from('music_tracks').select('*', { count: 'exact', head: true }),
+        supabase.from('music_tracks').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('music_tracks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabase.from('blog_posts').select('*',   { count: 'exact', head: true }),
+        supabase.from('blog_posts').select('*',   { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('blog_posts').select('*',   { count: 'exact', head: true }).eq('status', 'approved'),
+        supabase.from('music_tracks').select('id,title,artist_id,status').order('created_at', { ascending: false }).limit(4),
+        supabase.from('blog_posts').select('id,title,author_id,status,created_at').order('created_at', { ascending: false }).limit(4),
+      ])
+      setStats({ totalArtists, totalBloggers, totalTracks, pendingTracks, approvedTracks, totalPosts, pendingPosts, approvedPosts })
+      setRecentMusic(music || [])
+      setRecentPosts(posts || [])
+    }
+    load()
+  }, [])
+
+  return (
+    <div>
+      <div className="stat-grid">
+        <div className="stat-card" style={{ '--accent': 'var(--red)' }}>
+          <div className="stat-value">{stats.totalArtists ?? 'â€”'}</div>
+          <div className="stat-label">Artists</div>
+          <Mic2 size={32} className="stat-icon" />
+        </div>
+        <div className="stat-card" style={{ '--accent': '#00b4dc' }}>
+          <div className="stat-value">{stats.totalBloggers ?? 'â€”'}</div>
+          <div className="stat-label">Bloggers</div>
+          <Newspaper size={32} className="stat-icon" />
+        </div>
+        <div className="stat-card" style={{ '--accent': '#ffb400' }}>
+          <div className="stat-value">{(stats.pendingTracks ?? 0) + (stats.pendingPosts ?? 0)}</div>
+          <div className="stat-label">Pending Review</div>
+          <Clock size={32} className="stat-icon" />
+        </div>
+        <div className="stat-card" style={{ '--accent': '#00c864' }}>
+          <div className="stat-value">{(stats.approvedTracks ?? 0) + (stats.approvedPosts ?? 0)}</div>
+          <div className="stat-label">Published</div>
+          <CheckCircle size={32} className="stat-icon" />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div className="card" style={{ padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>RECENT MUSIC</h3>
+            <button className="btn btn-ghost" onClick={() => setActive('music-review')} style={{ fontSize: 13 }}>View all â†’</button>
+          </div>
+          {recentMusic.map(m => (
+            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+              <MusicArt title={m.title} size={40} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</div>
+              </div>
+              <StatusBadge status={m.status} />
+            </div>
+          ))}
+        </div>
+
+        <div className="card" style={{ padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>RECENT POSTS</h3>
+            <button className="btn btn-ghost" onClick={() => setActive('posts-review')} style={{ fontSize: 13 }}>View all â†’</button>
+          </div>
+          {recentPosts.map(p => (
+            <div key={p.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, flex: 1 }}>{p.title}</div>
+                <StatusBadge status={p.status} />
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--grey-300)', marginTop: 4 }}>{p.created_at?.slice(0,10)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MusicReview({ fetchPending }) {
+  const [tracks, setTracks]           = useState([])
+  const [filter, setFilter]           = useState('pending')
+  const [search, setSearch]           = useState('')
+  const [preview, setPreview]         = useState(null)
+  const [rejectModal, setRejectModal] = useState(null)
+  const [rejectPostModal, setRejectPostModal] = useState(null)
+  const [rejectNote, setRejectNote]   = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  const fetchTracks = async () => {
+    let q = supabase.from('v_admin_music_queue').select('*')
+    if (filter !== 'all') q = q.eq('status', filter)
+    const { data } = await q
+    setTracks(data || [])
+  }
+
+  useEffect(() => { fetchTracks() }, [filter])
+
+  const filtered = tracks.filter(m =>
+    m.title?.toLowerCase().includes(search.toLowerCase()) ||
+    m.artist_name?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const approve = async (m) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    await supabase.from('music_tracks').update({ status: 'approved', review_note: null, reviewed_by: session.user.id, reviewed_at: new Date().toISOString() }).eq('id', m.id)
+    fetchTracks(); fetchPending()
+  }
+
+  const reject = async (m, note) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    await supabase.from('music_tracks').update({ status: 'rejected', review_note: note, reviewed_by: session.user.id, reviewed_at: new Date().toISOString() }).eq('id', m.id)
+    fetchTracks(); fetchPending()
+  }
+
+  const remove = async (id) => {
+    await supabase.from('music_tracks').delete().eq('id', id)
+    fetchTracks(); fetchPending()
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: '1 1 260px' }}><SearchBar value={search} onChange={setSearch} placeholder="Search tracks..." /></div>
+        <div className="tabs" style={{ margin: 0, border: 'none', gap: 4 }}>
+          {['pending','approved','rejected','all'].map(f => (
+            <button key={f} className={`tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)} style={{ padding: '8px 14px', textTransform: 'capitalize' }}>{f}</button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={<Music size={48} />} title="No tracks here" message="Nothing matches the current filter." />
+      ) : (
+        <div className="card">
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Track</th><th>Artist</th><th>Genre</th><th>Uploaded</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filtered.map(m => (
+                  <tr key={m.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <MusicArt title={m.title} size={40} />
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{m.title}</div>
+                          <div style={{ fontSize: 12, color: 'var(--grey-500)' }}>{m.duration}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ fontSize: 14 }}>{m.artist_name}</td>
+                    <td><span className="badge badge-music">{m.genre}</span></td>
+                    <td style={{ fontSize: 12, color: 'var(--grey-300)', fontFamily: 'var(--font-mono)' }}>{m.created_at?.slice(0,10)}</td>
+                    <td><StatusBadge status={m.status} /></td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn btn-ghost" onClick={() => setPreview(m)} style={{ padding: '6px' }}><Eye size={15} /></button>
+                        {m.status === 'pending' && <>
+                          <button className="btn" onClick={() => approve(m)} style={{ padding: '6px 10px', background: 'rgba(0,200,100,0.1)', color: '#00c864', border: '1px solid rgba(0,200,100,0.3)', borderRadius: 4 }}><CheckCircle size={15} /></button>
+                          <button className="btn" onClick={() => { setRejectModal(m); setRejectNote('') }} style={{ padding: '6px 10px', background: 'var(--red-glow)', color: 'var(--red)', border: '1px solid var(--border-red)', borderRadius: 4 }}><XCircle size={15} /></button>
+                        </>}
+                        {m.status === 'rejected' && (
+                          <button className="btn" onClick={() => approve(m)} style={{ padding: '6px 10px', background: 'rgba(0,200,100,0.1)', color: '#00c864', border: '1px solid rgba(0,200,100,0.3)', borderRadius: 4 }}><CheckCircle size={15} /></button>
+                        )}
+                        <button className="btn btn-danger" onClick={() => setConfirmDelete(m.id)} style={{ padding: '6px' }}><Trash2 size={15} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <Modal open={!!preview} onClose={() => setPreview(null)} title={preview?.title || ''}>
+        {preview && (
+          <div>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+              <MusicArt title={preview.title} size={80} />
+              <div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{preview.title}</div>
+                <div style={{ color: 'var(--red)', fontSize: 14, margin: '4px 0' }}>{preview.artist_name}</div>
+                <div style={{ display: 'flex', gap: 8 }}><span className="badge badge-music">{preview.genre}</span><StatusBadge status={preview.status} /></div>
+              </div>
+            </div>
+            {preview.description && <p style={{ color: 'var(--grey-300)', fontSize: 14, lineHeight: 1.7 }}>{preview.description}</p>}
+            {preview.review_note && <div style={{ background: 'var(--red-glow)', border: '1px solid var(--border-red)', borderRadius: 6, padding: 12, marginTop: 16, fontSize: 13 }}><strong>Review note:</strong> {preview.review_note}</div>}
+            {preview.status === 'pending' && (
+              <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+                <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { approve(preview); setPreview(null) }}><CheckCircle size={15} /> Approve</button>
+                <button className="btn btn-danger" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setRejectModal(preview); setPreview(null) }}><XCircle size={15} /> Reject</button>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <RejectMusicModal
+        open={!!rejectModal}
+        track={rejectModal}
+        onClose={() => setRejectModal(null)}
+        onReject={(track, note) => reject(track, note)}
+      />
+
+      <ConfirmModal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={() => remove(confirmDelete)} title="Delete Track" message="Permanently remove this track?" danger />
+    </div>
+  )
+}
+
+function PostsReview({ fetchPending }) {
+  const [posts, setPosts]             = useState([])
+  const [filter, setFilter]           = useState('pending')
+  const [search, setSearch]           = useState('')
+  const [preview, setPreview]         = useState(null)
+  const [editModal, setEditModal]     = useState(null)   // post being edited
+  const [rejectModal, setRejectModal] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  const fetchPosts = async () => {
+    let q = supabase.from('v_admin_post_queue').select('*')
+    if (filter !== 'all') q = q.eq('status', filter)
+    const { data } = await q
+    setPosts(data || [])
+  }
+  useEffect(() => { fetchPosts() }, [filter])
+
+  const filtered = posts.filter(p =>
+    p.title?.toLowerCase().includes(search.toLowerCase()) ||
+    p.author_name?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const approve = async (p) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    await supabase.from('blog_posts').update({ status: 'approved', review_note: null, reviewed_by: session.user.id, reviewed_at: new Date().toISOString() }).eq('id', p.id)
+    fetchPosts(); fetchPending()
+  }
+
+  const reject = async (p, note) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    await supabase.from('blog_posts').update({ status: 'rejected', review_note: note, reviewed_by: session.user.id, reviewed_at: new Date().toISOString() }).eq('id', p.id)
+    fetchPosts(); fetchPending()
+  }
+
+  const remove = async (id) => {
+    await supabase.from('blog_posts').delete().eq('id', id)
+    fetchPosts(); fetchPending()
+  }
+
+  const saveEdit = async (id, updated) => {
+    await supabase.from('blog_posts').update(updated).eq('id', id)
+    fetchPosts()
+    setEditModal(null)
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: '1 1 260px' }}><SearchBar value={search} onChange={setSearch} placeholder="Search posts..." /></div>
+        <div className="tabs" style={{ margin: 0, border: 'none', gap: 4 }}>
+          {['pending','approved','rejected','all'].map(f => (
+            <button key={f} className={`tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)} style={{ padding: '8px 14px', textTransform: 'capitalize' }}>{f}</button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={<Newspaper size={48} />} title="No posts here" message="Nothing matches the current filter." />
+      ) : (
+        <div className="card">
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filtered.map(p => (
+                  <tr key={p.id}>
+                    <td style={{ maxWidth: 280 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--grey-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>{p.excerpt}</div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Avatar name={p.author_name} size={28} />{p.author_name}
+                      </div>
+                    </td>
+                    <td><span className="badge badge-blog">{p.category}</span></td>
+                    <td style={{ fontSize: 12, color: 'var(--grey-300)', fontFamily: 'var(--font-mono)' }}>{p.created_at?.slice(0,10)}</td>
+                    <td><StatusBadge status={p.status} /></td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn btn-ghost" onClick={() => setPreview(p)} style={{ padding: '6px' }} title="Preview"><Eye size={15} /></button>
+                        <button className="btn btn-ghost" onClick={() => setEditModal(p)} style={{ padding: '6px', color: '#00b4dc' }} title="Edit post">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        {p.status === 'pending' && <>
+                          <button className="btn" onClick={() => approve(p)} style={{ padding: '6px 10px', background: 'rgba(0,200,100,0.1)', color: '#00c864', border: '1px solid rgba(0,200,100,0.3)', borderRadius: 4 }} title="Approve"><CheckCircle size={15} /></button>
+                          <button className="btn" onClick={() => setRejectModal(p)} style={{ padding: '6px 10px', background: 'var(--red-glow)', color: 'var(--red)', border: '1px solid var(--border-red)', borderRadius: 4 }} title="Reject"><XCircle size={15} /></button>
+                        </>}
+                        {p.status === 'rejected' && (
+                          <button className="btn" onClick={() => approve(p)} style={{ padding: '6px 10px', background: 'rgba(0,200,100,0.1)', color: '#00c864', border: '1px solid rgba(0,200,100,0.3)', borderRadius: 4 }}><CheckCircle size={15} /></button>
+                        )}
+                        {p.status === 'approved' && (
+                          <button className="btn" onClick={() => setEditModal(p)} style={{ padding: '6px 10px', background: 'rgba(0,180,220,0.1)', color: '#00b4dc', border: '1px solid rgba(0,180,220,0.3)', borderRadius: 4, fontSize: 11, fontFamily: 'var(--font-mono)' }}>EDIT</button>
+                        )}
+                        <button className="btn btn-danger" onClick={() => setConfirmDelete(p.id)} style={{ padding: '6px' }}><Trash2 size={15} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      <Modal open={!!preview} onClose={() => setPreview(null)} title="Post Preview">
+        {preview && (
+          <div>
+            <span className="badge badge-blog" style={{ marginBottom: 12, display: 'inline-block' }}>{preview.category}</span>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 26, marginBottom: 10 }}>{preview.title}</h3>
+            <div style={{ fontSize: 13, color: 'var(--grey-300)', marginBottom: 16, display: 'flex', gap: 16 }}>
+              <span>By {preview.author_name}</span><span>{preview.created_at?.slice(0,10)}</span><StatusBadge status={preview.status} />
+            </div>
+            <p style={{ color: 'var(--grey-300)', fontSize: 14, lineHeight: 1.7 }}>{preview.excerpt}</p>
+            {preview.content && <p style={{ color: 'var(--grey-500)', fontSize: 14, marginTop: 12, lineHeight: 1.7 }}>{preview.content}</p>}
+            {preview.review_note && <div style={{ background: 'var(--red-glow)', border: '1px solid var(--border-red)', borderRadius: 6, padding: 12, marginTop: 16, fontSize: 13 }}><strong>Review note:</strong> {preview.review_note}</div>}
+            {preview.status === 'pending' && (
+              <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+                <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { approve(preview); setPreview(null) }}><CheckCircle size={15} /> Publish</button>
+                <button className="btn btn-ghost" style={{ color: '#00b4dc', border: '1px solid rgba(0,180,220,0.3)' }} onClick={() => { setEditModal(preview); setPreview(null) }}>
+                  âœï¸ Edit first
+                </button>
+                <button className="btn btn-danger" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setRejectModal(preview); setPreview(null) }}><XCircle size={15} /> Reject</button>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* â”€â”€ EDIT MODAL â”€â”€ */}
+      {editModal && (
+        <AdminEditPostModal
+          post={editModal}
+          onClose={() => setEditModal(null)}
+          onSave={saveEdit}
+          onSaveAndApprove={async (id, updated) => {
+            await saveEdit(id, updated)
+            const { data: { session } } = await supabase.auth.getSession()
+            await supabase.from('blog_posts').update({ status: 'approved', review_note: null, reviewed_by: session.user.id, reviewed_at: new Date().toISOString() }).eq('id', id)
+            fetchPosts(); fetchPending()
+            setEditModal(null)
+          }}
+        />
+      )}
+
+      <RejectPostModal open={!!rejectModal} post={rejectModal} onClose={() => setRejectModal(null)} onReject={(p, note) => reject(p, note)} />
+      <ConfirmModal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={() => remove(confirmDelete)} title="Delete Post" message="Permanently remove this post?" danger />
+    </div>
+  )
+}
+
+// â”€â”€ Admin Edit Post Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function AdminEditPostModal({ post, onClose, onSave, onSaveAndApprove }) {
+  const [form, setForm] = useState({
+    title:    post.title    || '',
+    category: post.category || '',
+    excerpt:  post.excerpt  || '',
+    content:  post.content  || '',
+    tags:     post.tags?.join(', ') || '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const CATEGORIES = ['Music Review','News','Feature','Gossip','Playlist','Interview','Opinion','Events']
+
+  const buildPayload = () => ({
+    title:    form.title,
+    category: form.category,
+    excerpt:  form.excerpt,
+    content:  form.content,
+    tags:     form.tags.split(',').map(t => t.trim()).filter(Boolean),
+    slug:     null, // regenerate slug on save
+  })
+
+  const handleSave = async () => {
+    setSaving(true)
+    await onSave(post.id, buildPayload())
+    setSaving(false)
+  }
+
+  const handleSaveAndApprove = async () => {
+    setSaving(true)
+    await onSaveAndApprove(post.id, buildPayload())
+    setSaving(false)
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 720, maxHeight: '92vh', overflowY: 'auto' }}>
+        <div className="modal-header">
+          <div>
+            <h2 className="modal-title">Edit Post</h2>
+            <div style={{ fontSize: 12, color: 'var(--grey-500)', marginTop: 2 }}>By {post.author_name} Â· Changes are saved as admin edits</div>
+          </div>
+          <button className="btn-ghost" onClick={onClose}>âœ•</button>
+        </div>
+
+        <div style={{ background: 'rgba(0,180,220,0.08)', border: '1px solid rgba(0,180,220,0.25)', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 13, color: 'var(--grey-300)', lineHeight: 1.6 }}>
+          âœï¸ As admin you can edit this post before approving. The blogger will see the published version.
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Title</label>
+          <input className="form-control" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Category</label>
+          <select className="form-control" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
+            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Excerpt</label>
+          <textarea className="form-control" rows={3} value={form.excerpt} onChange={e => setForm(p => ({ ...p, excerpt: e.target.value }))} />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Full Content</label>
+          <RichTextEditor
+            value={form.content}
+            onChange={val => setForm(p => ({ ...p, content: val }))}
+            placeholder="Edit article content..."
+          />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Tags (comma-separated)</label>
+          <input className="form-control" value={form.tags} onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} placeholder="e.g. afrobeats, review, 2025" />
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: 8 }}>
+          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn btn-ghost" style={{ color: '#00b4dc', border: '1px solid rgba(0,180,220,0.3)' }} onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'ðŸ’¾ Save Only'}
+          </button>
+          <button className="btn btn-primary" onClick={handleSaveAndApprove} disabled={saving} style={{ gap: 8 }}>
+            <CheckCircle size={15} /> {saving ? 'Publishing...' : 'Save & Publish'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function UsersPanel() {
+  const [users, setUsers]       = useState([])
+  const [search, setSearch]     = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+
+  useEffect(() => {
+    supabase.from('profiles').select('*').neq('role', 'admin').order('created_at', { ascending: false })
+      .then(({ data }) => setUsers(data || []))
+  }, [])
+
+  const filtered = users.filter(u => {
+    const matchSearch = u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
+    const matchRole   = roleFilter === 'all' || u.role === roleFilter
+    return matchSearch && matchRole
+  })
+
+  const toggleVerify = async (u) => {
+    await supabase.from('profiles').update({ is_verified: !u.is_verified }).eq('id', u.id)
+    setUsers(prev => prev.map(p => p.id === u.id ? { ...p, is_verified: !p.is_verified } : p))
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: '1 1 260px' }}><SearchBar value={search} onChange={setSearch} placeholder="Search users..." /></div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {['all','artist','blogger'].map(r => (
+            <button key={r} className={`tab-btn ${roleFilter === r ? 'active' : ''}`} onClick={() => setRoleFilter(r)}
+              style={{ padding: '8px 14px', textTransform: 'capitalize', border: '1px solid var(--border)', borderRadius: 4 }}>{r}</button>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Role</th><th>Joined</th><th>Verified</th><th>Action</th></tr></thead>
+            <tbody>
+              {filtered.map(u => (
+                <tr key={u.id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Avatar name={u.name} size={36} />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{u.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--grey-500)' }}>{u.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span className={`badge ${u.role === 'artist' ? 'badge-music' : 'badge-blog'}`}>{u.role}</span></td>
+                  <td style={{ fontSize: 12, color: 'var(--grey-300)', fontFamily: 'var(--font-mono)' }}>{u.created_at?.slice(0,10)}</td>
+                  <td>
+                    {u.role === 'artist'
+                      ? <span className={`badge ${u.is_verified ? 'badge-approved' : 'badge-pending'}`}>{u.is_verified ? 'Verified' : 'Unverified'}</span>
+                      : <span style={{ color: 'var(--grey-500)', fontSize: 13 }}>N/A</span>}
+                  </td>
+                  <td>
+                    {u.role === 'artist' && (
+                      <button className="btn btn-secondary" onClick={() => toggleVerify(u)} style={{ fontSize: 12, padding: '6px 12px' }}>
+                        {u.is_verified ? 'Unverify' : 'Verify'}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+function VideoReview({ fetchPending }) {
+  const [videos, setVideos]           = useState([])
+  const [filter, setFilter]           = useState('pending')
+  const [search, setSearch]           = useState('')
+  const [preview, setPreview]         = useState(null)
+  const [rejectModal, setRejectModal] = useState(null)
+  const [rejectNote, setRejectNote]   = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  function getYoutubeId(url) {
+    const patterns = [/youtube\.com\/watch\?v=([^&]+)/,/youtu\.be\/([^?]+)/,/youtube\.com\/shorts\/([^?]+)/]
+    for (const p of patterns) { const m = url?.match(p); if (m) return m[1] }
+    return null
+  }
+
+  const fetchVideos = async () => {
+    let q = supabase.from('videos').select('*, profiles:uploader_id(name,email)')
+    if (filter !== 'all') q = q.eq('status', filter)
+    const { data } = await q.order('created_at', { ascending: false })
+    setVideos(data || [])
+  }
+  useEffect(() => { fetchVideos() }, [filter])
+
+  const filtered = videos.filter(v =>
+    v.title?.toLowerCase().includes(search.toLowerCase()) ||
+    v.profiles?.name?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const approve = async (v) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    await supabase.from('videos').update({ status: 'approved', review_note: null, reviewed_by: session.user.id, reviewed_at: new Date().toISOString() }).eq('id', v.id)
+    fetchVideos(); fetchPending()
+  }
+
+  const reject = async (v, note) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    await supabase.from('videos').update({ status: 'rejected', review_note: note, reviewed_by: session.user.id, reviewed_at: new Date().toISOString() }).eq('id', v.id)
+    fetchVideos(); fetchPending()
+  }
+
+  const remove = async (id) => {
+    await supabase.from('videos').delete().eq('id', id)
+    fetchVideos(); fetchPending()
+  }
+
+  return (
+    <div>
+      <div style={{ display:'flex', gap:16, marginBottom:24, flexWrap:'wrap', alignItems:'center' }}>
+        <div style={{ flex:'1 1 260px' }}><SearchBar value={search} onChange={setSearch} placeholder="Search videos..." /></div>
+        <div className="tabs" style={{ margin:0, border:'none', gap:4 }}>
+          {['pending','approved','rejected','all'].map(f => (
+            <button key={f} className={`tab-btn ${filter===f?'active':''}`} onClick={() => setFilter(f)} style={{ padding:'8px 14px', textTransform:'capitalize' }}>{f}</button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={<Video size={48} />} title="No videos here" message="Nothing matches the current filter." />
+      ) : (
+        <div className="card">
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Video</th><th>By</th><th>Type</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filtered.map(v => {
+                  const ytId = getYoutubeId(v.youtube_url)
+                  const thumb = ytId ? `https://img.youtube.com/vi/${ytId}/default.jpg` : null
+                  return (
+                    <tr key={v.id}>
+                      <td>
+                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                          <div style={{ width:64, height:40, borderRadius:4, overflow:'hidden', background:'var(--bg-surface)', flexShrink:0 }}>
+                            {thumb ? <img src={thumb} alt={v.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center' }}><Video size={16} style={{ opacity:0.3 }} /></div>}
+                          </div>
+                          <div style={{ fontWeight:600, fontSize:14, maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{v.title}</div>
+                        </div>
+                      </td>
+                      <td style={{ fontSize:14 }}>{v.profiles?.name}</td>
+                      <td>
+                        {v.youtube_url
+                          ? <span style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, color:'#ff4444' }}><Youtube size={13} /> YouTube</span>
+                          : <span style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, color:'var(--grey-300)' }}><Video size={13} /> Upload</span>
+                        }
+                      </td>
+                      <td style={{ fontSize:12, color:'var(--grey-300)', fontFamily:'var(--font-mono)' }}>{v.created_at?.slice(0,10)}</td>
+                      <td><StatusBadge status={v.status} /></td>
+                      <td>
+                        <div style={{ display:'flex', gap:6 }}>
+                          <button className="btn btn-ghost" onClick={() => setPreview(v)} style={{ padding:'6px' }}><Eye size={15} /></button>
+                          {v.status === 'pending' && <>
+                            <button className="btn" onClick={() => approve(v)} style={{ padding:'6px 10px', background:'rgba(0,200,100,0.1)', color:'#00c864', border:'1px solid rgba(0,200,100,0.3)', borderRadius:4 }}><CheckCircle size={15} /></button>
+                            <button className="btn" onClick={() => { setRejectModal(v); setRejectNote('') }} style={{ padding:'6px 10px', background:'var(--red-glow)', color:'var(--red)', border:'1px solid var(--border-red)', borderRadius:4 }}><XCircle size={15} /></button>
+                          </>}
+                          {v.status === 'rejected' && (
+                            <button className="btn" onClick={() => approve(v)} style={{ padding:'6px 10px', background:'rgba(0,200,100,0.1)', color:'#00c864', border:'1px solid rgba(0,200,100,0.3)', borderRadius:4 }}><CheckCircle size={15} /></button>
+                          )}
+                          <button className="btn btn-danger" onClick={() => setConfirmDelete(v.id)} style={{ padding:'6px' }}><Trash2 size={15} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {preview && (
+        <div className="modal-overlay" onClick={() => setPreview(null)}>
+          <div className="modal" style={{ maxWidth:680 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">{preview.title}</h2>
+              <button className="btn-ghost" onClick={() => setPreview(null)}>âœ•</button>
+            </div>
+            {preview.youtube_url && getYoutubeId(preview.youtube_url) && (
+              <div style={{ position:'relative', paddingBottom:'56.25%', height:0, marginBottom:16 }}>
+                <iframe src={`https://www.youtube.com/embed/${getYoutubeId(preview.youtube_url)}?rel=0`}
+                  style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', border:'none', borderRadius:8 }}
+                  allowFullScreen title={preview.title} />
+              </div>
+            )}
+            <div style={{ display:'flex', gap:10, alignItems:'center', marginBottom:12 }}>
+              <StatusBadge status={preview.status} />
+              <span style={{ fontSize:13, color:'var(--grey-300)' }}>By {preview.profiles?.name}</span>
+            </div>
+            {preview.description && <p style={{ color:'var(--grey-300)', fontSize:14, lineHeight:1.7 }}>{preview.description}</p>}
+            {preview.review_note && <div style={{ background:'var(--red-glow)', border:'1px solid var(--border-red)', borderRadius:6, padding:12, marginTop:16, fontSize:13 }}><strong>Review note:</strong> {preview.review_note}</div>}
+            {preview.status === 'pending' && (
+              <div style={{ display:'flex', gap:10, marginTop:24 }}>
+                <button className="btn btn-primary" style={{ flex:1, justifyContent:'center' }} onClick={() => { approve(preview); setPreview(null) }}><CheckCircle size={15} /> Approve</button>
+                <button className="btn btn-danger" style={{ flex:1, justifyContent:'center' }} onClick={() => { setRejectModal(preview); setPreview(null) }}><XCircle size={15} /> Reject</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Modal open={!!rejectModal} onClose={() => setRejectModal(null)} title="Reject Video">
+        <p style={{ color:'var(--grey-300)', marginBottom:16, fontSize:14 }}>Rejecting: <strong>{rejectModal?.title}</strong></p>
+        <div className="form-group">
+          <label className="form-label">Reason</label>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
+            {['Copyright infringement â€” video appears to belong to a third party','Inappropriate or offensive content','Poor video quality','Misleading title or description','Other (see note below)'].map(r => (
+              <label key={r} style={{ display:'flex', gap:8, alignItems:'flex-start', padding:'8px 12px', background: rejectNote===r?'var(--red-glow)':'var(--bg-surface)', border:`1px solid ${rejectNote===r?'var(--border-red)':'var(--border)'}`, borderRadius:6, cursor:'pointer' }}>
+                <input type="radio" name="vr" checked={rejectNote===r} onChange={() => setRejectNote(r)} style={{ marginTop:2, accentColor:'var(--red)' }} />
+                <span style={{ fontSize:13 }}>{r}</span>
+              </label>
+            ))}
+          </div>
+          <textarea className="form-control" rows={2} placeholder="Additional details..." value={rejectNote.startsWith('Other') ? '' : ''} onChange={e => setRejectNote(e.target.value)} />
+        </div>
+        <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+          <button className="btn btn-secondary" onClick={() => setRejectModal(null)}>Cancel</button>
+          <button className="btn btn-danger" onClick={() => { reject(rejectModal, rejectNote); setRejectModal(null) }} disabled={!rejectNote}><XCircle size={15} /> Reject Video</button>
+        </div>
+      </Modal>
+
+      <ConfirmModal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={() => remove(confirmDelete)} title="Delete Video" message="Permanently remove this video?" danger />
+    </div>
+  )
+}

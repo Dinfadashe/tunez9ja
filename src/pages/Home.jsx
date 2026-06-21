@@ -1,0 +1,254 @@
+import React, { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase.js'
+import { MusicArt } from '../components/UI.jsx'
+import { Play, TrendingUp, Mic2, Newspaper, ArrowRight, Music } from 'lucide-react'
+
+const TICKER_ITEMS = ['🎵 Afrobeats','🔥 New Drops','🎤 Artist Spotlight','📰 Latest Gist','🌍 Global Sound','🎵 Top Charts','🔥 Hot Takes','🎤 Studio Sessions']
+
+export default function Home({ setPage }) {
+  const [tracks, setTracks] = useState([])
+  const [posts, setPosts]   = useState([])
+  const [stats, setStats]   = useState({ artists: 0, tracks: 0, posts: 0 })
+
+  useEffect(() => {
+    // Fetch approved tracks
+    supabase.from('music_tracks')
+      .select('*, profiles:artist_id(name, is_verified)')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+      .limit(6)
+      .then(({ data }) => setTracks(data || []))
+
+    // Fetch approved posts
+    supabase.from('blog_posts')
+      .select('*, profiles:author_id(name)')
+      .eq('status', 'approved')
+      .order('published_at', { ascending: false })
+      .limit(3)
+      .then(({ data }) => setPosts(data || []))
+
+    // Fetch counts
+    Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'artist'),
+      supabase.from('music_tracks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+      supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+    ]).then(([a, t, p]) => setStats({ artists: a.count || 0, tracks: t.count || 0, posts: p.count || 0 }))
+  }, [])
+
+  return (
+    <div>
+      {/* ── HERO ── */}
+      <section className="hero">
+        <div className="container hero-content" style={{ paddingTop: 60, paddingBottom: 80 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
+            <div>
+              <div className="hero-eyebrow">Est. 2021 — Nigeria's Finest</div>
+              <h1 className="hero-headline">
+                THE BEAT<br />OF <span className="accent">NAIJA</span><br />ONLINE
+              </h1>
+              <p className="hero-sub">
+                Afrobeats. Highlife. Street Pop. We cover every sound shaping Nigerian music culture — new drops, artist stories, and the gist you can't miss.
+              </p>
+              <div className="hero-actions">
+                <button className="btn btn-primary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => setPage('music')}>
+                  <Play size={16} fill="white" /> Stream Music
+                </button>
+                <button className="btn btn-secondary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => setPage('blog')}>
+                  Read the Blog
+                </button>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <HeroVisual tracks={tracks} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── TICKER ── */}
+      <div className="hero-ticker">
+        <div className="ticker-inner">
+          {[...TICKER_ITEMS,...TICKER_ITEMS].map((item, i) => (
+            <span key={i} className="ticker-item">{item}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── STATS BAR ── */}
+      <div style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)', padding: '28px 0' }}>
+        <div className="container">
+          <div style={{ display: 'flex', gap: 48, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Years Online',    value: (new Date().getFullYear() - 2021) + '+' },
+              { label: 'Artists',         value: stats.artists > 0 ? stats.artists + '+' : '—' },
+              { label: 'Songs Published', value: stats.tracks > 0 ? stats.tracks + '+' : '—' },
+              { label: 'Articles',        value: stats.posts  > 0 ? stats.posts  + '+' : '—' },
+            ].map(s => (
+              <div key={s.label} style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 40, lineHeight: 1, color: 'var(--red)' }}>{s.value}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-300)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── FEATURED MUSIC ── */}
+      <section className="section">
+        <div className="container">
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
+            <div>
+              <div className="section-label"><TrendingUp size={12} style={{ display: 'inline', marginRight: 6 }} />Hot Right Now</div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 48, letterSpacing: 1 }}>LATEST DROPS</h2>
+            </div>
+            <button className="btn btn-ghost" onClick={() => setPage('music')} style={{ gap: 6 }}>All Music <ArrowRight size={15} /></button>
+          </div>
+
+          {tracks.length === 0 ? (
+            <div className="empty-state">
+              <Music size={48} />
+              <h3>No music yet</h3>
+              <p>Artists are uploading. Check back soon.</p>
+            </div>
+          ) : (
+            <div className="grid-3">
+              {tracks.map(track => <MusicCard key={track.id} track={track} setPage={setPage} />)}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── LATEST BLOG ── */}
+      <section className="section" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+        <div className="container">
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
+            <div>
+              <div className="section-label"><Newspaper size={12} style={{ display: 'inline', marginRight: 6 }} />Entertainment Desk</div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 48, letterSpacing: 1 }}>THE LATEST GIST</h2>
+            </div>
+            <button className="btn btn-ghost" onClick={() => setPage('blog')} style={{ gap: 6 }}>All Posts <ArrowRight size={15} /></button>
+          </div>
+
+          {posts.length === 0 ? (
+            <div className="empty-state"><p>No posts published yet. Check back soon.</p></div>
+          ) : (
+            <div className="grid-3">
+              {posts.map(post => <BlogCard key={post.id} post={post} setPage={setPage} />)}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── JOIN CTA ── */}
+      <section className="section">
+        <div className="container">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+            <CTA icon={<Mic2 size={32} color="var(--red)" />} title="ARE YOU AN ARTIST?"
+              desc="Upload your music for review. Get featured on Nigeria's hottest blog and reach thousands of new fans."
+              action="Upload Your Music" onClick={() => setPage('register')} />
+            <CTA icon={<Newspaper size={32} color="#00b4dc" />} title="ARE YOU A BLOGGER?"
+              desc="Share music reviews, celebrity gossip, and industry news. Your voice belongs on Tunez9ja."
+              action="Start Blogging" onClick={() => setPage('register')} accent="#00b4dc" />
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function HeroVisual({ tracks }) {
+  return (
+    <div style={{ position: 'relative', width: 320, height: 320 }}>
+      {[
+        { top: 0, left: 0, size: 200, zIndex: 2 },
+        { top: 40, left: 160, size: 160, zIndex: 1 },
+        { top: 170, left: 20, size: 140, zIndex: 1 },
+      ].map((pos, i) => (
+        <div key={i} style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.size, height: pos.size, borderRadius: 12, overflow: 'hidden', border: `2px solid ${i === 0 ? 'var(--border-red)' : 'var(--border)'}`, boxShadow: i === 0 ? '0 0 40px rgba(200,16,46,0.3)' : 'none', zIndex: pos.zIndex }}>
+          {tracks[i]?.cover_url
+            ? <img src={tracks[i].cover_url} alt={tracks[i].title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <MusicArt title={tracks[i]?.title || String.fromCharCode(84 + i)} size={pos.size} />
+          }
+        </div>
+      ))}
+      {tracks[0] && (
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(15,15,15,0.92)', backdropFilter: 'blur(8px)', border: '1px solid var(--border-red)', borderRadius: 8, padding: 12, zIndex: 3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Play size={14} fill="white" color="white" />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tracks[0].title}</div>
+              <div style={{ fontSize: 11, color: 'var(--red)' }}>{tracks[0].profiles?.name}</div>
+            </div>
+            <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-300)', flexShrink: 0 }}>{tracks[0].duration || '—'}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MusicCard({ track, setPage }) {
+  return (
+    <div className="music-card" onClick={() => setPage('music')} style={{ cursor: 'pointer' }}>
+      <div className="music-card-art" style={{ height: 200, position: 'relative', overflow: 'hidden' }}>
+        {track.cover_url
+          ? <img src={track.cover_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          : <MusicArt title={track.title} size={200} />
+        }
+        <div className="music-card-overlay">
+          <button className="player-btn" onClick={e => { e.stopPropagation(); setPage('music') }}>
+            <Play size={16} fill="white" color="white" />
+          </button>
+        </div>
+      </div>
+      <div className="music-card-body">
+        <div className="music-card-title">{track.title}</div>
+        <div className="music-card-artist">{track.profiles?.name || '—'}{track.profiles?.is_verified && ' ✅'}</div>
+        <div className="music-card-meta">
+          <span className="music-card-genre">{track.genre}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)' }}>{track.duration || '—'}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BlogCard({ post, setPage }) {
+  return (
+    <div className="blog-card" onClick={() => setPage('blog')} style={{ cursor: 'pointer' }}>
+      <div className="blog-card-img">
+        {post.cover_url
+          ? <img src={post.cover_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,var(--bg-surface),#0a0d1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Newspaper size={40} style={{ opacity: 0.2 }} />
+            </div>
+        }
+      </div>
+      <div className="blog-card-body">
+        <div className="blog-card-category">{post.category}</div>
+        <h3 className="blog-card-title">{post.title}</h3>
+        <p className="blog-card-excerpt">{post.excerpt}</p>
+        <div className="blog-card-meta">
+          <span>{post.profiles?.name || 'Tunez9ja'}</span>
+          <span>{post.published_at?.slice(0,10) || post.created_at?.slice(0,10)}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CTA({ icon, title, desc, action, onClick, accent = 'var(--red)' }) {
+  return (
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 32, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: accent }} />
+      <div style={{ marginBottom: 16 }}>{icon}</div>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 32, letterSpacing: 1, marginBottom: 12 }}>{title}</h3>
+      <p style={{ color: 'var(--grey-300)', fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>{desc}</p>
+      <button className="btn btn-primary" onClick={onClick} style={{ background: accent, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        {action} <ArrowRight size={15} />
+      </button>
+    </div>
+  )
+}
