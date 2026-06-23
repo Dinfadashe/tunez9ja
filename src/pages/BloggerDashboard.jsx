@@ -1,15 +1,18 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import { CATEGORIES } from '../context/AppContext.jsx'
 import Sidebar from '../components/Sidebar.jsx'
 import { StatusBadge, Modal, ConfirmModal, EmptyState } from '../components/UI.jsx'
 import { BlogCopyrightAgreement, DMCANotice } from '../components/CopyrightCheckbox.jsx'
+import TunezWallet from '../components/TunezWallet.jsx'
+import MyLibrary   from '../components/MyLibrary.jsx'
 import RichTextEditor from '../components/RichTextEditor.jsx'
 import CoverImagePicker from '../components/CoverImagePicker.jsx'
 import VideoUpload from '../components/VideoUpload.jsx'
 import MyVideos from '../components/MyVideos.jsx'
-import { LayoutDashboard, Newspaper, PenSquare, User, Trash2, Edit3, Eye, CheckCircle, Clock, XCircle, Video, Youtube } from 'lucide-react'
+import { LayoutDashboard, Newspaper, PenSquare, User, Trash2, Edit3, Eye, CheckCircle, Clock, XCircle, Video, Youtube, Coins, BookMarked } from 'lucide-react'
 
 const NAV = [
   { key: 'overview',    label: 'Overview',      icon: LayoutDashboard },
@@ -17,6 +20,8 @@ const NAV = [
   { key: 'write',       label: 'Write Post',    icon: PenSquare       },
   { key: 'my-videos',   label: 'My Videos',     icon: Video           },
   { key: 'video-upload',label: 'Upload Video',  icon: Youtube         },
+  { key: 'wallet',      label: 'TUNEZ Wallet',  icon: Coins           },
+  { key: 'library',     label: 'My Library',    icon: BookMarked      },
   { key: 'profile',     label: 'My Profile',    icon: User            },
 ]
 
@@ -54,6 +59,8 @@ export default function BloggerDashboard({ setPage, currentUser: propUser, onRol
           {active === 'profile'     && <BloggerProfile currentUser={currentUser} setCurrentUser={setCurrentUser} />}
           {active === 'my-videos'    && <MyVideos currentUser={currentUser} />}
           {active === 'video-upload'  && <VideoUpload currentUser={currentUser} onSuccess={() => setActive('my-videos')} />}
+          {active === 'wallet'        && <TunezWallet currentUser={currentUser} />}
+          {active === 'library'       && <MyLibrary   currentUser={currentUser} />}
         </div>
       </main>
     </div>
@@ -65,8 +72,9 @@ function BloggerOverview({ setActive, currentUser }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('blog_posts').select('*').eq('author_id', currentUser.id)
+    supabase.from('blog_posts').select('id,title,category,cover_url,status,is_premium,tunez_price,created_at,view_count').eq('author_id', currentUser.id)
       .order('created_at', { ascending: false })
+      .limit(100)
       .then(({ data }) => { setPosts(data || []); setLoading(false) })
   }, [currentUser.id])
 
@@ -99,7 +107,7 @@ function BloggerOverview({ setActive, currentUser }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{p.title}</div>
-                  <div style={{ fontSize: 12, color: 'var(--grey-500)' }}>{p.category} Â· {p.created_at?.slice(0,10)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--grey-500)' }}>{p.category} · {p.created_at?.slice(0,10)}</div>
                 </div>
                 <StatusBadge status={p.status} />
               </div>
@@ -119,7 +127,7 @@ function MyPosts({ currentUser, onEdit }) {
   const [preview, setPreview]         = useState(null)
 
   const fetchPosts = async () => {
-    const { data } = await supabase.from('blog_posts').select('*').eq('author_id', currentUser.id).order('created_at', { ascending: false })
+    const { data } = await supabase.from('blog_posts').select('id,title,category,cover_url,status,is_premium,tunez_price,created_at,view_count').eq('author_id', currentUser.id).order('created_at', { ascending: false })
     setPosts(data || []); setLoading(false)
   }
   useEffect(() => { fetchPosts() }, [currentUser.id])
@@ -147,7 +155,7 @@ function MyPosts({ currentUser, onEdit }) {
                       <td style={{ fontSize: 12, color: 'var(--grey-300)', fontFamily: 'var(--font-mono)' }}>{p.created_at?.slice(0,10)}</td>
                       <td>
                         <StatusBadge status={p.status} />
-                        {p.review_note && <div style={{ fontSize: 11, color: 'var(--grey-500)', marginTop: 4 }}>ðŸ“ {p.review_note}</div>}
+                        {p.review_note && <div style={{ fontSize: 11, color: 'var(--grey-500)', marginTop: 4 }}>📝 {p.review_note}</div>}
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -197,7 +205,9 @@ function WritePost({ currentUser, onSuccess, editingPost }) {
     content:  editingPost.content,
     tags:     editingPost.tags?.join(', ') || '',
     cover_url: editingPost.cover_url || '',
-  } : { title: '', category: '', excerpt: '', content: '', tags: '', cover_url: '' })
+    is_premium: editingPost.is_premium || false,
+    tunez_price: editingPost.tunez_price || '',
+  } : { title: '', category: '', excerpt: '', content: '', tags: '', cover_url: '', is_premium: false, tunez_price: '' })
   const [copyrightAgreed, setCopyrightAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -205,14 +215,14 @@ function WritePost({ currentUser, onSuccess, editingPost }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.title || !form.category || !form.excerpt || !form.content) {
-      setMessage('âŒ Please fill all required fields'); return
+      setMessage('❌ Please fill all required fields'); return
     }
     if (!copyrightAgreed) {
-      setMessage('âŒ Please confirm the originality declaration before submitting'); return
+      setMessage('❌ Please confirm the originality declaration before submitting'); return
     }
     setLoading(true); setMessage('')
     const tags = form.tags.split(',').map(t => t.trim()).filter(Boolean)
-    const payload = { ...form, tags, cover_url: form.cover_url || null, author_id: currentUser.id, status: 'pending' }
+    const payload = { ...form, tags, cover_url: form.cover_url || null, author_id: currentUser.id, status: 'pending', is_premium: form.is_premium, tunez_price: form.is_premium ? parseFloat(form.tunez_price) || null : null }
 
     let error
     if (editingPost) {
@@ -224,18 +234,18 @@ function WritePost({ currentUser, onSuccess, editingPost }) {
     }
 
     setLoading(false)
-    if (error) { setMessage('âŒ ' + error.message); return }
-    setMessage('âœ… ' + (editingPost ? 'Post updated and resubmitted for review!' : 'Post submitted for review!'))
+    if (error) { setMessage('❌ ' + error.message); return }
+    setMessage('✅ ' + (editingPost ? 'Post updated and resubmitted for review!' : 'Post submitted for review!'))
     setTimeout(() => onSuccess(), 1500)
   }
 
   return (
     <div style={{ maxWidth: 720 }}>
       <div style={{ background: 'rgba(0,180,220,0.08)', border: '1px solid rgba(0,180,220,0.25)', borderRadius: 8, padding: 14, marginBottom: 24, fontSize: 13, lineHeight: 1.6 }}>
-        ðŸ“ {editingPost ? 'Editing will re-submit the post for admin review.' : 'All posts require admin approval before appearing on the blog.'}
+        📝 {editingPost ? 'Editing will re-submit the post for admin review.' : 'All posts require admin approval before appearing on the blog.'}
       </div>
       {message && (
-        <div style={{ background: message.startsWith('âœ…') ? 'rgba(0,200,100,0.1)' : 'var(--red-glow)', border: `1px solid ${message.startsWith('âœ…') ? 'rgba(0,200,100,0.3)' : 'var(--border-red)'}`, borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 13 }}>
+        <div style={{ background: message.startsWith('✅') ? 'rgba(0,200,100,0.1)' : 'var(--red-glow)', border: `1px solid ${message.startsWith('✅') ? 'rgba(0,200,100,0.3)' : 'var(--border-red)'}`, borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 13 }}>
           {message}
         </div>
       )}
@@ -266,7 +276,7 @@ function WritePost({ currentUser, onSuccess, editingPost }) {
 
           <div className="form-group">
             <label className="form-label">Excerpt / Summary *</label>
-            <textarea className="form-control" rows={3} placeholder="A compelling 1â€“2 sentence summary shown on the blog listing..." value={form.excerpt} onChange={e => setForm(p => ({ ...p, excerpt: e.target.value }))} required />
+            <textarea className="form-control" rows={3} placeholder="A compelling 1–2 sentence summary shown on the blog listing..." value={form.excerpt} onChange={e => setForm(p => ({ ...p, excerpt: e.target.value }))} required />
           </div>
           <div className="form-group">
             <label className="form-label">Full Article Content *</label>
@@ -281,16 +291,40 @@ function WritePost({ currentUser, onSuccess, editingPost }) {
             <input className="form-control" placeholder="e.g. afrobeats, wizkid, 2025" value={form.tags} onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} />
           </div>
 
-          {/* â”€â”€ COPYRIGHT DECLARATION â”€â”€ */}
+          {/* ── PREMIUM TOGGLE ── */}
+          <div style={{ background: 'var(--bg-surface)', border: `1px solid ${form.is_premium ? 'rgba(255,180,0,0.4)' : 'var(--border)'}`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginBottom: form.is_premium ? 14 : 0 }}>
+              <div onClick={() => setForm(p => ({ ...p, is_premium: !p.is_premium }))}
+                style={{ width: 44, height: 24, borderRadius: 12, background: form.is_premium ? '#ffb400' : 'var(--border)', position: 'relative', transition: 'background 0.2s', flexShrink: 0, cursor: 'pointer' }}>
+                <div style={{ position: 'absolute', top: 2, left: form.is_premium ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: 'white', transition: 'left 0.2s' }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>Premium Post</div>
+                <div style={{ fontSize: 12, color: 'var(--grey-500)' }}>Charge TUNEZ tokens to read this post</div>
+              </div>
+            </label>
+            {form.is_premium && (
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">TUNEZ Price (suggested: 10–100)</label>
+                <input className="form-control" type="number" min="1" max="500" placeholder="e.g. 30"
+                  value={form.tunez_price} onChange={e => setForm(p => ({ ...p, tunez_price: e.target.value }))} />
+                <div style={{ fontSize: 11, color: 'var(--grey-500)', marginTop: 6 }}>
+                  You earn 70% · Admin earns 30% of each unlock
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── COPYRIGHT DECLARATION ── */}
           <BlogCopyrightAgreement agreed={copyrightAgreed} onChange={setCopyrightAgreed} />
 
           <button className="btn btn-primary" type="submit"
             style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: 15, opacity: copyrightAgreed ? 1 : 0.6 }}
             disabled={loading || !copyrightAgreed}>
-            {loading ? 'Submitting...' : editingPost ? 'âœ… Update & Resubmit' : 'ðŸ“ Submit for Review'}
+            {loading ? 'Submitting...' : editingPost ? '✅ Update & Resubmit' : '📝 Submit for Review'}
           </button>
 
-          {/* â”€â”€ DMCA NOTICE â”€â”€ */}
+          {/* ── DMCA NOTICE ── */}
           <DMCANotice />
         </form>
       </div>
@@ -299,31 +333,11 @@ function WritePost({ currentUser, onSuccess, editingPost }) {
 }
 
 function BloggerProfile({ currentUser, setCurrentUser }) {
-  const [form, setForm]       = useState({ name: currentUser.name || '', bio: currentUser.bio || '' })
-  const [saved, setSaved]     = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  const handleSave = async (e) => {
-    e.preventDefault(); setLoading(true)
-    const { data } = await supabase.from('profiles').update(form).eq('id', currentUser.id).select().single()
-    if (data) setCurrentUser(prev => ({ ...prev, ...data }))
-    setLoading(false); setSaved(true); setTimeout(() => setSaved(false), 2000)
-  }
-
   return (
-    <div style={{ maxWidth: 560 }}>
-      <div className="card" style={{ padding: 32 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#00b4dc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 32 }}>{currentUser.name?.[0]}</div>
-          <div><div style={{ fontFamily: 'var(--font-display)', fontSize: 26 }}>{currentUser.name}</div><div style={{ color: '#00b4dc', fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: 1 }}>BLOGGER</div></div>
-        </div>
-        <form onSubmit={handleSave}>
-          <div className="form-group"><label className="form-label">Display Name</label><input className="form-control" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
-          <div className="form-group"><label className="form-label">Bio</label><textarea className="form-control" rows={4} value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} placeholder="Tell readers about yourself..." /></div>
-          <div className="form-group"><label className="form-label">Email</label><input className="form-control" value={currentUser.email} disabled style={{ opacity: 0.5 }} /></div>
-          <button className="btn btn-primary" type="submit" style={{ width: '100%', justifyContent: 'center', padding: 13 }} disabled={loading}>{saved ? 'âœ… Saved!' : loading ? 'Saving...' : 'Save Changes'}</button>
-        </form>
-      </div>
-    </div>
+    <ProfileEditor
+      currentUser={currentUser}
+      onUpdated={(updated) => setCurrentUser(prev => ({ ...prev, ...updated }))}
+    />
   )
 }
+

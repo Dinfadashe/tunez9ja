@@ -1,5 +1,9 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import CommentsSection, { ReactionBar } from '../components/CommentsSection.jsx'
+import { earnWatch } from '../lib/tunez.js'
+import ShareButton from '../components/ShareButton.jsx'
+import { playFloatingVideo } from '../components/FloatingVideoPlayer.jsx'
+import { usePlayer } from '../context/PlayerContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { SearchBar, EmptyState } from '../components/UI.jsx'
 
@@ -104,7 +108,7 @@ export default function VideosPage({ currentUser }) {
             {playing && (
               <div style={{ marginBottom:40 }}>
                 <button className="btn btn-ghost" onClick={() => setPlaying(null)} style={{ marginBottom:16, gap:6, fontSize:13 }}>
-                  â† Back to videos
+                  ← Back to videos
                 </button>
                 <VideoPlayer video={playing} currentUser={currentUser} />
               </div>
@@ -124,6 +128,33 @@ export default function VideosPage({ currentUser }) {
 }
 
 function VideoPlayer({ video, currentUser }) {
+  const { stopPlayer } = usePlayer()
+
+  React.useEffect(() => {
+    // Stop music player when video starts
+    stopPlayer()
+    return () => {}
+  }, [video?.id])
+
+  React.useEffect(() => {
+    if (!currentUser?.id || !video?.id) return
+    const timer = setTimeout(async () => {
+      try {
+        console.log('Attempting earnWatch for:', currentUser.id, video.id, video.uploader_id)
+        const result = await earnWatch(currentUser.id, video)
+        if (result) console.log('✅ TUNEZ earned from watch:', result.userAmt)
+        else console.log('ℹ️ No TUNEZ earned (cooldown/cap/error)')
+      } catch(e) { console.error('❌ earnWatch error:', e) }
+    }, 10000) // 10s
+    return () => clearTimeout(timer)
+  }, [video?.id])
+
+  // Increment view count on open
+  useEffect(() => {
+    if (!video?.id) return
+    supabase.rpc('increment_video_views', { p_video_id: video.id }).catch(() => {})
+  }, [video?.id])
+
   const ytId = getYoutubeId(video.youtube_url)
   return (
     <div style={{ background:'var(--bg-card)', border:'1px solid var(--border-red)', borderRadius:12, overflow:'hidden' }}>
@@ -144,7 +175,10 @@ function VideoPlayer({ video, currentUser }) {
         </video>
       ) : null}
       <div style={{ padding:20 }}>
-        <h2 style={{ fontFamily:'var(--font-display)', fontSize:28, marginBottom:8 }}>{video.title}</h2>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:8 }}>
+          <h2 style={{ fontFamily:'var(--font-display)', fontSize:28, margin:0 }}>{video.title}</h2>
+          <ShareButton url={window.location.origin + '/?video=' + video.id} text={'Watch ' + video.title + ' on Tunez9ja!'} title={video.title} />
+        </div>
         <div style={{ display:'flex', alignItems:'center', gap:16, fontSize:13, color:'var(--grey-300)', marginBottom:12 }}>
           <span>{video.profiles?.name}</span>
           <span style={{ display:'flex', alignItems:'center', gap:4 }}><Eye size={13} /> {video.view_count?.toLocaleString() || 0}</span>
@@ -196,7 +230,7 @@ function FeaturedVideoCard({ video, onPlay }) {
         <h2 style={{ fontFamily:'var(--font-display)', fontSize:36, lineHeight:1.1, marginBottom:12 }}>{video.title}</h2>
         <div style={{ color:'var(--grey-300)', fontSize:14, marginBottom:16 }}>
           By <strong>{video.profiles?.name}</strong>
-          {video.profiles?.is_verified && ' âœ…'}
+          {video.profiles?.is_verified && ' ✅'}
         </div>
         {video.description && <p style={{ color:'var(--grey-500)', fontSize:13, lineHeight:1.7, marginBottom:20 }}>{video.description?.slice(0,120)}{video.description?.length > 120 ? '...' : ''}</p>}
         <div style={{ display:'flex', gap:16, fontSize:12, color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>
@@ -233,13 +267,13 @@ function VideoCard({ video, onPlay, isPlaying, currentUser }) {
           </div>
         )}
         {isPlaying && (
-          <div style={{ position:'absolute', bottom:8, left:8, background:'var(--red)', borderRadius:4, padding:'3px 8px', fontSize:10, fontFamily:'var(--font-mono)' }}>â–¶ PLAYING</div>
+          <div style={{ position:'absolute', bottom:8, left:8, background:'var(--red)', borderRadius:4, padding:'3px 8px', fontSize:10, fontFamily:'var(--font-mono)' }}>▶ PLAYING</div>
         )}
       </div>
       {/* Info */}
       <div style={{ padding:14 }}>
         <div style={{ fontWeight:700, fontSize:14, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{video.title}</div>
-        <div style={{ fontSize:12, color:'var(--grey-300)', marginBottom:8 }}>{video.profiles?.name}{video.profiles?.is_verified && ' âœ…'}</div>
+        <div style={{ fontSize:12, color:'var(--grey-300)', marginBottom:8 }}>{video.profiles?.name}{video.profiles?.is_verified && ' ✅'}</div>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:11, color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>
           <span><Eye size={11} style={{ display:'inline', marginRight:3 }} />{video.view_count?.toLocaleString() || 0}</span>
           <span>{video.created_at?.slice(0,10)}</span>

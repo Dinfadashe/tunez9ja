@@ -1,11 +1,14 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import Sidebar from '../components/Sidebar.jsx'
 import { Avatar, StatusBadge, Modal, ConfirmModal, EmptyState, SearchBar, MusicArt } from '../components/UI.jsx'
 import { RejectMusicModal, RejectPostModal } from '../components/RejectModal.jsx'
+import TunezWallet from '../components/TunezWallet.jsx'
+import ProfileEditor from '../components/ProfileEditor.jsx'
+import AdminAnalytics from '../components/AdminAnalytics.jsx'
 import RichTextEditor from '../components/RichTextEditor.jsx'
 import { StatusBadge as _SB } from '../components/UI.jsx'
-import { LayoutDashboard, Music, Newspaper, Users, CheckCircle, XCircle, Clock, Trash2, Eye, TrendingUp, Mic2, AlertCircle, Video, Youtube } from 'lucide-react'
+import { LayoutDashboard, Music, Newspaper, Users, CheckCircle, XCircle, Clock, Trash2, Eye, TrendingUp, Mic2, AlertCircle, Video, Youtube, Coins, Disc, BarChart2 } from 'lucide-react'
 
 const NAV = (pending) => [
   { key: 'overview',      label: 'Overview',       icon: LayoutDashboard },
@@ -13,6 +16,9 @@ const NAV = (pending) => [
   { key: 'posts-review',  label: 'Blog Review',    icon: Newspaper,  badge: pending.posts || null },
   { key: 'video-review',  label: 'Video Review',   icon: Video,      badge: pending.videos || null },
   { key: 'users',         label: 'Manage Users',   icon: Users },
+  { key: 'analytics',     label: 'Analytics',       icon: BarChart2, badge: null },
+  { key: 'album-review',  label: 'Albums',          icon: Disc,  badge: null },
+  { key: 'wallet',        label: 'TUNEZ Earnings',  icon: Coins, badge: null },
 ]
 
 export default function AdminDashboard({ setPage, currentUser: propUser, setCurrentUser: propSetUser, onRoleSwitch }) {
@@ -70,6 +76,9 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
           {active === 'posts-review' && <PostsReview fetchPending={fetchPending} />}
           {active === 'users'        && <UsersPanel />}
           {active === 'video-review'  && <VideoReview fetchPending={fetchPending} />}
+          {active === 'wallet'        && <TunezWallet currentUser={currentUser} />}
+          {active === 'analytics'      && <AdminAnalytics />}
+          {active === 'album-review'   && <AlbumReview />}
         </div>
       </main>
     </div>
@@ -117,12 +126,12 @@ function AdminOverview({ setActive, fetchPending }) {
     <div>
       <div className="stat-grid">
         <div className="stat-card" style={{ '--accent': 'var(--red)' }}>
-          <div className="stat-value">{stats.totalArtists ?? 'â€”'}</div>
+          <div className="stat-value">{stats.totalArtists ?? '—'}</div>
           <div className="stat-label">Artists</div>
           <Mic2 size={32} className="stat-icon" />
         </div>
         <div className="stat-card" style={{ '--accent': '#00b4dc' }}>
-          <div className="stat-value">{stats.totalBloggers ?? 'â€”'}</div>
+          <div className="stat-value">{stats.totalBloggers ?? '—'}</div>
           <div className="stat-label">Bloggers</div>
           <Newspaper size={32} className="stat-icon" />
         </div>
@@ -142,7 +151,7 @@ function AdminOverview({ setActive, fetchPending }) {
         <div className="card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>RECENT MUSIC</h3>
-            <button className="btn btn-ghost" onClick={() => setActive('music-review')} style={{ fontSize: 13 }}>View all â†’</button>
+            <button className="btn btn-ghost" onClick={() => setActive('music-review')} style={{ fontSize: 13 }}>View all →</button>
           </div>
           {recentMusic.map(m => (
             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
@@ -158,7 +167,7 @@ function AdminOverview({ setActive, fetchPending }) {
         <div className="card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>RECENT POSTS</h3>
-            <button className="btn btn-ghost" onClick={() => setActive('posts-review')} style={{ fontSize: 13 }}>View all â†’</button>
+            <button className="btn btn-ghost" onClick={() => setActive('posts-review')} style={{ fontSize: 13 }}>View all →</button>
           </div>
           {recentPosts.map(p => (
             <div key={p.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
@@ -427,7 +436,7 @@ function PostsReview({ fetchPending }) {
               <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
                 <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { approve(preview); setPreview(null) }}><CheckCircle size={15} /> Publish</button>
                 <button className="btn btn-ghost" style={{ color: '#00b4dc', border: '1px solid rgba(0,180,220,0.3)' }} onClick={() => { setEditModal(preview); setPreview(null) }}>
-                  âœï¸ Edit first
+                  ✏️ Edit first
                 </button>
                 <button className="btn btn-danger" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setRejectModal(preview); setPreview(null) }}><XCircle size={15} /> Reject</button>
               </div>
@@ -436,7 +445,7 @@ function PostsReview({ fetchPending }) {
         )}
       </Modal>
 
-      {/* â”€â”€ EDIT MODAL â”€â”€ */}
+      {/* ── EDIT MODAL ── */}
       {editModal && (
         <AdminEditPostModal
           post={editModal}
@@ -458,7 +467,7 @@ function PostsReview({ fetchPending }) {
   )
 }
 
-// â”€â”€ Admin Edit Post Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Admin Edit Post Modal ──────────────────────────────────────
 function AdminEditPostModal({ post, onClose, onSave, onSaveAndApprove }) {
   const [form, setForm] = useState({
     title:    post.title    || '',
@@ -498,13 +507,13 @@ function AdminEditPostModal({ post, onClose, onSave, onSaveAndApprove }) {
         <div className="modal-header">
           <div>
             <h2 className="modal-title">Edit Post</h2>
-            <div style={{ fontSize: 12, color: 'var(--grey-500)', marginTop: 2 }}>By {post.author_name} Â· Changes are saved as admin edits</div>
+            <div style={{ fontSize: 12, color: 'var(--grey-500)', marginTop: 2 }}>By {post.author_name} · Changes are saved as admin edits</div>
           </div>
-          <button className="btn-ghost" onClick={onClose}>âœ•</button>
+          <button className="btn-ghost" onClick={onClose}>✕</button>
         </div>
 
         <div style={{ background: 'rgba(0,180,220,0.08)', border: '1px solid rgba(0,180,220,0.25)', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 13, color: 'var(--grey-300)', lineHeight: 1.6 }}>
-          âœï¸ As admin you can edit this post before approving. The blogger will see the published version.
+          ✏️ As admin you can edit this post before approving. The blogger will see the published version.
         </div>
 
         <div className="form-group">
@@ -541,7 +550,7 @@ function AdminEditPostModal({ post, onClose, onSave, onSaveAndApprove }) {
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: 8 }}>
           <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button className="btn btn-ghost" style={{ color: '#00b4dc', border: '1px solid rgba(0,180,220,0.3)' }} onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'ðŸ’¾ Save Only'}
+            {saving ? 'Saving...' : '💾 Save Only'}
           </button>
           <button className="btn btn-primary" onClick={handleSaveAndApprove} disabled={saving} style={{ gap: 8 }}>
             <CheckCircle size={15} /> {saving ? 'Publishing...' : 'Save & Publish'}
@@ -739,7 +748,7 @@ function VideoReview({ fetchPending }) {
           <div className="modal" style={{ maxWidth:680 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">{preview.title}</h2>
-              <button className="btn-ghost" onClick={() => setPreview(null)}>âœ•</button>
+              <button className="btn-ghost" onClick={() => setPreview(null)}>✕</button>
             </div>
             {preview.youtube_url && getYoutubeId(preview.youtube_url) && (
               <div style={{ position:'relative', paddingBottom:'56.25%', height:0, marginBottom:16 }}>
@@ -769,7 +778,7 @@ function VideoReview({ fetchPending }) {
         <div className="form-group">
           <label className="form-label">Reason</label>
           <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
-            {['Copyright infringement â€” video appears to belong to a third party','Inappropriate or offensive content','Poor video quality','Misleading title or description','Other (see note below)'].map(r => (
+            {['Copyright infringement — video appears to belong to a third party','Inappropriate or offensive content','Poor video quality','Misleading title or description','Other (see note below)'].map(r => (
               <label key={r} style={{ display:'flex', gap:8, alignItems:'flex-start', padding:'8px 12px', background: rejectNote===r?'var(--red-glow)':'var(--bg-surface)', border:`1px solid ${rejectNote===r?'var(--border-red)':'var(--border)'}`, borderRadius:6, cursor:'pointer' }}>
                 <input type="radio" name="vr" checked={rejectNote===r} onChange={() => setRejectNote(r)} style={{ marginTop:2, accentColor:'var(--red)' }} />
                 <span style={{ fontSize:13 }}>{r}</span>
@@ -785,6 +794,54 @@ function VideoReview({ fetchPending }) {
       </Modal>
 
       <ConfirmModal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={() => remove(confirmDelete)} title="Delete Video" message="Permanently remove this video?" danger />
+    </div>
+  )
+}
+
+function AlbumReview() {
+  const [albums, setAlbums] = React.useState([])
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    supabase.from('albums').select('*, profiles:artist_id(name)')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { setAlbums(data || []); setLoading(false) })
+  }, [])
+
+  const updateStatus = async (id, status) => {
+    await supabase.from('albums').update({ status }).eq('id', id)
+    setAlbums(prev => prev.map(a => a.id === id ? { ...a, status } : a))
+  }
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--grey-500)' }}>Loading...</div>
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, marginBottom: 20 }}>ALBUM REVIEW</h2>
+      {albums.length === 0 ? <div style={{ color: 'var(--grey-500)', padding: 40, textAlign: 'center' }}>No albums submitted yet</div> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {albums.map(album => (
+            <div key={album.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8 }}>
+              {album.cover_url && <img src={album.cover_url} alt={album.title} style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700 }}>{album.title}</div>
+                <div style={{ fontSize: 12, color: 'var(--grey-300)' }}>{album.profiles?.name} · {album.genre}</div>
+              </div>
+              <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', padding: '3px 10px', borderRadius: 20, background: album.status === 'approved' ? 'rgba(0,200,100,0.1)' : album.status === 'rejected' ? 'var(--red-glow)' : 'rgba(255,180,0,0.1)', color: album.status === 'approved' ? '#00c864' : album.status === 'rejected' ? 'var(--red)' : '#ffb400' }}>
+                {album.status.toUpperCase()}
+              </span>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <button onClick={() => updateStatus(album.id, 'approved')} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: 12, gap: 4 }}>
+                  <CheckCircle size={12} /> Approve
+                </button>
+                <button onClick={() => updateStatus(album.id, 'rejected')} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 12, gap: 4, borderColor: 'var(--red)', color: 'var(--red)' }}>
+                  <XCircle size={12} /> Reject
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

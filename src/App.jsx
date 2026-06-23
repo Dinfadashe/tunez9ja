@@ -1,9 +1,10 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AppProvider } from './context/AppContext.jsx'
 import { PlayerProvider } from './context/PlayerContext.jsx'
 import { supabase } from './lib/supabase.js'
 import { ToastContainer } from './components/UI.jsx'
 import FloatingPlayer from './components/FloatingPlayer.jsx'
+import FloatingVideoPlayer from './components/FloatingVideoPlayer.jsx'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
 import Home from './pages/Home.jsx'
@@ -17,10 +18,118 @@ import { LoginPage, RegisterPage } from './pages/Auth.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 import ArtistDashboard from './pages/ArtistDashboard.jsx'
 import BloggerDashboard from './pages/BloggerDashboard.jsx'
+import UserDashboard    from './pages/UserDashboard.jsx'
+import SearchPage       from './pages/SearchPage.jsx'
 
-const DASHBOARD_PAGES = ['admin-dashboard', 'artist-dashboard', 'blogger-dashboard']
+const DASHBOARD_PAGES = ['admin-dashboard', 'artist-dashboard', 'blogger-dashboard', 'user-dashboard']
 const AUTH_PAGES      = ['login', 'register']
 const NO_FOOTER       = [...DASHBOARD_PAGES, ...AUTH_PAGES]
+
+
+// ── Telegram Community Popup ───────────────────────────────────
+function TelegramPopup() {
+  const [show, setShow] = useState(false)
+
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    const stored = JSON.parse(localStorage.getItem('tg_popup') || '{}')
+
+    // Reset count if it's a new day
+    if (stored.date !== today) {
+      localStorage.setItem('tg_popup', JSON.stringify({ date: today, count: 0 }))
+      stored.date  = today
+      stored.count = 0
+    }
+
+    // Only show if shown less than 2 times today
+    if (stored.count >= 2) return
+
+    const timer = setTimeout(() => setShow(true), 8000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const dismiss = (joined = false) => {
+    const today = new Date().toISOString().slice(0, 10)
+    const stored = JSON.parse(localStorage.getItem('tg_popup') || '{}')
+    const count = (stored.date === today ? stored.count : 0) + 1
+    localStorage.setItem('tg_popup', JSON.stringify({ date: today, count, joined }))
+    setShow(false)
+  }
+
+  if (!show) return null
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 24, right: 24, zIndex: 1800,
+      background: 'var(--bg-card)',
+      border: '1px solid rgba(0,136,204,0.5)',
+      borderRadius: 14,
+      padding: '20px 22px',
+      maxWidth: 320,
+      boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,136,204,0.2)',
+      animation: 'slideUpIn 0.4s ease',
+    }}>
+      <style>{`
+        @keyframes slideUpIn {
+          from { transform: translateY(20px); opacity: 0; }
+          to   { transform: translateY(0);    opacity: 1; }
+        }
+      `}</style>
+
+      {/* Close */}
+      <button onClick={dismiss} style={{
+        position: 'absolute', top: 10, right: 12,
+        background: 'none', border: 'none', color: 'var(--grey-500)',
+        cursor: 'pointer', fontSize: 18, lineHeight: 1,
+      }}>✕</button>
+
+      {/* Telegram icon */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: '50%',
+          background: 'linear-gradient(135deg, #0088cc, #00b4e6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, fontSize: 24,
+        }}>
+          ✈️
+        </div>
+        <div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, lineHeight: 1.2 }}>
+            Join the Community
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--grey-400)', marginTop: 2 }}>
+            Tunez9ja on Telegram
+          </div>
+        </div>
+      </div>
+
+      <p style={{ fontSize: 13, color: 'var(--grey-300)', lineHeight: 1.7, marginBottom: 16 }}>
+        Get exclusive drops, connect with artists, discuss music and earn bonus TUNEZ from community activities. 🎵
+      </p>
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <a href="https://t.me/+BpaRRvm53U1kZGM0" target="_blank" rel="noopener noreferrer"
+          onClick={() => dismiss(true)}
+          style={{
+            flex: 1, padding: '10px 0', borderRadius: 8, textAlign: 'center',
+            background: 'linear-gradient(135deg,#0088cc,#00b4e6)',
+            color: 'white', fontWeight: 700, fontSize: 13,
+            textDecoration: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}>
+          ✈️ Join Now
+        </a>
+        <button onClick={dismiss} style={{
+          padding: '10px 14px', borderRadius: 8,
+          background: 'transparent', border: '1px solid var(--border)',
+          color: 'var(--grey-400)', cursor: 'pointer', fontSize: 13,
+        }}>
+          Later
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function AppInner() {
   const [page, setPage]             = useState('home')
@@ -29,7 +138,7 @@ function AppInner() {
   const [authReady, setAuthReady]   = useState(false)
 
   useEffect(() => {
-    const timeout = setTimeout(() => setAuthReady(true), 4000)
+    const timeout = setTimeout(() => setAuthReady(true), 1500)
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(timeout)
@@ -38,8 +147,27 @@ function AppInner() {
     }).catch(() => { clearTimeout(timeout); setAuthReady(true) })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') { setProfile(null); setActiveRole(null); setPage('home') }
-      if (event === 'SIGNED_IN' && session?.user) await loadProfile(session.user.id)
+      // Only act on explicit signout — ignore TOKEN_REFRESHED, INITIAL_SESSION etc
+      if (event === 'SIGNED_OUT') {
+        // Double-check: confirm session is truly gone before logging out
+        const { data: { session: currentSession } } = await supabase.auth.getSession()
+        if (!currentSession) {
+          sessionStorage.removeItem('t9_profile')
+          setProfile(null)
+          setActiveRole(null)
+          setPage('home')
+        }
+        // If session still exists, ignore this event (it was a false SIGNED_OUT)
+      }
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+        // Only reload if we don't have a profile yet
+        setProfile(prev => {
+          if (!prev) {
+            loadProfile(session.user.id)
+          }
+          return prev
+        })
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -49,39 +177,73 @@ function AppInner() {
 
   const loadProfile = async (userId) => {
     try {
+      // Try cache first for instant load
+      const cached = sessionStorage.getItem('t9_profile')
+      if (cached) {
+        const p = JSON.parse(cached)
+        if (p.id === userId) {
+          setProfile(p)
+          setActiveRole(p.active_role || p.role || 'user')
+          setAuthReady(true)
+          // Refresh in background silently
+          supabase.from('profiles').select('*').eq('id', userId).single()
+            .then(({ data }) => {
+              if (data) {
+                const updated = { ...data, active_role: data.active_role || data.role || 'user' }
+                setProfile(updated)
+                setActiveRole(updated.active_role)
+                sessionStorage.setItem('t9_profile', JSON.stringify(updated))
+              }
+            }).catch(() => {})
+          return
+        }
+      }
+      // No cache — fetch fresh
       const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
       if (data) {
-        const role = data.active_role || data.role || 'artist'
-        setProfile({ ...data, active_role: role })
+        const role = data.active_role || data.role || 'user'
+        const p = { ...data, active_role: role }
+        setProfile(p)
         setActiveRole(role)
+        sessionStorage.setItem('t9_profile', JSON.stringify(p))
       }
-    } catch (e) {}
+    } catch (e) { console.error('loadProfile error:', e) }
     setAuthReady(true)
   }
 
   const handleRoleSwitch = async (newRole) => {
+    // Update local state first for instant response
     setActiveRole(newRole)
     setProfile(prev => ({ ...prev, active_role: newRole }))
-    await supabase.from('profiles').update({ active_role: newRole }).eq('id', profile.id)
+    // Update cache and DB in background
+    const updated = { ...profile, active_role: newRole }
+    sessionStorage.setItem('t9_profile', JSON.stringify(updated))
+    supabase.from('profiles').update({ active_role: newRole }).eq('id', profile.id)
+      .then(() => {}).catch(() => {})
+    // Navigate to correct dashboard
     if (newRole === 'admin')        setPage('admin-dashboard')
     else if (newRole === 'artist')  setPage('artist-dashboard')
     else if (newRole === 'blogger') setPage('blogger-dashboard')
+    else if (newRole === 'user')    setPage('user-dashboard')
   }
 
-  if (!authReady) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-      <svg width="56" height="56" viewBox="0 0 200 200" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
-        <circle cx="100" cy="100" r="90" fill="none" stroke="#c8102e" strokeWidth="10" strokeDasharray="180 380" strokeLinecap="round" />
-      </svg>
-      <style>{`@keyframes spin { from{transform:rotate(0deg)}to{transform:rotate(360deg)} }`}</style>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)', letterSpacing: 4 }}>LOADING...</span>
-    </div>
-  )
+  // Show home page immediately while auth resolves in background
+  if (!authReady && !profile) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <svg width="48" height="48" viewBox="0 0 200 200" fill="none" style={{ animation: 'spin 0.8s linear infinite', display: 'block', margin: '0 auto 12px' }}>
+            <circle cx="100" cy="100" r="90" fill="none" stroke="#c8102e" strokeWidth="12" strokeDasharray="180 380" strokeLinecap="round" />
+          </svg>
+          <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+        </div>
+      </div>
+    )
+  }
 
   const safePage = (() => {
-    if (page === 'admin-dashboard'   && activeRole !== 'admin')   return 'login'
-    if (page === 'artist-dashboard'  && activeRole !== 'artist')  return 'login'
-    if (page === 'blogger-dashboard' && activeRole !== 'blogger') return 'login'
+    // Only redirect to login if user is not authenticated at all
+    if (DASHBOARD_PAGES.includes(page) && !profile) return 'login'
     return page
   })()
 
@@ -101,6 +263,7 @@ function AppInner() {
         {safePage === 'videos'            && <VideosPage currentUser={profile} />}
         {safePage === 'blog'              && <BlogPage currentUser={profile} />}
         {safePage === 'about'             && <AboutPage setPage={setPage} />}
+        {safePage === 'search'            && <SearchPage setPage={setPage} currentUser={profile} />}
         {safePage === 'terms'             && <TermsPage />}
         {safePage === 'privacy'           && <PrivacyPage />}
         {safePage === 'login'             && <LoginPage setPage={setPage} setProfile={setProfile} setActiveRole={setActiveRole} />}
@@ -108,15 +271,24 @@ function AppInner() {
         {safePage === 'admin-dashboard'   && <AdminDashboard   {...dashboardProps} />}
         {safePage === 'artist-dashboard'  && <ArtistDashboard  {...dashboardProps} />}
         {safePage === 'blogger-dashboard' && <BloggerDashboard {...dashboardProps} />}
+        {safePage === 'user-dashboard'    && <UserDashboard    {...dashboardProps} />}
       </main>
       {!NO_FOOTER.includes(safePage) && <Footer setPage={setPage} />}
 
-      {/* Floating player â€” renders on ALL pages, survives navigation */}
+      {/* Floating player — renders on ALL pages, survives navigation */}
       <FloatingPlayer currentUser={profile} />
+      <FloatingVideoPlayer />
+      <TelegramPopup />
       <ToastContainer />
     </div>
   )
 }
+
+
+const ALLOWED_PAGES = new Set([
+  'home','music','videos','blog','about','login','terms','privacy','search',
+  'admin-dashboard','artist-dashboard','blogger-dashboard','user-dashboard'
+])
 
 export default function App() {
   return (

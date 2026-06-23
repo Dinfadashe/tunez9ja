@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Image, Upload, X, Check } from 'lucide-react'
 
@@ -71,8 +71,8 @@ export default function CoverImagePicker({ value, onChange, postContent }) {
           >
             <input id="cover-upload-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} />
             <Upload size={20} style={{ margin: '0 auto 8px', color: 'var(--grey-500)' }} />
-            <div style={{ fontSize: 13, color: 'var(--grey-300)' }}>{uploading ? 'â³ Uploading...' : 'Upload cover image'}</div>
-            <div style={{ fontSize: 11, color: 'var(--grey-500)', marginTop: 4 }}>JPG, PNG, WebP â€” max 5MB</div>
+            <div style={{ fontSize: 13, color: 'var(--grey-300)' }}>{uploading ? '⏳ Uploading...' : 'Upload cover image'}</div>
+            <div style={{ fontSize: 11, color: 'var(--grey-500)', marginTop: 4 }}>JPG, PNG, WebP — max 5MB</div>
           </div>
 
           {/* Pick from post images */}
@@ -100,7 +100,7 @@ export default function CoverImagePicker({ value, onChange, postContent }) {
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 28, width: '100%', maxWidth: 560, maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>Choose Cover Image</h3>
-              <button type="button" onClick={() => setShowPicker(false)} style={{ background: 'none', border: 'none', color: 'var(--grey-500)', cursor: 'pointer', fontSize: 20 }}>âœ•</button>
+              <button type="button" onClick={() => setShowPicker(false)} style={{ background: 'none', border: 'none', color: 'var(--grey-500)', cursor: 'pointer', fontSize: 20 }}>✕</button>
             </div>
 
             {postImages.length === 0 ? (

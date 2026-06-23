@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 
 const PlayerContext = createContext(null)
@@ -93,7 +93,7 @@ export function PlayerProvider({ children }) {
     }
   }, [audioUrl])
 
-  // Media Session API â€” shows track info on phone lock screen / notification
+  // Media Session API — shows track info on phone lock screen / notification
   useEffect(() => {
     if (!nowPlaying || !('mediaSession' in navigator)) return
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -116,7 +116,7 @@ export function PlayerProvider({ children }) {
       audioRef, showInfo, setShowInfo, minimized, setMinimized,
       playTrack, stopPlayer, skipNext, skipPrev, seekTo, togglePlay, queue,
     }}>
-      {/* Single global audio element â€” lives here, never unmounts */}
+      {/* Single global audio element — lives here, never unmounts */}
       <audio
         ref={audioRef}
         preload="auto"

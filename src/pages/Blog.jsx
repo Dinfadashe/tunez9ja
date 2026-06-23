@@ -1,13 +1,32 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import CommentsSection, { ReactionBar } from '../components/CommentsSection.jsx'
+import ShareButton from '../components/ShareButton.jsx'
+import { earnRead, isUnlocked } from '../lib/tunez.js'
+import PremiumUnlockModal from '../components/PremiumUnlockModal.jsx'
 import { supabase } from '../lib/supabase.js'
 
 import { SearchBar, EmptyState } from '../components/UI.jsx'
 import { Newspaper, Clock, User, ArrowLeft } from 'lucide-react'
 
+// Simple HTML sanitizer — strips dangerous tags/attrs before render
+function sanitizeHTML(html) {
+  if (!html) return ''
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+    .replace(/<object[\s\S]*?<\/object>/gi, '')
+    .replace(/<embed[\s\S]*?>/gi, '')
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/javascript:/gi, '')
+    .replace(/data:text\/html/gi, '')
+}
+
+
+
 const CATEGORIES = ['Music Review','News','Feature','Gossip','Playlist','Interview','Opinion','Events']
 
 export default function BlogPage({ currentUser }) {
+  const [unlockTarget, setUnlockTarget] = useState(null)
   const [posts, setPosts]               = useState([])
   const [loading, setLoading]           = useState(true)
   const [search, setSearch]             = useState('')
@@ -115,7 +134,13 @@ export default function BlogPage({ currentUser }) {
             {rest.length > 0 && (
               <div className="grid-3">
                 {rest.map(post => (
-                  <div key={post.id} className="blog-card" onClick={() => setSelectedPost(post)} style={{ cursor: 'pointer' }}>
+                  <div key={post.id} className="blog-card" onClick={async () => {
+                  if (post.is_premium) {
+                    const unlocked = await isUnlocked(currentUser?.id, post.id)
+                    if (!unlocked) { setUnlockTarget(post); return }
+                  }
+                  setSelectedPost(post)
+                }} style={{ cursor: 'pointer' }}>
                     <div className="blog-card-img">
                       {post.cover_url
                         ? <img src={post.cover_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -125,12 +150,15 @@ export default function BlogPage({ currentUser }) {
                       }
                     </div>
                     <div className="blog-card-body">
-                      <div className="blog-card-category">{post.category}</div>
+                      <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:10 }}>
+                        <div className="blog-card-category" style={{margin:0}}>{post.category}</div>
+                        {post.is_premium && <span style={{ fontSize:10, fontFamily:'var(--font-mono)', padding:'2px 8px', borderRadius:20, background:'rgba(255,180,0,0.15)', color:'#ffb400', border:'1px solid rgba(255,180,0,0.3)' }}>💎 {post.tunez_price}T</span>}
+                      </div>
                       <h3 className="blog-card-title">{post.title}</h3>
                       <p className="blog-card-excerpt">{post.excerpt}</p>
-                      <div style={{ marginBottom: 10 }}><ReactionBar targetType="post" targetId={post.id} currentUser={currentUser} compact /></div>
       <div className="blog-card-meta">
                         <span>{post.profiles?.name || 'Tunez9ja'}</span>
+                        <span style={{ display:'flex', alignItems:'center', gap:4 }}>👁 {post.view_count?.toLocaleString() || 0}</span>
                         <span>{post.published_at?.slice(0,10) || post.created_at?.slice(0,10)}</span>
                       </div>
                       <div style={{ marginTop: 10 }}>
@@ -144,6 +172,16 @@ export default function BlogPage({ currentUser }) {
           </>
         )}
       </div>
+      {unlockTarget && (
+        <PremiumUnlockModal
+          content={unlockTarget}
+          contentType="post"
+          currentUser={currentUser}
+          onClose={() => setUnlockTarget(null)}
+          onUnlocked={() => { setSelectedPost(unlockTarget); setUnlockTarget(null) }}
+          setPage={() => {}}
+        />
+      )}
     </div>
   )
 }
@@ -151,9 +189,19 @@ export default function BlogPage({ currentUser }) {
 function PostDetail({ post, onBack, currentUser }) {
   useEffect(() => {
     window.scrollTo(0, 0)
-    // Increment view count â€” ignore errors
     supabase.rpc('increment_view_count', { p_post_id: post.id })
       .then(() => {}).catch(() => {})
+
+    // Earn TUNEZ after 15s of reading
+    if (!currentUser?.id) return
+    const timer = setTimeout(async () => {
+      try {
+        const result = await earnRead(currentUser.id, post)
+        if (result) console.log('✅ TUNEZ earned from read:', result.userAmt)
+        else console.log('ℹ️ No TUNEZ earned (cooldown/cap)')
+      } catch(e) { console.error('❌ earnRead error:', e) }
+    }, 15000)
+    return () => clearTimeout(timer)
   }, [post.id])
 
   if (!post) return null
@@ -183,9 +231,12 @@ function PostDetail({ post, onBack, currentUser }) {
           </div>
 
           {/* Title */}
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px,5vw,52px)', letterSpacing: 0.5, lineHeight: 1.08, marginBottom: 20, color: 'var(--white)' }}>
-            {post.title}
-          </h1>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, marginBottom:20 }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px,5vw,52px)', letterSpacing: 0.5, lineHeight: 1.08, color: 'var(--white)' }}>
+              {post.title}
+            </h1>
+            <ShareButton url={window.location.origin + '/?post=' + post.id} text={'Read ' + post.title + ' on Tunez9ja!'} title={post.title} />
+          </div>
 
           {/* Meta */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, color: 'var(--grey-500)', fontSize: 13, fontFamily: 'var(--font-mono)', flexWrap: 'wrap' }}>
@@ -197,6 +248,9 @@ function PostDetail({ post, onBack, currentUser }) {
                 <Clock size={13} /> {date}
               </span>
             )}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Eye size={13} /> {post.view_count?.toLocaleString() || 0} views
+            </span>
           </div>
         </div>
       </div>
@@ -227,7 +281,7 @@ function PostDetail({ post, onBack, currentUser }) {
         {content ? (
           <div
             className="post-content"
-            dangerouslySetInnerHTML={{ __html: content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHTML(content) }}
             style={{ fontSize: 16, color: 'var(--grey-300)', lineHeight: 2 }}
           />
         ) : (
@@ -262,9 +316,6 @@ function PostDetail({ post, onBack, currentUser }) {
           <span style={{ fontSize: 13, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)' }}>Was this helpful?</span>
           <ReactionBar targetType="post" targetId={post.id} currentUser={currentUser} />
         </div>
-
-        {/* Comments */}
-        <CommentsSection targetType="post" targetId={post.id} currentUser={currentUser} />
 
         <button onClick={onBack}
           style={{ marginTop: 48, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--grey-300)', cursor: 'pointer', fontSize: 14, transition: 'all 0.2s' }}

@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import { GENRES } from '../context/AppContext.jsx'
 import Sidebar from '../components/Sidebar.jsx'
 import { MusicArt, StatusBadge, Modal, ConfirmModal, EmptyState } from '../components/UI.jsx'
 import { MusicCopyrightAgreement, DMCANotice } from '../components/CopyrightCheckbox.jsx'
+import TunezWallet from '../components/TunezWallet.jsx'
+import AlbumManager from '../components/AlbumManager.jsx'
+import MyLibrary   from '../components/MyLibrary.jsx'
 import VideoUpload from '../components/VideoUpload.jsx'
 import MyVideos from '../components/MyVideos.jsx'
-import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube } from 'lucide-react'
+import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube, Coins, BookMarked, Disc } from 'lucide-react'
 
 const NAV = [
   { key: 'overview',   label: 'Overview',      icon: LayoutDashboard },
@@ -15,6 +19,9 @@ const NAV = [
   { key: 'upload',     label: 'Upload Track',  icon: Upload          },
   { key: 'my-videos',  label: 'My Videos',     icon: Video           },
   { key: 'video-upload', label: 'Upload Video',icon: Youtube         },
+  { key: 'albums',     label: 'My Albums',     icon: Disc            },
+  { key: 'wallet',     label: 'TUNEZ Wallet',  icon: Coins           },
+  { key: 'library',    label: 'My Library',    icon: BookMarked      },
   { key: 'profile',    label: 'My Profile',    icon: User            },
 ]
 
@@ -45,6 +52,9 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
           {active === 'profile'    && <ArtistProfile currentUser={currentUser} setCurrentUser={setCurrentUser} />}
           {active === 'my-videos'   && <MyVideos currentUser={currentUser} />}
           {active === 'video-upload' && <VideoUpload currentUser={currentUser} onSuccess={() => setActive('my-videos')} />}
+          {active === 'albums'       && <AlbumManager currentUser={currentUser} />}
+          {active === 'wallet'       && <TunezWallet currentUser={currentUser} />}
+          {active === 'library'      && <MyLibrary   currentUser={currentUser} />}
         </div>
       </main>
     </div>
@@ -56,8 +66,9 @@ function ArtistOverview({ setActive, currentUser }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('music_tracks').select('*').eq('artist_id', currentUser.id)
+    supabase.from('music_tracks').select('id,title,genre,cover_url,audio_url,duration,play_count,status,is_premium,tunez_price,created_at').eq('artist_id', currentUser.id)
       .order('created_at', { ascending: false })
+      .limit(100)
       .then(({ data }) => { setTracks(data || []); setLoading(false) })
   }, [currentUser.id])
 
@@ -69,7 +80,7 @@ function ArtistOverview({ setActive, currentUser }) {
   return (
     <div>
       <div style={{ background: 'linear-gradient(135deg,var(--bg-card),#1a0a0d)', border: '1px solid var(--border-red)', borderRadius: 12, padding: 28, marginBottom: 28, display: 'flex', alignItems: 'center', gap: 20 }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 28 }}>{currentUser.name?.[0]}</div>
+        <Avatar profile={currentUser} size={64} />
         <div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 32 }}>{currentUser.name}</div>
           <div style={{ color: 'var(--red)', fontSize: 13, fontFamily: 'var(--font-mono)' }}>{currentUser.genre || 'Artist'} {currentUser.is_verified && '· ✅ Verified'}</div>
@@ -109,7 +120,7 @@ function MyMusic({ currentUser }) {
   const [preview, setPreview] = useState(null)
 
   const fetchTracks = async () => {
-    const { data } = await supabase.from('music_tracks').select('*').eq('artist_id', currentUser.id).order('created_at', { ascending: false })
+    const { data } = await supabase.from('music_tracks').select('id,title,genre,cover_url,audio_url,duration,play_count,status,is_premium,tunez_price,created_at').eq('artist_id', currentUser.id).order('created_at', { ascending: false })
     setTracks(data || []); setLoading(false)
   }
   useEffect(() => { fetchTracks() }, [currentUser.id])
@@ -174,7 +185,7 @@ const MAX_COVER_SIZE_MB = 5
 const ALLOWED_IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp']
 
 function UploadTrack({ currentUser, onSuccess }) {
-  const [form, setForm] = useState({ title: '', genre: '', duration: '', description: '', tags: '' })
+  const [form, setForm] = useState({ title: '', genre: '', duration: '', description: '', tags: '', is_premium: false, tunez_price: '' })
   const [audioFile, setAudioFile] = useState(null)
   const [coverFile, setCoverFile] = useState(null)
   const [copyrightAgreed, setCopyrightAgreed] = useState(false)
@@ -284,6 +295,8 @@ function UploadTrack({ currentUser, onSuccess }) {
       cover_url,
       status:      'pending',
       play_count:  0,
+      is_premium:  form.is_premium,
+      tunez_price: form.is_premium ? parseFloat(form.tunez_price) || null : null,
     })
     setLoading(false)
     if (error) { setMessage('❌ ' + error.message); return }
@@ -419,6 +432,30 @@ function UploadTrack({ currentUser, onSuccess }) {
             <input className="form-control" placeholder="e.g. afrobeats, love, summer" value={form.tags} onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} />
           </div>
 
+          {/* ── PREMIUM TOGGLE ── */}
+          <div style={{ background: 'var(--bg-surface)', border: `1px solid ${form.is_premium ? 'rgba(255,180,0,0.4)' : 'var(--border)'}`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginBottom: form.is_premium ? 14 : 0 }}>
+              <div onClick={() => setForm(p => ({ ...p, is_premium: !p.is_premium }))}
+                style={{ width: 44, height: 24, borderRadius: 12, background: form.is_premium ? '#ffb400' : 'var(--border)', position: 'relative', transition: 'background 0.2s', flexShrink: 0, cursor: 'pointer' }}>
+                <div style={{ position: 'absolute', top: 2, left: form.is_premium ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: 'white', transition: 'left 0.2s' }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>Premium Track</div>
+                <div style={{ fontSize: 12, color: 'var(--grey-500)' }}>Charge TUNEZ tokens to unlock this track</div>
+              </div>
+            </label>
+            {form.is_premium && (
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">TUNEZ Price (suggested: 20–200)</label>
+                <input className="form-control" type="number" min="1" max="500" placeholder="e.g. 50"
+                  value={form.tunez_price} onChange={e => setForm(p => ({ ...p, tunez_price: e.target.value }))} />
+                <div style={{ fontSize: 11, color: 'var(--grey-500)', marginTop: 6 }}>
+                  You earn 70% · Admin earns 30% of each unlock
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* ── COPYRIGHT DECLARATION ── */}
           <MusicCopyrightAgreement agreed={copyrightAgreed} onChange={setCopyrightAgreed} />
 
@@ -437,32 +474,12 @@ function UploadTrack({ currentUser, onSuccess }) {
 }
 
 function ArtistProfile({ currentUser, setCurrentUser }) {
-  const [form, setForm] = useState({ name: currentUser.name || '', bio: currentUser.bio || '', genre: currentUser.genre || '' })
-  const [saved, setSaved] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  const handleSave = async (e) => {
-    e.preventDefault(); setLoading(true)
-    const { data } = await supabase.from('profiles').update(form).eq('id', currentUser.id).select().single()
-    if (data) setCurrentUser(prev => ({ ...prev, ...data }))
-    setLoading(false); setSaved(true); setTimeout(() => setSaved(false), 2000)
-  }
-
   return (
-    <div style={{ maxWidth: 560 }}>
-      <div className="card" style={{ padding: 32 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 32 }}>{currentUser.name?.[0]}</div>
-          <div><div style={{ fontFamily: 'var(--font-display)', fontSize: 26 }}>{currentUser.name}</div><div style={{ color: 'var(--red)', fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: 1 }}>ARTIST {currentUser.is_verified ? '· ✅ VERIFIED' : ''}</div></div>
-        </div>
-        <form onSubmit={handleSave}>
-          <div className="form-group"><label className="form-label">Stage Name</label><input className="form-control" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
-          <div className="form-group"><label className="form-label">Primary Genre</label><select className="form-control" value={form.genre} onChange={e => setForm(p => ({ ...p, genre: e.target.value }))}><option value="">Select genre</option>{GENRES.map(g => <option key={g}>{g}</option>)}</select></div>
-          <div className="form-group"><label className="form-label">Bio</label><textarea className="form-control" rows={4} value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} placeholder="Tell your fans about yourself..." /></div>
-          <div className="form-group"><label className="form-label">Email</label><input className="form-control" value={currentUser.email} disabled style={{ opacity: 0.5 }} /></div>
-          <button className="btn btn-primary" type="submit" style={{ width: '100%', justifyContent: 'center', padding: 13 }} disabled={loading}>{saved ? '✅ Saved!' : loading ? 'Saving...' : 'Save Changes'}</button>
-        </form>
-      </div>
-    </div>
+    <ProfileEditor
+      currentUser={currentUser}
+      onUpdated={(updated) => setCurrentUser(prev => ({ ...prev, ...updated }))}
+    />
   )
 }
+
+

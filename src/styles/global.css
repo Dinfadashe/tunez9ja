@@ -1,4 +1,4 @@
-﻿/* ===== TUNEZ9JA DESIGN SYSTEM ===== */
+/* ===== TUNEZ9JA DESIGN SYSTEM ===== */
 :root {
   --bg-deep: #0f0f0f;
   --bg-card: #1a1a1a;
@@ -222,7 +222,7 @@ tbody tr:last-child td { border-bottom: none; }
 .footer-link:hover { color: var(--red); }
 .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 24px; border-top: 1px solid var(--border); font-size: 12px; color: var(--grey-500); font-family: var(--font-mono); }
 
-/* â”€â”€ RESPONSIVE â”€â”€ */
+/* ── RESPONSIVE ── */
 @media (max-width: 1024px) { .stat-grid { grid-template-columns: repeat(2,1fr); } }
 @media (max-width: 900px) {
   .grid-3 { grid-template-columns: repeat(2,1fr); }
@@ -261,3 +261,53 @@ tbody tr:last-child td { border-bottom: none; }
   .stat-value { font-size: 28px; }
 }
 button { touch-action: manipulation; }
+
+.music-card:hover .card-play-overlay, div:hover > div > .card-play-overlay { opacity: 1 !important; }
+
+/* ── Light Mode ─────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-deep:    #f4f4f4;
+  --bg-surface: #e8e8e8;
+  --bg-card:    #ffffff;
+  --bg-hover:   #f0f0f0;
+  --white:      #111111;
+  --grey-300:   #333333;
+  --grey-400:   #555555;
+  --grey-500:   #777777;
+  --grey-600:   #999999;
+  --border:     rgba(0,0,0,0.12);
+  --border-red: rgba(200,16,46,0.4);
+  --red-glow:   rgba(200,16,46,0.06);
+  --shadow:     0 4px 24px rgba(0,0,0,0.08);
+}
+[data-theme="light"] nav,
+[data-theme="light"] .navbar {
+  background: rgba(255,255,255,0.95) !important;
+  border-bottom: 1px solid rgba(0,0,0,0.1) !important;
+}
+[data-theme="light"] .sidebar {
+  background: #1a1a1a;
+}
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background: #fff !important;
+  color: #111 !important;
+  border-color: rgba(0,0,0,0.2) !important;
+}
+
+/* ── Skeleton loading ─────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-hover) 50%, var(--bg-surface) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+}
+.skeleton-text  { height: 14px; width: 70%; margin-bottom: 8px; }
+.skeleton-title { height: 22px; width: 50%; margin-bottom: 12px; }
+.skeleton-img   { width: 100%; padding-bottom: 100%; }
+.skeleton-card  { border-radius: 10px; height: 80px; width: 100%; margin-bottom: 8px; }

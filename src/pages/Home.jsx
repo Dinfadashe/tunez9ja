@@ -191,24 +191,54 @@ function HeroVisual({ tracks }) {
 
 function MusicCard({ track, setPage }) {
   return (
-    <div className="music-card" onClick={() => setPage('music')} style={{ cursor: 'pointer' }}>
-      <div className="music-card-art" style={{ height: 200, position: 'relative', overflow: 'hidden' }}>
-        {track.cover_url
-          ? <img src={track.cover_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          : <MusicArt title={track.title} size={200} />
-        }
-        <div className="music-card-overlay">
-          <button className="player-btn" onClick={e => { e.stopPropagation(); setPage('music') }}>
-            <Play size={16} fill="white" color="white" />
-          </button>
+    <div onClick={() => setPage('music')} style={{
+      cursor: 'pointer', borderRadius: 12, overflow: 'hidden',
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
+      transition: 'all 0.3s',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.transform='translateY(-4px)'; e.currentTarget.style.borderColor='var(--border-red)'; e.currentTarget.style.boxShadow='0 8px 32px rgba(200,16,46,0.2)' }}
+      onMouseLeave={e => { e.currentTarget.style.transform='none'; e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.boxShadow='none' }}
+    >
+      {/* Cover art — uses padding trick for perfect square */}
+      <div style={{ position: 'relative', width: '100%', paddingBottom: '100%', background: '#000', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0 }}>
+          {track.cover_url
+            ? <div style={{
+                width: '100%', height: '100%',
+                backgroundImage: 'url(' + track.cover_url + ')',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                transition: 'transform 0.4s ease',
+              }}
+                onMouseEnter={e => e.currentTarget.style.transform='scale(1.06)'}
+                onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}
+              />
+            : <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#1a0a0d,#0a0d1a)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <MusicArt title={track.title} size={120} />
+              </div>
+          }
+          {/* Hover play overlay */}
+          <div className="card-play-overlay" style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'opacity 0.2s' }}>
+            <div style={{ width:56, height:56, borderRadius:'50%', background:'var(--red)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 24px rgba(200,16,46,0.6)' }}>
+              <Play size={24} fill="white" color="white" style={{ marginLeft:3 }} />
+            </div>
+          </div>
+          {/* Genre badge */}
+          <div style={{ position:'absolute', top:10, right:10, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', borderRadius:20, padding:'3px 10px', fontSize:10, fontFamily:'var(--font-mono)', color:'var(--grey-300)', letterSpacing:1 }}>
+            {track.genre}
+          </div>
         </div>
       </div>
-      <div className="music-card-body">
-        <div className="music-card-title">{track.title}</div>
-        <div className="music-card-artist">{track.profiles?.name || '—'}{track.profiles?.is_verified && ' ✅'}</div>
-        <div className="music-card-meta">
-          <span className="music-card-genre">{track.genre}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)' }}>{track.duration || '—'}</span>
+
+      {/* Info */}
+      <div style={{ padding:'14px 16px 16px' }}>
+        <div style={{ fontWeight:700, fontSize:15, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{track.title}</div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <span style={{ fontSize:13, color:'var(--red)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            {track.profiles?.name || '—'}{track.profiles?.is_verified && ' ✅'}
+          </span>
+          <span style={{ fontSize:12, color:'var(--grey-500)', fontFamily:'var(--font-mono)', flexShrink:0, marginLeft:8 }}>{track.duration || '—'}</span>
         </div>
       </div>
     </div>

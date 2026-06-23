@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react'
+import React, { useState } from 'react'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import {
   Play, Pause, SkipBack, SkipForward, X,
@@ -22,7 +22,7 @@ export default function FloatingPlayer({ currentUser }) {
 
   return (
     <>
-      {/* â”€â”€ FULL PLAYER BAR (bottom) â”€â”€ */}
+      {/* ── FULL PLAYER BAR (bottom) ── */}
       {!minimized && (
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 500,
@@ -31,7 +31,7 @@ export default function FloatingPlayer({ currentUser }) {
         }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
 
-            {/* Cover + track info â€” click to open detail */}
+            {/* Cover + track info — click to open detail */}
             <div onClick={() => setShowInfo(true)} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: '0 0 auto', minWidth: 0, width: 'clamp(140px, 25%, 220px)' }}>
               <div style={{ width: 44, height: 44, borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
                 {nowPlaying.cover_url
@@ -86,7 +86,7 @@ export default function FloatingPlayer({ currentUser }) {
         </div>
       )}
 
-      {/* â”€â”€ MINI FLOATING BUBBLE (when minimized) â”€â”€ */}
+      {/* ── MINI FLOATING BUBBLE (when minimized) ── */}
       {minimized && (
         <MiniPlayer
           nowPlaying={nowPlaying}
@@ -98,7 +98,7 @@ export default function FloatingPlayer({ currentUser }) {
         />
       )}
 
-      {/* â”€â”€ TRACK INFO MODAL â”€â”€ */}
+      {/* ── TRACK INFO MODAL ── */}
       {showInfo && (
         <TrackInfoModal
           nowPlaying={nowPlaying}
@@ -116,7 +116,7 @@ export default function FloatingPlayer({ currentUser }) {
   )
 }
 
-/* â”€â”€ Mini floating bubble â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Mini floating bubble ─────────────────────────────────── */
 function MiniPlayer({ nowPlaying, isPlaying, onExpand, onTogglePlay, onStop, onInfo }) {
   const [pos, setPos] = useState({ x: null, y: null })
   const [dragging, setDragging] = useState(false)
@@ -195,7 +195,7 @@ function MiniPlayer({ nowPlaying, isPlaying, onExpand, onTogglePlay, onStop, onI
           <Play size={16} fill="white" color="white" style={{ marginLeft: 2 }} />
         </div>
 
-        {/* Tap to expand â€” invisible overlay */}
+        {/* Tap to expand — invisible overlay */}
         <div
           style={{ position: 'absolute', inset: 0, zIndex: 2 }}
           onClick={onExpand}
@@ -233,7 +233,7 @@ function MiniPlayer({ nowPlaying, isPlaying, onExpand, onTogglePlay, onStop, onI
   )
 }
 
-/* â”€â”€ Track Info Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Track Info Modal ─────────────────────────────────────── */
 function TrackInfoModal({ nowPlaying, isPlaying, progress, duration, currentTime, onClose, onSeek, onTogglePlay, currentUser }) {
   const fmtT = (s) => { if (!s || isNaN(s)) return '0:00'; return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}` }
 
@@ -250,10 +250,10 @@ function TrackInfoModal({ nowPlaying, isPlaying, progress, duration, currentTime
             ? <img src={nowPlaying.cover_url} alt={nowPlaying.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#1a0a0d,#0a0d1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Music size={60} style={{ opacity: 0.1 }} /></div>
           }
-          <button onClick={onClose} style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', border: 'none', color: 'white', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>âœ•</button>
+          <button onClick={onClose} style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', border: 'none', color: 'white', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
           {isPlaying && (
             <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(200,16,46,0.9)', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
-              â–¶ NOW PLAYING
+              ▶ NOW PLAYING
             </div>
           )}
         </div>
@@ -261,7 +261,7 @@ function TrackInfoModal({ nowPlaying, isPlaying, progress, duration, currentTime
         {/* Details */}
         <div style={{ padding: '20px 22px 24px', overflowY: 'auto', maxHeight: '55vh' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(18px,4vw,26px)', letterSpacing: 0.5, lineHeight: 1.15, marginBottom: 4 }}>{nowPlaying.title}</h2>
-          <div style={{ fontSize: 14, color: 'var(--red)', fontWeight: 600, marginBottom: 18 }}>{nowPlaying.profiles?.name}{nowPlaying.profiles?.is_verified && ' âœ…'}</div>
+          <div style={{ fontSize: 14, color: 'var(--red)', fontWeight: 600, marginBottom: 18 }}>{nowPlaying.profiles?.name}{nowPlaying.profiles?.is_verified && ' ✅'}</div>
 
           {/* Progress */}
           <div style={{ marginBottom: 18 }}>
@@ -289,9 +289,9 @@ function TrackInfoModal({ nowPlaying, isPlaying, progress, duration, currentTime
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
             {[
               ['Genre',    nowPlaying.genre],
-              ['Duration', fmtT(duration) !== '0:00' ? fmtT(duration) : nowPlaying.duration || 'â€”'],
+              ['Duration', fmtT(duration) !== '0:00' ? fmtT(duration) : nowPlaying.duration || '—'],
               ['Plays',    nowPlaying.play_count?.toLocaleString() || '0'],
-              ['Released', nowPlaying.created_at?.slice(0,10) || 'â€”'],
+              ['Released', nowPlaying.created_at?.slice(0,10) || '—'],
             ].map(([l, v]) => (
               <div key={l} style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: '10px 12px' }}>
                 <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--grey-500)', letterSpacing: 1, marginBottom: 3 }}>{l}</div>

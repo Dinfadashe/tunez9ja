@@ -1,12 +1,19 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Logo } from '../components/UI.jsx'
-import { Eye, EyeOff, Mic2, Newspaper, Shield } from 'lucide-react'
+import { Eye, EyeOff, Mic2, Newspaper, Shield, User as User2, Headphones } from 'lucide-react'
+
+// Input sanitization
+const sanitize = (str) => str?.trim().replace(/[<>"'`]/g, '') || ''
+const sanitizeEmail = (email) => email?.trim().toLowerCase().replace(/[^a-z0-9@._+-]/g, '') || ''
+
+
 
 const ROLE_CONFIG = {
   admin:   { label: 'Admin',   icon: Shield,    color: 'var(--red)',  page: 'admin-dashboard'   },
   artist:  { label: 'Artist',  icon: Mic2,      color: '#7b4fff',     page: 'artist-dashboard'  },
   blogger: { label: 'Blogger', icon: Newspaper, color: '#00b4dc',     page: 'blogger-dashboard' },
+  user:    { label: 'User',    icon: User2,     color: '#00c864',     page: 'user-dashboard'    },
 }
 
 export function LoginPage({ setPage, setProfile, setActiveRole }) {
@@ -129,7 +136,15 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
 
 export function RegisterPage({ setPage, setProfile, setActiveRole }) {
   const [step, setStep]     = useState(1)
+  const [refCode, setRefCode] = useState('')
   const [form, setForm]     = useState({ name: '', email: '', password: '', role: '', bio: '', genre: '' })
+
+  // Check URL for referral code
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get('ref')
+    if (ref) setRefCode(ref)
+  }, [])
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError]   = useState('')
@@ -147,15 +162,46 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
         options: { data: { name: form.name, role: form.role, bio: form.bio || null, genre: form.genre || null } }
       })
       if (signUpError) { setError(signUpError.message); setLoading(false); return }
+      // Everyone gets 'user' as base role + their chosen role
+      const availableRoles = form.role === 'user'
+        ? ['user']
+        : ['user', form.role]
+
       const profileData = {
         id: data.user.id, email: form.email, name: form.name,
         role: form.role, active_role: form.role,
+        available_roles: availableRoles,
         bio: form.bio || null, genre: form.genre || null,
       }
       await supabase.from('profiles').upsert(profileData)
-      setProfile(profileData); setActiveRole(form.role); setLoading(false)
+      // Handle referral bonus
+      if (refCode) {
+        const { data: referrer } = await supabase
+          .from('profiles')
+          .select('id')
+          .or(`referral_code.eq.${refCode},id.eq.${refCode}`)
+          .single()
+        if (referrer) {
+          const { add_tunez } = await import('../lib/tunez.js')
+          // Credit referrer
+          await supabase.rpc('add_tunez', {
+            p_user_id: referrer.id, p_amount: 15,
+            p_type: 'earn_referral',
+            p_description: 'Referral bonus: ' + form.name + ' signed up using your link',
+            p_ref_id: null
+          })
+        }
+      }
+
+      // Generate referral code for new user
+      const refCodeNew = form.name.slice(0,4).toUpperCase().replace(/[^A-Z]/g,'X') + data.user.id.slice(0,4).toUpperCase()
+      await supabase.from('profiles').update({ referral_code: refCodeNew }).eq('id', data.user.id)
+
+      setProfile({ ...profileData, referral_code: refCodeNew })
+      setActiveRole(form.role); setLoading(false)
       if (form.role === 'artist')       setPage('artist-dashboard')
       else if (form.role === 'blogger') setPage('blogger-dashboard')
+      else if (form.role === 'user')    setPage('user-dashboard')
       else setPage('home')
     } catch (err) { setError(err.message || 'Something went wrong.'); setLoading(false) }
   }
@@ -169,13 +215,16 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
           <>
             <h2 className="auth-title">Join as...</h2>
             <p className="auth-sub">Choose your role on the platform</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 16, marginTop: 8 }}>
               <RoleCard icon={<Mic2 size={32} color="var(--red)" />} title="Artist"
                 desc="Upload your music and get discovered by thousands of fans"
                 onClick={() => handleRole('artist')} color="var(--red)" />
               <RoleCard icon={<Newspaper size={32} color="#00b4dc" />} title="Blogger"
                 desc="Write music reviews, news, gossip, and entertainment features"
                 onClick={() => handleRole('blogger')} color="#00b4dc" />
+            <RoleCard icon={<Headphones size={32} color="#00c864" />} title="User"
+                desc="Stream music, watch videos, read posts and earn TUNEZ tokens"
+                onClick={() => handleRole('user')} color="#00c864" />
             </div>
             <div className="auth-footer">Already have an account? <a onClick={() => setPage('login')}>Sign In</a></div>
           </>

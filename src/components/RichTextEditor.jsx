@@ -1,4 +1,4 @@
-﻿import React, { useRef, useEffect, useCallback, useState } from 'react'
+import React, { useRef, useEffect, useCallback, useState } from 'react'
 import {
   Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
@@ -78,7 +78,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
     return null
   }
 
-  // â”€â”€ Image â”€â”€
+  // ── Image ──
   const openImgModal  = () => { saveRange(); setImgUrl(''); setImgAlt(''); setImgModal(true) }
 
   const uploadImage = async (file) => {
@@ -112,7 +112,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
     setImgModal(false)
   }
 
-  // â”€â”€ Video â”€â”€
+  // ── Video ──
   const openVidModal = () => { saveRange(); setVidUrl(''); setVidCaption(''); setVidModal(true) }
 
   const uploadVideo = async (file) => {
@@ -154,7 +154,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
     setVidModal(false)
   }
 
-  // â”€â”€ Link â”€â”€
+  // ── Link ──
   const openLinkModal = () => {
     saveRange()
     const sel = window.getSelection()
@@ -179,7 +179,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
     document.execCommand('insertText', false, e.clipboardData.getData('text/plain'))
   }
 
-  // â”€â”€ Toolbar button â”€â”€
+  // ── Toolbar button ──
   const ToolBtn = ({ cmd, icon: Icon, label, active, onClick }) => (
     <button type="button" title={label}
       onMouseDown={e => { e.preventDefault(); onClick ? onClick() : exec(cmd) }}
@@ -292,10 +292,10 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
               <div style={{ border:'2px dashed var(--border)', borderRadius:8, padding:20, textAlign:'center', cursor:'pointer', background: imgUrl?'rgba(0,200,100,0.06)':'transparent' }}
                 onClick={() => document.getElementById('rte-img-upload').click()}>
                 <input id="rte-img-upload" type="file" accept="image/*" style={{ display:'none' }} onChange={e => uploadImage(e.target.files[0])} />
-                {imgUploading ? <div style={{ color:'var(--grey-300)', fontSize:14 }}>â³ Uploading...</div>
+                {imgUploading ? <div style={{ color:'var(--grey-300)', fontSize:14 }}>⏳ Uploading...</div>
                   : imgUrl
-                    ? <div><img src={imgUrl} alt="preview" style={{ maxHeight:100, margin:'0 auto 8px', borderRadius:6 }} /><div style={{ fontSize:12, color:'#00c864' }}>âœ… Uploaded</div></div>
-                    : <div style={{ color:'var(--grey-300)', fontSize:14 }}>ðŸ–¼ Click to upload (JPG, PNG, WebP, GIF â€” max 5MB)</div>
+                    ? <div><img src={imgUrl} alt="preview" style={{ maxHeight:100, margin:'0 auto 8px', borderRadius:6 }} /><div style={{ fontSize:12, color:'#00c864' }}>✅ Uploaded</div></div>
+                    : <div style={{ color:'var(--grey-300)', fontSize:14 }}>🖼 Click to upload (JPG, PNG, WebP, GIF — max 5MB)</div>
                 }
               </div>
             </div>
@@ -347,13 +347,13 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
               </div>
             ) : (
               <div className="form-group">
-                <label className="form-label">Upload Video (MP4, MOV, WebM â€” max 200MB)</label>
+                <label className="form-label">Upload Video (MP4, MOV, WebM — max 200MB)</label>
                 <div style={{ border:'2px dashed var(--border)', borderRadius:8, padding:24, textAlign:'center', cursor:'pointer', background: vidUrl?'rgba(0,200,100,0.06)':'transparent' }}
                   onClick={() => document.getElementById('rte-vid-upload').click()}>
                   <input id="rte-vid-upload" type="file" accept="video/mp4,video/quicktime,video/webm" style={{ display:'none' }} onChange={e => uploadVideo(e.target.files[0])} />
-                  {vidUploading ? <div style={{ color:'var(--grey-300)', fontSize:14 }}>â³ Uploading video...</div>
-                    : vidUrl ? <div style={{ color:'#00c864', fontSize:14 }}>âœ… Video uploaded</div>
-                    : <div style={{ color:'var(--grey-300)', fontSize:14 }}>ðŸŽ¬ Click to upload video</div>}
+                  {vidUploading ? <div style={{ color:'var(--grey-300)', fontSize:14 }}>⏳ Uploading video...</div>
+                    : vidUrl ? <div style={{ color:'#00c864', fontSize:14 }}>✅ Video uploaded</div>
+                    : <div style={{ color:'var(--grey-300)', fontSize:14 }}>🎬 Click to upload video</div>}
                 </div>
               </div>
             )}

@@ -1,8 +1,13 @@
-﻿import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { sendNotification } from './NotificationsPanel.jsx'
+import { earnReact, earnComment } from '../lib/tunez.js'
 import { ThumbsUp, ThumbsDown, MessageCircle, Reply, Trash2, Send, ChevronDown, ChevronUp } from 'lucide-react'
 
-// â”€â”€ Reaction bar (likes/dislikes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const sanitizeText = (s) => s?.trim().replace(/<[^>]*>/g, '') || ''
+
+
+// ── Reaction bar (likes/dislikes) ─────────────────────────────
 export function ReactionBar({ targetType, targetId, currentUser, compact = false }) {
   const [likes,    setLikes]    = useState(0)
   const [dislikes, setDislikes] = useState(0)
@@ -39,6 +44,8 @@ export function ReactionBar({ targetType, targetId, currentUser, compact = false
     rpcArgs[paramMap[col]] = targetId
     await supabase.rpc('toggle_reaction', rpcArgs)
     await fetchReactions()
+    // Earn TUNEZ for reacting (first time only — handled by cooldown in tunez.js)
+    await earnReact(currentUser.id, null, targetId, 'content').catch(() => {})
     setLoading(false)
   }
 
@@ -95,7 +102,7 @@ export function ReactionBar({ targetType, targetId, currentUser, compact = false
   )
 }
 
-// â”€â”€ Single comment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Single comment ────────────────────────────────────────────
 function Comment({ comment, currentUser, onReply, onDelete, depth = 0 }) {
   const [showReplies, setShowReplies] = useState(depth === 0)
   const isOwner = currentUser?.id === comment.user_id
@@ -167,7 +174,7 @@ function Comment({ comment, currentUser, onReply, onDelete, depth = 0 }) {
   )
 }
 
-// â”€â”€ Comment input box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Comment input box ─────────────────────────────────────────
 function CommentInput({ currentUser, onSubmit, placeholder = 'Write a comment...', buttonLabel = 'Post', autoFocus = false }) {
   const [text, setText]       = useState('')
   const [loading, setLoading] = useState(false)
@@ -207,7 +214,7 @@ function CommentInput({ currentUser, onSubmit, placeholder = 'Write a comment...
         />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)' }}>
-            {text.length}/1000 Â· Ctrl+Enter to post
+            {text.length}/1000 · Ctrl+Enter to post
           </span>
           <button
             onClick={submit}
@@ -228,7 +235,7 @@ function CommentInput({ currentUser, onSubmit, placeholder = 'Write a comment...
   )
 }
 
-// â”€â”€ Main CommentsSection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main CommentsSection ──────────────────────────────────────
 export default function CommentsSection({ targetType, targetId, currentUser }) {
   const [comments,    setComments]    = useState([])
   const [loading,     setLoading]     = useState(true)
@@ -256,7 +263,10 @@ export default function CommentsSection({ targetType, targetId, currentUser }) {
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
     }))
 
-    setComments(tree)
+    // Deduplicate by id
+    const seen = new Set()
+    const unique = tree.filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true })
+    setComments(unique)
     setCount(data.length)
     setLoading(false)
   }, [targetId, col])
@@ -272,6 +282,8 @@ export default function CommentsSection({ targetType, targetId, currentUser }) {
     }
     await supabase.from('comments').insert(payload)
     await fetchComments()
+    // Earn TUNEZ for commenting
+    await earnComment(currentUser.id, null, targetId, 'content').catch(() => {})
     if (parentId) setReplyingTo(null)
   }
 
