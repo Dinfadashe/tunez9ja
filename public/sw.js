@@ -1,117 +1,99 @@
-const CACHE_NAME = 'tunez9ja-v1'
-const OFFLINE_CACHE = 'tunez9ja-offline-v1'
-const AUDIO_CACHE = 'tunez9ja-audio-v1'
+const CACHE_NAME    = 'tunez9ja-v2'
+const AUDIO_CACHE   = 'tunez9ja-audio-v1'
 
-// App shell — cache these for instant offline load
-const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/logo.png',
-  '/manifest.json',
+const APP_SHELL = ['/', '/index.html', '/logo.png', '/manifest.json']
+
+// External domains — never intercept, pass through directly
+const EXTERNAL_PASSTHROUGH = [
+  'paystack.com', 'paystack.co',
+  'youtube.com', 'youtu.be', 'ytimg.com',
+  'googleapis.com', 'gstatic.com',
+  'cloudflare.com', 'jsdelivr.net', 'cdnjs.cloudflare.com',
+  'supabase.co', 'supabase.com',
+  'localhost:5173', 'vite',
 ]
 
-// Install — cache app shell
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME).then(c => c.addAll(APP_SHELL)).catch(() => {})
   )
   self.skipWaiting()
 })
 
-// Activate — clean old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.filter(k => k !== CACHE_NAME && k !== OFFLINE_CACHE && k !== AUDIO_CACHE)
-            .map(k => caches.delete(k))
+        keys.filter(k => k !== CACHE_NAME && k !== AUDIO_CACHE).map(k => caches.delete(k))
       )
     )
   )
   self.clients.claim()
 })
 
-// Fetch strategy
 self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url)
+  const req = e.request
+  const url = new URL(req.url)
 
-  // Audio files — cache first for offline playback
-  if (url.pathname.includes('/storage/v1/object/public/music-audio/') ||
-      e.request.destination === 'audio') {
+  // Always pass through: external CDNs, APIs, payment providers
+  if (EXTERNAL_PASSTHROUGH.some(d => url.hostname.includes(d))) {
+    return // let browser handle it normally — do NOT call e.respondWith()
+  }
+
+  // Pass through non-GET requests
+  if (req.method !== 'GET') return
+
+  // Audio files — cache for offline playback
+  if (url.pathname.includes('/music-audio/') || req.destination === 'audio') {
     e.respondWith(
       caches.open(AUDIO_CACHE).then(async cache => {
-        const cached = await cache.match(e.request)
+        const cached = await cache.match(req)
         if (cached) return cached
         try {
-          const response = await fetch(e.request)
-          if (response.ok) {
-            const toCache = response.clone()
-            cache.put(e.request, toCache)
-          }
-          return response
+          const res = await fetch(req)
+          if (res.ok) cache.put(req, res.clone())
+          return res
         } catch {
-          return cached || new Response('Audio not available offline', { status: 503 })
+          return cached || new Response('Audio unavailable offline', { status: 503 })
         }
       })
     )
     return
   }
 
-  // Supabase API — network only (never cache auth/data calls)
-  if (url.hostname.includes('supabase.co') || url.hostname.includes('supabase.com')) {
-    e.respondWith(
-      fetch(e.request).catch(() =>
-        new Response(JSON.stringify({ error: 'offline' }), {
-          headers: { 'Content-Type': 'application/json' }, status: 503
-        })
-      )
-    )
-    return
-  }
-
-  // Paystack — network only
-  if (url.hostname.includes('paystack')) {
-    e.respondWith(fetch(e.request))
-    return
-  }
-
-  // App shell & static assets — cache first, network fallback
+  // App shell — cache first, network fallback
   e.respondWith(
-    caches.match(e.request).then(cached => {
+    caches.match(req).then(cached => {
       if (cached) return cached
-      return fetch(e.request).then(response => {
-        // Clone BEFORE doing anything else with the response
-        if (response.ok && e.request.method === 'GET') {
-          const toCache = response.clone()
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, toCache))
+      return fetch(req).then(res => {
+        if (res.ok) {
+          caches.open(CACHE_NAME).then(c => c.put(req, res.clone()))
         }
-        return response
+        return res
       }).catch(() => {
-        if (e.request.mode === 'navigate') {
-          return caches.match('/index.html')
-        }
+        if (req.mode === 'navigate') return caches.match('/index.html')
       })
     })
   )
 })
 
-// Message from app — cache a track for offline
 self.addEventListener('message', e => {
   if (e.data?.type === 'CACHE_AUDIO') {
-    const { url } = e.data
     caches.open(AUDIO_CACHE).then(async cache => {
+      const { url } = e.data
       const existing = await cache.match(url)
       if (!existing) {
-        const response = await fetch(url)
-        if (response.ok) {
-          cache.put(url, response)
-          e.source?.postMessage({ type: 'AUDIO_CACHED', url })
-        }
+        try {
+          const res = await fetch(url)
+          if (res.ok) {
+            cache.put(url, res)
+            e.source?.postMessage({ type: 'AUDIO_CACHED', url })
+          }
+        } catch {}
       }
     })
   }
-
   if (e.data?.type === 'REMOVE_AUDIO') {
-    caches.open(AUDIO_CACHE).then(cache => cache.delete(e.data.url))
+    caches.open(AUDIO_CACHE).then(c => c.delete(e.data.url))
   }
 })

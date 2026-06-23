@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
-import { GENRES } from '../context/AppContext.jsx'
 import Sidebar from '../components/Sidebar.jsx'
 import { MusicArt, StatusBadge, Modal, ConfirmModal, EmptyState } from '../components/UI.jsx'
 import { MusicCopyrightAgreement, DMCANotice } from '../components/CopyrightCheckbox.jsx'
@@ -12,6 +11,9 @@ import MyLibrary   from '../components/MyLibrary.jsx'
 import VideoUpload from '../components/VideoUpload.jsx'
 import MyVideos from '../components/MyVideos.jsx'
 import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube, Coins, BookMarked, Disc } from 'lucide-react'
+
+const GENRES = ['Afrobeats','Afropop','Highlife','Fuji','Juju','Gospel','Hip-Hop','R&B','Pop','Rap','Reggae','Dancehall','Amapiano','Bongo Flava','Afro-Soul','Jazz','Electronic','Alternative']
+
 
 const NAV = [
   { key: 'overview',   label: 'Overview',      icon: LayoutDashboard },
@@ -281,6 +283,18 @@ function UploadTrack({ currentUser, onSuccess }) {
       // Get public URL for cover
       const { data: { publicUrl } } = supabase.storage.from('music-covers').getPublicUrl(coverData.path)
       cover_url = publicUrl
+    }
+
+    setMessage('⏳ Checking for duplicates...')
+    const { data: existing } = await supabase
+      .from('music_tracks')
+      .select('id')
+      .eq('artist_id', currentUser.id)
+      .ilike('title', form.title.trim())
+      .limit(1)
+    if (existing?.length > 0) {
+      setMessage('❌ Duplicate: You already uploaded a track with this title.')
+      setUploading(false); return
     }
 
     setMessage('⏳ Saving track...')

@@ -1,111 +1,112 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react'
-import { supabase } from '../lib/supabase.js'
 
 const PlayerContext = createContext(null)
 
 export function PlayerProvider({ children }) {
-  const [queue, setQueue]           = useState([])      // full track list
-  const [nowPlaying, setNowPlaying] = useState(null)
-  const [isPlaying, setIsPlaying]   = useState(false)
-  const [progress, setProgress]     = useState(0)
-  const [duration, setDuration]     = useState(0)
+  const [queue,       setQueue]       = useState([])
+  const [queueIndex,  setQueueIndex]  = useState(0)
+  const [nowPlaying,  setNowPlaying]  = useState(null)
+  const [isPlaying,   setIsPlaying]   = useState(false)
+  const [progress,    setProgress]    = useState(0)
+  const [duration,    setDuration]    = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
-  const [audioUrl, setAudioUrl]     = useState(null)
-  const [showInfo, setShowInfo]     = useState(false)
-  const [minimized, setMinimized]   = useState(false)
+  const [showInfo,    setShowInfo]    = useState(false)
+  const [minimized,   setMinimized]   = useState(false)
   const audioRef = useRef(null)
 
-  // Build public URL from storage path
-  const resolveUrl = useCallback((track) => {
-    if (!track?.audio_url) return null
-    if (track.audio_url.startsWith('http')) return track.audio_url
-    const { data } = supabase.storage.from('music-audio').getPublicUrl(track.audio_url)
-    return data.publicUrl
+  const playTrack = useCallback((track, trackList = []) => {
+    if (!track) return
+    const list = trackList.length ? trackList : [track]
+    const idx  = list.findIndex(t => t.id === track.id)
+    setQueue(list)
+    setQueueIndex(idx >= 0 ? idx : 0)
+    setNowPlaying(track)
+    setIsPlaying(true)
+    if (audioRef.current) {
+      const url = track.audio_url || null
+      if (url) {
+        audioRef.current.src = url
+        audioRef.current.play().catch(() => {})
+      }
+    }
   }, [])
 
-  const playTrack = useCallback((track, trackQueue = []) => {
-    if (trackQueue.length > 0) setQueue(trackQueue)
-    if (nowPlaying?.id === track.id) {
-      // Toggle play/pause same track
-      if (audioRef.current) {
-        if (isPlaying) audioRef.current.pause()
-        else audioRef.current.play()
-      }
-      return
-    }
-    setNowPlaying(track)
-    setProgress(0)
-    setCurrentTime(0)
-    setDuration(0)
-    setIsPlaying(false)
-    setMinimized(false)
-
-    // Increment play count
-    supabase.rpc('increment_play_count', { p_track_id: track.id })
-      .then(() => {}).catch(() => {})
-
-    const url = resolveUrl(track)
-    setAudioUrl(url)
-  }, [nowPlaying, isPlaying, resolveUrl])
-
   const stopPlayer = useCallback(() => {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = '' }
-    setNowPlaying(null); setIsPlaying(false)
-    setProgress(0); setCurrentTime(0); setAudioUrl(null)
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ''
+    }
+    setNowPlaying(null)
+    setIsPlaying(false)
+    setProgress(0)
   }, [])
 
   const skipNext = useCallback(() => {
-    if (!nowPlaying || queue.length === 0) return
-    const idx = queue.findIndex(t => t.id === nowPlaying.id)
-    if (idx < queue.length - 1) playTrack(queue[idx + 1], queue)
-  }, [nowPlaying, queue, playTrack])
+    setQueue(q => {
+      if (!q.length) return q
+      const idx  = q.findIndex(t => t.id === nowPlaying?.id)
+      const next = q[(idx + 1) % q.length]
+      if (next) {
+        setQueueIndex((idx + 1) % q.length)
+        setNowPlaying(next)
+        setIsPlaying(true)
+        if (audioRef.current && next.audio_url) {
+          audioRef.current.src = next.audio_url
+          audioRef.current.play().catch(() => {})
+        }
+      }
+      return q
+    })
+  }, [nowPlaying?.id])
 
   const skipPrev = useCallback(() => {
-    if (!nowPlaying || queue.length === 0) return
-    const idx = queue.findIndex(t => t.id === nowPlaying.id)
-    if (idx > 0) playTrack(queue[idx - 1], queue)
-  }, [nowPlaying, queue, playTrack])
+    setQueue(q => {
+      if (!q.length) return q
+      const idx  = q.findIndex(t => t.id === nowPlaying?.id)
+      const prev = q[(idx - 1 + q.length) % q.length]
+      if (prev) {
+        setQueueIndex((idx - 1 + q.length) % q.length)
+        setNowPlaying(prev)
+        setIsPlaying(true)
+        if (audioRef.current && prev.audio_url) {
+          audioRef.current.src = prev.audio_url
+          audioRef.current.play().catch(() => {})
+        }
+      }
+      return q
+    })
+  }, [nowPlaying?.id])
+
+  const addToPlayNext = useCallback((track) => {
+    setQueue(q => {
+      const idx  = q.findIndex(t => t.id === nowPlaying?.id)
+      const newQ = [...q]
+      newQ.splice(idx + 1, 0, track)
+      return newQ
+    })
+  }, [nowPlaying?.id])
 
   const seekTo = useCallback((pct) => {
-    if (audioRef.current?.duration) {
-      audioRef.current.currentTime = (pct / 100) * audioRef.current.duration
+    if (audioRef.current && audioRef.current.duration) {
+      audioRef.current.currentTime = pct * audioRef.current.duration
     }
   }, [])
 
   const togglePlay = useCallback(() => {
-    if (!audioRef.current) return
-    if (isPlaying) audioRef.current.pause()
-    else audioRef.current.play()
-  }, [isPlaying])
-
-  // Load and play when audioUrl changes
-  useEffect(() => {
-    if (!audioRef.current) return
-    if (audioUrl) {
-      audioRef.current.src = audioUrl
-      audioRef.current.load()
-      audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => setIsPlaying(false))
-    } else {
-      audioRef.current.pause()
-      audioRef.current.src = ''
-    }
-  }, [audioUrl])
-
-  // Media Session API — shows track info on phone lock screen / notification
-  useEffect(() => {
-    if (!nowPlaying || !('mediaSession' in navigator)) return
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title:  nowPlaying.title,
-      artist: nowPlaying.profiles?.name || 'Tunez9ja',
-      album:  'Tunez9ja',
-      artwork: nowPlaying.cover_url
-        ? [{ src: nowPlaying.cover_url, sizes: '512x512', type: 'image/jpeg' }]
-        : [{ src: '/logo.png', sizes: '192x192', type: 'image/png' }]
+    setIsPlaying(p => {
+      if (p) audioRef.current?.pause()
+      else   audioRef.current?.play().catch(() => {})
+      return !p
     })
-    navigator.mediaSession.setActionHandler('play',          () => audioRef.current?.play())
-    navigator.mediaSession.setActionHandler('pause',         () => audioRef.current?.pause())
+  }, [])
+
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !nowPlaying) return
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title:  nowPlaying.title  || 'Unknown',
+      artist: nowPlaying.profiles?.name || '',
+      artwork: nowPlaying.cover_url ? [{ src: nowPlaying.cover_url }] : [],
+    })
     navigator.mediaSession.setActionHandler('nexttrack',     skipNext)
     navigator.mediaSession.setActionHandler('previoustrack', skipPrev)
   }, [nowPlaying, skipNext, skipPrev])
@@ -114,9 +115,14 @@ export function PlayerProvider({ children }) {
     <PlayerContext.Provider value={{
       nowPlaying, isPlaying, progress, duration, currentTime,
       audioRef, showInfo, setShowInfo, minimized, setMinimized,
-      playTrack, stopPlayer, skipNext, skipPrev, seekTo, togglePlay, queue,
+      queue, queueIndex,
+      playTrack, stopPlayer,
+      skipNext, skipPrev,
+      playNext: skipNext, playPrev: skipPrev,
+      addToPlayNext,
+      seekTo, togglePlay,
+      setIsPlaying,
     }}>
-      {/* Single global audio element — lives here, never unmounts */}
       <audio
         ref={audioRef}
         preload="auto"
@@ -131,15 +137,14 @@ export function PlayerProvider({ children }) {
         onEnded={skipNext}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-        onError={() => setIsPlaying(false)}
       />
       {children}
     </PlayerContext.Provider>
   )
 }
 
-export const usePlayer = () => {
+export function usePlayer() {
   const ctx = useContext(PlayerContext)
-  if (!ctx) throw new Error('usePlayer must be used inside PlayerProvider')
+  if (!ctx) throw new Error('usePlayer must be used within PlayerProvider')
   return ctx
 }

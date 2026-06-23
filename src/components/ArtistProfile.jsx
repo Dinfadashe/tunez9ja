@@ -4,6 +4,7 @@ import { usePlayer } from '../context/PlayerContext.jsx'
 import { Play, Music, Video, Newspaper, Disc, Share2 } from 'lucide-react'
 import ShareButton from './ShareButton.jsx'
 import { Avatar } from './ProfileEditor.jsx'
+import FollowButton, { useFollowCounts } from './FollowButton.jsx'
 
 export default function ArtistProfile({ artistId, onBack, currentUser }) {
   const [artist,  setArtist]  = useState(null)
@@ -37,6 +38,7 @@ export default function ArtistProfile({ artistId, onBack, currentUser }) {
   if (!artist) return null
 
   const isArtist  = artist.role === 'artist'
+  const followCounts = useFollowCounts(artistId)
   const accent    = isArtist ? '#7b4fff' : '#00b4dc'
   const shareUrl  = `${window.location.origin}/?artist=${artistId}`
   const shareText = `Check out ${artist.name} on Tunez9ja!`
@@ -68,7 +70,8 @@ export default function ArtistProfile({ artistId, onBack, currentUser }) {
             {artist.bio && <p style={{ fontSize:14, color:'var(--grey-300)', lineHeight:1.7, maxWidth:560, marginBottom:16 }}>{artist.bio}</p>}
             <div style={{ display:'flex', gap:24, flexWrap:'wrap', marginBottom:16 }}>
               {[
-                { label:'Tracks',  val: tracks.length  },
+                { label:'Followers', val: followCounts.followers },
+              { label:'Tracks',  val: tracks.length  },
                 { label:'Albums',  val: albums.length  },
                 { label:'Videos',  val: videos.length  },
               ].filter(s => s.val > 0).map(s => (
@@ -84,6 +87,7 @@ export default function ArtistProfile({ artistId, onBack, currentUser }) {
                   <Play size={15} fill="white" /> Play All
                 </button>
               )}
+              <FollowButton targetId={artistId} targetName={artist.name} currentUser={currentUser} />
               <ShareButton url={shareUrl} text={shareText} title={artist.name} />
             </div>
           </div>

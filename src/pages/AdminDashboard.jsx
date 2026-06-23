@@ -798,6 +798,56 @@ function VideoReview({ fetchPending }) {
   )
 }
 
+
+// ── Admin Edit Content Modal ──────────────────────────────────
+function AdminEditModal({ item, table, onClose, onSaved }) {
+  const [title,   setTitle]   = useState(item?.title   || '')
+  const [desc,    setDesc]    = useState(item?.description || item?.excerpt || item?.bio || '')
+  const [genre,   setGenre]   = useState(item?.genre   || '')
+  const [saving,  setSaving]  = useState(false)
+
+  const save = async () => {
+    setSaving(true)
+    const updates = { title: title.trim() }
+    if (desc)  updates.description = desc.trim()
+    if (genre) updates.genre = genre.trim()
+    const { error } = await supabase.from(table).update(updates).eq('id', item.id)
+    if (!error) { onSaved(); onClose() }
+    else alert('Error: ' + error.message)
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.8)', zIndex:3000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}
+      onClick={e => e.target===e.currentTarget && onClose()}>
+      <div style={{ background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:14, padding:28, width:'100%', maxWidth:480 }}>
+        <h3 style={{ fontFamily:'var(--font-display)', fontSize:22, marginBottom:20 }}>EDIT CONTENT</h3>
+        <div style={{ marginBottom:14 }}>
+          <label style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'var(--grey-500)', letterSpacing:1, display:'block', marginBottom:6 }}>TITLE</label>
+          <input value={title} onChange={e=>setTitle(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:8, background:'var(--bg-surface)', border:'1px solid var(--border)', color:'var(--white)', fontSize:14, outline:'none', boxSizing:'border-box' }} />
+        </div>
+        {genre !== undefined && (
+          <div style={{ marginBottom:14 }}>
+            <label style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'var(--grey-500)', letterSpacing:1, display:'block', marginBottom:6 }}>GENRE</label>
+            <input value={genre} onChange={e=>setGenre(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:8, background:'var(--bg-surface)', border:'1px solid var(--border)', color:'var(--white)', fontSize:14, outline:'none', boxSizing:'border-box' }} />
+          </div>
+        )}
+        <div style={{ marginBottom:20 }}>
+          <label style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'var(--grey-500)', letterSpacing:1, display:'block', marginBottom:6 }}>DESCRIPTION / EXCERPT</label>
+          <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={4} style={{ width:'100%', padding:'10px 14px', borderRadius:8, background:'var(--bg-surface)', border:'1px solid var(--border)', color:'var(--white)', fontSize:14, outline:'none', resize:'vertical', boxSizing:'border-box', fontFamily:'inherit' }} />
+        </div>
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={save} disabled={saving} className="btn btn-primary" style={{ flex:1, justifyContent:'center' }}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+          <button onClick={onClose} className="btn btn-secondary" style={{ flex:1, justifyContent:'center' }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
 function AlbumReview() {
   const [albums, setAlbums] = React.useState([])
   const [loading, setLoading] = React.useState(true)

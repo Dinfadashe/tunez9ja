@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
-import { CATEGORIES } from '../context/AppContext.jsx'
 import Sidebar from '../components/Sidebar.jsx'
 import { StatusBadge, Modal, ConfirmModal, EmptyState } from '../components/UI.jsx'
 import { BlogCopyrightAgreement, DMCANotice } from '../components/CopyrightCheckbox.jsx'
@@ -13,6 +12,12 @@ import CoverImagePicker from '../components/CoverImagePicker.jsx'
 import VideoUpload from '../components/VideoUpload.jsx'
 import MyVideos from '../components/MyVideos.jsx'
 import { LayoutDashboard, Newspaper, PenSquare, User, Trash2, Edit3, Eye, CheckCircle, Clock, XCircle, Video, Youtube, Coins, BookMarked } from 'lucide-react'
+
+const CATEGORIES = ['Music News','Album Review','Artist Spotlight','Entertainment','Culture','Events','Interviews','Opinion','Tutorials']
+
+
+const GENRES = ['Afrobeats','Afropop','Highlife','Fuji','Juju','Gospel','Hip-Hop','R&B','Pop','Rap','Reggae','Dancehall','Amapiano','Bongo Flava','Afro-Soul','Jazz','Electronic','Alternative']
+
 
 const NAV = [
   { key: 'overview',    label: 'Overview',      icon: LayoutDashboard },
@@ -229,8 +234,21 @@ function WritePost({ currentUser, onSuccess, editingPost }) {
       const res = await supabase.from('blog_posts').update({ ...payload, slug: null }).eq('id', editingPost.id)
       error = res.error
     } else {
+      // Duplicate check
+      const { data: dup } = await supabase.from('blog_posts')
+        .select('id').eq('author_id', currentUser.id).ilike('title', payload.title.trim()).limit(1)
+      if (dup?.length > 0) {
+        setError('❌ Duplicate: You already have a post with this title.')
+        setSaving(false); return
+      }
       const res = await supabase.from('blog_posts').insert(payload)
       error = res.error
+      if (!error) {
+        supabase.rpc('notify_followers', {
+          p_author_id: currentUser.id,
+          p_message: currentUser.name + ' published a new post: ' + payload.title
+        }).catch(() => {})
+      }
     }
 
     setLoading(false)
