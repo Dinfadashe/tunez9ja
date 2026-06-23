@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
+import VerificationPanel from '../components/VerificationPanel.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import Sidebar from '../components/Sidebar.jsx'
 import { MusicArt, StatusBadge, Modal, ConfirmModal, EmptyState } from '../components/UI.jsx'
@@ -10,7 +11,7 @@ import AlbumManager from '../components/AlbumManager.jsx'
 import MyLibrary   from '../components/MyLibrary.jsx'
 import VideoUpload from '../components/VideoUpload.jsx'
 import MyVideos from '../components/MyVideos.jsx'
-import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube, Coins, BookMarked, Disc } from 'lucide-react'
+import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube, Coins, BookMarked, Disc , Shield } from 'lucide-react'
 
 const GENRES = ['Afrobeats','Afropop','Highlife','Fuji','Juju','Gospel','Hip-Hop','R&B','Pop','Rap','Reggae','Dancehall','Amapiano','Bongo Flava','Afro-Soul','Jazz','Electronic','Alternative']
 

@@ -5,6 +5,7 @@ import { Play, Music, Video, Newspaper, Disc, Share2 } from 'lucide-react'
 import ShareButton from './ShareButton.jsx'
 import { Avatar } from './ProfileEditor.jsx'
 import FollowButton, { useFollowCounts } from './FollowButton.jsx'
+import VerificationBadge from './VerificationBadge.jsx'
 
 export default function ArtistProfile({ artistId, onBack, currentUser }) {
   const [artist,  setArtist]  = useState(null)
@@ -65,7 +66,7 @@ export default function ArtistProfile({ artistId, onBack, currentUser }) {
           <div style={{ flex:1 }}>
             <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:accent, letterSpacing:3, marginBottom:6, textTransform:'uppercase' }}>{artist.role}</div>
             <h1 style={{ fontFamily:'var(--font-display)', fontSize:40, lineHeight:1, marginBottom:8 }}>
-              {artist.name}{artist.is_verified && ' ✅'}
+              {artist.name} 
             </h1>
             {artist.bio && <p style={{ fontSize:14, color:'var(--grey-300)', lineHeight:1.7, maxWidth:560, marginBottom:16 }}>{artist.bio}</p>}
             <div style={{ display:'flex', gap:24, flexWrap:'wrap', marginBottom:16 }}>

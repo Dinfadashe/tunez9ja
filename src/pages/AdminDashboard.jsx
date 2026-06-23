@@ -8,7 +8,7 @@ import ProfileEditor from '../components/ProfileEditor.jsx'
 import AdminAnalytics from '../components/AdminAnalytics.jsx'
 import RichTextEditor from '../components/RichTextEditor.jsx'
 import { StatusBadge as _SB } from '../components/UI.jsx'
-import { LayoutDashboard, Music, Newspaper, Users, CheckCircle, XCircle, Clock, Trash2, Eye, TrendingUp, Mic2, AlertCircle, Video, Youtube, Coins, Disc, BarChart2 } from 'lucide-react'
+import { LayoutDashboard, Music, Newspaper, Users, CheckCircle, XCircle, Clock, Trash2, Eye, TrendingUp, Mic2, AlertCircle, Video, Youtube, Coins, Disc, BarChart2, Shield } from 'lucide-react'
 
 const NAV = (pending) => [
   { key: 'overview',      label: 'Overview',       icon: LayoutDashboard },
@@ -17,6 +17,7 @@ const NAV = (pending) => [
   { key: 'video-review',  label: 'Video Review',   icon: Video,      badge: pending.videos || null },
   { key: 'users',         label: 'Manage Users',   icon: Users },
   { key: 'analytics',     label: 'Analytics',       icon: BarChart2, badge: null },
+  { key: 'kyc-review',    label: 'KYC Review 🔵',   icon: Shield,    badge: null },
   { key: 'album-review',  label: 'Albums',          icon: Disc,  badge: null },
   { key: 'wallet',        label: 'TUNEZ Earnings',  icon: Coins, badge: null },
 ]
@@ -78,6 +79,7 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
           {active === 'video-review'  && <VideoReview fetchPending={fetchPending} />}
           {active === 'wallet'        && <TunezWallet currentUser={currentUser} />}
           {active === 'analytics'      && <AdminAnalytics />}
+          {active === 'kyc-review'    && <KYCReview />}
           {active === 'album-review'   && <AlbumReview />}
         </div>
       </main>
@@ -895,3 +897,84 @@ function AlbumReview() {
     </div>
   )
 }
+
+// ── Admin KYC Review ──────────────────────────────────────────
+function KYCReview() {
+  const [apps,    setApps]    = useState([])
+  const [loading, setLoading] = useState(true)
+  const [msg,     setMsg]     = useState(null)
+
+  const load = () => {
+    supabase.from('profiles')
+      .select('id,name,email,role,kyc_status,kyc_submitted_at,kyc_legal_name,kyc_id_url,kyc_social_links,kyc_fee_paid')
+      .eq('kyc_status', 'pending')
+      .order('kyc_submitted_at', { ascending: true })
+      .then(({ data }) => { setApps(data || []); setLoading(false) })
+  }
+
+  useEffect(() => { load() }, [])
+
+  const approve = async (userId) => {
+    await supabase.rpc('approve_verification', { p_user_id: userId })
+    setMsg('✅ Approved! Blue tick granted.')
+    load()
+  }
+
+  const reject = async (userId) => {
+    const reason = window.prompt('Enter rejection reason:')
+    if (!reason) return
+    await supabase.rpc('reject_verification', { p_user_id: userId, p_reason: reason })
+    setMsg('❌ Application rejected.')
+    load()
+  }
+
+  if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>LOADING KYC APPLICATIONS...</div>
+
+  return (
+    <div>
+      <div style={{ marginBottom:24 }}>
+        <h2 style={{ fontFamily:'var(--font-display)', fontSize:30, marginBottom:4 }}>KYC REVIEW</h2>
+        <p style={{ color:'var(--grey-400)', fontSize:13 }}>Pending verification applications</p>
+      </div>
+      {msg && <div style={{ padding:'10px 14px', borderRadius:8, marginBottom:20, fontSize:13, background:'rgba(0,200,100,0.1)', border:'1px solid #00c864', color:'#00c864' }}>{msg}</div>}
+      {apps.length === 0 ? (
+        <div style={{ padding:40, textAlign:'center', color:'var(--grey-500)' }}>
+          <Shield size={40} style={{ opacity:0.15, display:'block', margin:'0 auto 12px' }} />
+          <div>No pending KYC applications</div>
+        </div>
+      ) : apps.map(app => (
+        <div key={app.id} className="card" style={{ padding:24, marginBottom:16 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:16 }}>
+            <div>
+              <div style={{ fontFamily:'var(--font-display)', fontSize:20, marginBottom:4 }}>{app.name}</div>
+              <div style={{ fontSize:13, color:'var(--grey-400)', marginBottom:8 }}>{app.email} · {app.role?.toUpperCase()}</div>
+              <div style={{ fontSize:13, marginBottom:4 }}><strong>Legal Name:</strong> {app.kyc_legal_name}</div>
+              {app.kyc_social_links && <div style={{ fontSize:13, marginBottom:4 }}><strong>Social:</strong> {app.kyc_social_links}</div>}
+              <div style={{ fontSize:12, color:'var(--grey-500)', fontFamily:'var(--font-mono)', marginTop:8 }}>
+                Submitted: {new Date(app.kyc_submitted_at).toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' })}
+                {app.kyc_fee_paid ? ' · ₦2,000 fee paid ✅' : ' · Fee NOT paid ⚠️'}
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:10, flexShrink:0, flexDirection:'column' }}>
+              {app.kyc_id_url && (
+                <a href={app.kyc_id_url} target="_blank" rel="noopener noreferrer"
+                  className="btn btn-secondary" style={{ fontSize:13, padding:'8px 14px' }}>
+                  View ID Document
+                </a>
+              )}
+              <button onClick={() => approve(app.id)} className="btn btn-primary"
+                style={{ fontSize:13, padding:'8px 14px', background:'#1DA1F2', borderColor:'#1DA1F2' }}>
+                🔵 Approve — Grant Blue Tick
+              </button>
+              <button onClick={() => reject(app.id)}
+                style={{ fontSize:13, padding:'8px 14px', borderRadius:8, background:'transparent', border:'1px solid var(--red)', color:'var(--red)', cursor:'pointer' }}>
+                ✕ Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+

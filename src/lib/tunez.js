@@ -111,6 +111,9 @@ async function mintTunez({ userId, ownerId, action, amount, description, refId }
   const adminId = adminProfile?.id
 
   // Credit user
+  // Apply 1.5x multiplier for verified creators
+  const { data: prof } = await supabase.from('profiles').select('earn_multiplier').eq('id', userId).single()
+  const multiplier = prof?.earn_multiplier || 1.0
   await supabase.rpc('add_tunez', {
     p_user_id: userId, p_amount: userAmt,
     p_type: 'earn_' + action, p_description: description, p_ref_id: refId || null
@@ -118,7 +121,10 @@ async function mintTunez({ userId, ownerId, action, amount, description, refId }
 
   // Credit owner
   if (ownerId && ownerAmt > 0) {
-    await supabase.rpc('add_tunez', {
+    // Apply 1.5x multiplier for verified creators
+  const { data: prof } = await supabase.from('profiles').select('earn_multiplier').eq('id', userId).single()
+  const multiplier = prof?.earn_multiplier || 1.0
+  await supabase.rpc('add_tunez', {
       p_user_id: ownerId, p_amount: ownerAmt,
       p_type: 'earn_content_owner', p_description: 'Content earnings: ' + description, p_ref_id: refId || null
     })
@@ -126,7 +132,10 @@ async function mintTunez({ userId, ownerId, action, amount, description, refId }
 
   // Credit admin
   if (adminId && adminAmt > 0) {
-    await supabase.rpc('add_tunez', {
+    // Apply 1.5x multiplier for verified creators
+  const { data: prof } = await supabase.from('profiles').select('earn_multiplier').eq('id', userId).single()
+  const multiplier = prof?.earn_multiplier || 1.0
+  await supabase.rpc('add_tunez', {
       p_user_id: adminId, p_amount: adminAmt,
       p_type: 'earn_admin', p_description: 'Admin share: ' + description, p_ref_id: refId || null
     })
