@@ -247,7 +247,7 @@ function WritePost({ currentUser, onSuccess, editingPost }) {
         supabase.rpc('notify_followers', {
           p_author_id: currentUser.id,
           p_message: currentUser.name + ' published a new post: ' + payload.title
-        }).catch(() => {})
+        }).then(() => {}).catch(() => {})
       }
     }
 

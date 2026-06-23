@@ -110,6 +110,7 @@ export default function ProfileEditor({ currentUser, onUpdated }) {
     }
 
     const { error } = await supabase.from('profiles').update(updates).eq('id', currentUser.id)
+    if (error) console.warn('Profile update error (run setup.sql if columns missing):', error.message)
 
     if (error) {
       setMsg({ type: 'error', text: 'Save failed: ' + error.message })

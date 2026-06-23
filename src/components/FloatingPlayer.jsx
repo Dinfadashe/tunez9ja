@@ -1,113 +1,77 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { earnStream } from '../lib/tunez.js'
 import {
-  Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
-  ChevronDown, ChevronUp, Shuffle, Repeat, Repeat1, ListPlus, Music
+  Play, Pause, SkipBack, SkipForward,
+  Volume2, VolumeX, Shuffle, Repeat, Repeat1,
+  ChevronDown, ChevronUp, Music
 } from 'lucide-react'
 
 export default function FloatingPlayer({ currentUser }) {
   const {
-    nowPlaying, queue, queueIndex,
-    isPlaying, setIsPlaying,
-    playTrack, playNext: ctxNext, playPrev: ctxPrev,
-    stopPlayer
+    nowPlaying, isPlaying, currentTime, duration,
+    queue, queueIndex, volume, muted,
+    audioRef,
+    skipNext, skipPrev,
+    togglePlay, seekTo,
+    changeVolume, toggleMute,
+    playTrack,
   } = usePlayer()
 
-  const audioRef  = useRef(null)
-  const earnedRef = useRef(false)
-  const [volume,     setVolume]     = useState(1)
-  const [muted,      setMuted]      = useState(false)
-  const [progress,   setProgress]   = useState(0)
-  const [duration,   setDuration]   = useState(0)
-  const [minimised,  setMinimised]  = useState(false)
-  const [shuffle,    setShuffle]    = useState(false)
-  const [repeat,     setRepeat]     = useState('none') // 'none' | 'all' | 'one'
+  const earnedRef  = useRef(false)
+  const prevIdRef  = useRef(null)
+  const [shuffle,   setShuffle]   = useState(false)
+  const [repeat,    setRepeat]    = useState('none') // 'none' | 'all' | 'one'
+  const [minimised, setMinimised] = useState(false)
 
-  // ── Load track ─────────────────────────────────────────────
+  // Reset earned flag when track changes + increment play count
   useEffect(() => {
-    if (!nowPlaying?.audio_url) return
-    const audio = audioRef.current
-    if (!audio) return
-    audio.src = nowPlaying.audio_url
-    audio.volume = volume
-    audio.muted  = muted
-    audio.play().catch(() => {})
-    setIsPlaying(true)
-    earnedRef.current = false
-    setProgress(0)
-    // Increment play count
-    supabase.rpc('increment_play_count', { p_track_id: nowPlaying.id }).catch(() => {})
+    if (!nowPlaying?.id || nowPlaying.id === prevIdRef.current) return
+    prevIdRef.current  = nowPlaying.id
+    earnedRef.current  = false
+    supabase.rpc('increment_play_count', { p_track_id: nowPlaying.id })
+      .then(() => {}).catch(() => {})
   }, [nowPlaying?.id])
 
-  // ── Sync play/pause ────────────────────────────────────────
+  // Earn TUNEZ after 10 seconds
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    if (isPlaying) audio.play().catch(() => {})
-    else audio.pause()
-  }, [isPlaying])
-
-  // ── Time update & TUNEZ earn ───────────────────────────────
-  const handleTimeUpdate = () => {
-    const audio = audioRef.current
-    if (!audio) return
-    setProgress(audio.currentTime)
-    setDuration(audio.duration || 0)
-    if (!earnedRef.current && audio.currentTime >= 10 && currentUser) {
+    if (!currentUser || !nowPlaying || earnedRef.current) return
+    if (currentTime >= 10) {
       earnedRef.current = true
       earnStream(currentUser.id, nowPlaying).catch(() => {})
     }
-  }
+  }, [currentTime, nowPlaying, currentUser])
 
-  // ── Track ended ────────────────────────────────────────────
-  const handleEnded = () => {
-    if (repeat === 'one') {
-      audioRef.current.currentTime = 0
-      audioRef.current.play()
-      return
-    }
-    if (queue.length > 1) {
-      if (shuffle) {
-        const next = Math.floor(Math.random() * queue.length)
-        playTrack(queue[next], queue)
-      } else if (queueIndex < queue.length - 1) {
-        ctxNext()
-      } else if (repeat === 'all') {
-        playTrack(queue[0], queue)
-      } else {
-        setIsPlaying(false)
-      }
-    } else {
-      setIsPlaying(false)
-    }
-  }
-
-  const handleSeek = (e) => {
+  // Handle track end with shuffle/repeat
+  useEffect(() => {
+    if (!audioRef.current) return
     const audio = audioRef.current
-    if (!audio) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const pct  = (e.clientX - rect.left) / rect.width
-    audio.currentTime = pct * (audio.duration || 0)
-  }
+    const handleEnd = () => {
+      if (repeat === 'one') {
+        audio.currentTime = 0
+        audio.play().catch(() => {})
+        return
+      }
+      if (shuffle && queue.length > 1) {
+        const randIdx = Math.floor(Math.random() * queue.length)
+        playTrack(queue[randIdx], queue)
+        return
+      }
+      if (repeat === 'all' || queueIndex < queue.length - 1) {
+        skipNext()
+      }
+    }
+    audio.addEventListener('ended', handleEnd)
+    return () => audio.removeEventListener('ended', handleEnd)
+  }, [repeat, shuffle, queue, queueIndex, skipNext, playTrack])
 
-  const handleVolume = (e) => {
-    const v = parseFloat(e.target.value)
-    setVolume(v)
-    if (audioRef.current) audioRef.current.volume = v
-    setMuted(v === 0)
-  }
+  if (!nowPlaying) return null
 
-  const toggleMute = () => {
-    const newMuted = !muted
-    setMuted(newMuted)
-    if (audioRef.current) audioRef.current.muted = newMuted
-  }
-
-  const cycleRepeat = () => {
-    setRepeat(r => r === 'none' ? 'all' : r === 'all' ? 'one' : 'none')
-  }
+  const pct          = duration > 0 ? (currentTime / duration) * 100 : 0
+  const RepeatIcon   = repeat === 'one' ? Repeat1 : Repeat
+  const repeatColor  = repeat !== 'none' ? 'var(--red)' : 'var(--grey-500)'
+  const shuffleColor = shuffle ? 'var(--red)' : 'var(--grey-500)'
 
   const fmt = (s) => {
     if (!s || isNaN(s)) return '0:00'
@@ -115,103 +79,115 @@ export default function FloatingPlayer({ currentUser }) {
     return `${m}:${sec.toString().padStart(2, '0')}`
   }
 
-  if (!nowPlaying) return null
+  const handleSeek = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const pct  = (e.clientX - rect.left) / rect.width
+    seekTo(pct * (duration || 0))
+  }
 
-  const pct = duration ? (progress / duration) * 100 : 0
-
-  const RepeatIcon = repeat === 'one' ? Repeat1 : Repeat
-  const repeatColor = repeat !== 'none' ? 'var(--red)' : 'var(--grey-500)'
-  const shuffleColor = shuffle ? 'var(--red)' : 'var(--grey-500)'
+  const cycleRepeat = () => {
+    setRepeat(r => r === 'none' ? 'all' : r === 'all' ? 'one' : 'none')
+  }
 
   return (
-    <>
-      <audio
-        ref={audioRef}
-        onTimeUpdate={handleTimeUpdate}
-        onEnded={handleEnded}
-        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
-      />
+    <div style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 300,
+      background: 'rgba(10,10,10,0.97)', backdropFilter: 'blur(16px)',
+      borderTop: '1px solid var(--border)',
+      boxShadow: '0 -4px 32px rgba(0,0,0,0.6)',
+    }}>
+      {/* Seekbar */}
+      <div
+        onClick={handleSeek}
+        style={{ height: 4, background: 'var(--bg-surface)', cursor: 'pointer', position: 'relative' }}
+      >
+        <div style={{
+          position: 'absolute', left: 0, top: 0, height: '100%',
+          width: pct + '%', background: 'var(--red)',
+          borderRadius: 2, transition: 'width 0.3s linear',
+        }} />
+      </div>
 
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 300,
-        background: 'rgba(12,12,12,0.97)', backdropFilter: 'blur(16px)',
-        borderTop: '1px solid var(--border)',
-        boxShadow: '0 -4px 32px rgba(0,0,0,0.6)',
-        transition: 'transform 0.3s ease',
+        padding: minimised ? '8px 16px' : '10px 20px',
+        display: 'flex', alignItems: 'center', gap: 14,
       }}>
-        {/* Progress bar — always visible */}
-        <div onClick={handleSeek} style={{ height: 3, background: 'var(--bg-surface)', cursor: 'pointer', position: 'relative' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: pct + '%', background: 'var(--red)', transition: 'width 0.5s linear', borderRadius: 2 }} />
+        {/* Cover */}
+        <div style={{ width: 42, height: 42, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: 'var(--bg-surface)' }}>
+          {nowPlaying.cover_url
+            ? <img src={nowPlaying.cover_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Music size={16} style={{ opacity: 0.3 }} />
+              </div>
+          }
         </div>
 
-        <div style={{ padding: minimised ? '8px 16px' : '12px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
-          {/* Cover */}
-          <div style={{ width: 44, height: 44, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: 'var(--bg-surface)' }}>
-            {nowPlaying.cover_url
-              ? <img src={nowPlaying.cover_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Music size={18} style={{ opacity: 0.3 }} /></div>
+        {/* Track info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--white)' }}>
+            {nowPlaying.title}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--grey-400)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+            {nowPlaying.profiles?.name || ''}
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <button onClick={() => setShuffle(s => !s)} title="Shuffle"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 7, color: shuffleColor, display: 'flex', borderRadius: 6 }}>
+            <Shuffle size={15} />
+          </button>
+
+          <button onClick={skipPrev} title="Previous"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 7, color: 'var(--grey-300)', display: 'flex', borderRadius: 6 }}>
+            <SkipBack size={19} />
+          </button>
+
+          <button onClick={togglePlay}
+            style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--red)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {isPlaying
+              ? <Pause size={18} fill="white" color="white" />
+              : <Play  size={18} fill="white" color="white" style={{ marginLeft: 2 }} />
             }
-          </div>
+          </button>
 
-          {/* Track info */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nowPlaying.title}</div>
-            <div style={{ fontSize: 11, color: 'var(--grey-400)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {nowPlaying.profiles?.name || nowPlaying.artist_name || ''}
-            </div>
-          </div>
+          <button onClick={skipNext} title="Next"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 7, color: 'var(--grey-300)', display: 'flex', borderRadius: 6 }}>
+            <SkipForward size={19} />
+          </button>
 
-          {/* Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {/* Shuffle */}
-            <button onClick={() => setShuffle(s => !s)} title="Shuffle"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: shuffleColor, display: 'flex' }}>
-              <Shuffle size={16} />
-            </button>
+          <button onClick={cycleRepeat} title={`Repeat: ${repeat}`}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 7, color: repeatColor, display: 'flex', borderRadius: 6 }}>
+            <RepeatIcon size={15} />
+          </button>
+        </div>
 
-            {/* Prev */}
-            <button onClick={ctxPrev} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--grey-300)', display: 'flex' }}>
-              <SkipBack size={20} />
-            </button>
+        {/* Time + Volume */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)', minWidth: 75, textAlign: 'center' }}>
+            {fmt(currentTime)} / {fmt(duration)}
+          </span>
 
-            {/* Play/Pause */}
-            <button onClick={() => setIsPlaying(p => !p)}
-              style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--red)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {isPlaying
-                ? <Pause size={20} fill="white" color="white" />
-                : <Play  size={20} fill="white" color="white" style={{ marginLeft: 2 }} />
-              }
-            </button>
+          <button onClick={toggleMute} title={muted ? 'Unmute' : 'Mute'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--grey-400)', display: 'flex', padding: 5 }}>
+            {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
 
-            {/* Next */}
-            <button onClick={ctxNext} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--grey-300)', display: 'flex' }}>
-              <SkipForward size={20} />
-            </button>
+          <input
+            type="range" min="0" max="1" step="0.02"
+            value={muted ? 0 : volume}
+            onChange={e => changeVolume(parseFloat(e.target.value))}
+            style={{ width: 72, accentColor: 'var(--red)', cursor: 'pointer' }}
+            title={`Volume: ${Math.round(volume * 100)}%`}
+          />
 
-            {/* Repeat */}
-            <button onClick={cycleRepeat} title={`Repeat: ${repeat}`}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: repeatColor, display: 'flex' }}>
-              <RepeatIcon size={16} />
-            </button>
-          </div>
-
-          {/* Time + Volume */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)', minWidth: 80, textAlign: 'center' }}>
-              {fmt(progress)} / {fmt(duration)}
-            </span>
-            <button onClick={toggleMute} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--grey-400)', display: 'flex', padding: 4 }}>
-              {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            </button>
-            <input type="range" min="0" max="1" step="0.05" value={muted ? 0 : volume}
-              onChange={handleVolume}
-              style={{ width: 70, accentColor: 'var(--red)', cursor: 'pointer' }} />
-            <button onClick={() => setMinimised(m => !m)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--grey-500)', display: 'flex', padding: 4 }}>
-              {minimised ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-          </div>
+          <button onClick={() => setMinimised(m => !m)} title={minimised ? 'Expand' : 'Minimise'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--grey-500)', display: 'flex', padding: 5 }}>
+            {minimised ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </button>
         </div>
       </div>
-    </>
+    </div>
   )
 }

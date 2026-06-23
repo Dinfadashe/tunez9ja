@@ -6,7 +6,7 @@ import PremiumUnlockModal from '../components/PremiumUnlockModal.jsx'
 import { supabase } from '../lib/supabase.js'
 
 import { SearchBar, EmptyState } from '../components/UI.jsx'
-import { Newspaper, Clock, User, ArrowLeft } from 'lucide-react'
+import { Newspaper, Clock, User, ArrowLeft, Eye } from 'lucide-react'
 
 // Simple HTML sanitizer — strips dangerous tags/attrs before render
 function sanitizeHTML(html) {

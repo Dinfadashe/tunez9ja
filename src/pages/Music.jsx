@@ -19,7 +19,7 @@ function SaveButton({ track, currentUser }) {
   React.useEffect(() => {
     if (!currentUser?.id) return
     supabase.from('saved_tracks')
-      .select('track_id').eq('user_id', currentUser.id).eq('track_id', track.id).single()
+      .select('track_id').eq('user_id', currentUser.id).eq('track_id', track.id).maybeSingle()
       .then(({ data }) => setSaved(!!data))
   }, [track.id, currentUser?.id])
 
@@ -228,7 +228,7 @@ export default function MusicPage({ currentUser }) {
                           if (!unlocked) { setUnlockTarget(track); return }
                         }
                         playTrack(track, filtered)
-                        supabase.rpc('increment_play_count', { p_track_id: track.id }).catch(() => {})
+                        supabase.rpc('increment_play_count', { p_track_id: track.id }).then(() => {}).catch(() => {})
                       }}
                       style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 14px', borderRadius: 8, cursor: 'pointer', background: playing ? 'var(--red-glow)' : 'transparent', border: `1px solid ${playing ? 'var(--border-red)' : 'transparent'}`, transition: 'all 0.2s' }}
                       onMouseEnter={e => { if (!playing) e.currentTarget.style.background = 'var(--bg-hover)' }}

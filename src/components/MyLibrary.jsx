@@ -145,6 +145,61 @@ export default function MyLibrary({ currentUser }) {
           })}
         </div>
       )}
+
+      {/* ── Saved Tracks ──────────────────────────────────── */}
+      <div style={{ marginTop: 40 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <Heart size={20} color="var(--red)" fill="var(--red)" />
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 26 }}>SAVED TRACKS</h3>
+          <span style={{ fontSize: 12, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)' }}>
+            ({savedTracks.length})
+          </span>
+        </div>
+
+        {savedTracks.length === 0 ? (
+          <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--grey-500)' }}>
+            <Heart size={32} style={{ opacity: 0.15, display: 'block', margin: '0 auto 12px' }} />
+            <div style={{ fontSize: 14 }}>No saved tracks yet</div>
+            <div style={{ fontSize: 12, marginTop: 6 }}>Tap the ❤️ on any track to save it here</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {savedTracks.map((track, idx) => (
+              <div key={track.id}
+                onClick={() => playTrack(track, savedTracks)}
+                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <span style={{ width: 28, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--grey-500)', flexShrink: 0 }}>{idx + 1}</span>
+                <div style={{ width: 44, height: 44, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {track.cover_url
+                    ? <img loading="lazy" src={track.cover_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <Music size={16} style={{ opacity: 0.3 }} />
+                  }
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--grey-300)', marginTop: 2 }}>
+                    {track.profiles?.name}{track.profiles?.is_verified && ' ✅'}
+                  </div>
+                </div>
+                <span style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{track.genre}</span>
+                <span style={{ fontSize: 12, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{track.duration || '—'}</span>
+                <button
+                  onClick={async e => {
+                    e.stopPropagation()
+                    await supabase.from('saved_tracks').delete().eq('user_id', currentUser.id).eq('track_id', track.id)
+                    setSavedTracks(prev => prev.filter(t => t.id !== track.id))
+                  }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4, flexShrink: 0 }}
+                  title="Remove from library">
+                  <Heart size={14} fill="var(--red)" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

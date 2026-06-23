@@ -50,7 +50,7 @@ export default function AdminAnalytics() {
       .then(({ data }) => { setRecent(data || []); setLoading(false) })
   }, [])
 
-  if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--grey-500)', fontFamily:'var(--font-mono)', letterSpacing:2 }}>LOADING ANALYTICS...</div>
+  if (loading || !stats) return <div style={{ padding:60, textAlign:'center', color:'var(--grey-500)', fontFamily:'var(--font-mono)', letterSpacing:2 }}>LOADING ANALYTICS...</div>
 
   const STAT_CARDS = [
     { label:'Total Users',     val: stats.users,    icon: <Users size={24} />,     accent:'#00b4dc' },

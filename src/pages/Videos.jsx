@@ -149,10 +149,14 @@ function VideoPlayer({ video, currentUser }) {
     return () => clearTimeout(timer)
   }, [video?.id])
 
-  // Increment view count on open
+  // Increment view count on open — also update local display
+  const [localViews, setLocalViews] = React.useState(video?.view_count || 0)
   useEffect(() => {
     if (!video?.id) return
-    supabase.rpc('increment_video_views', { p_video_id: video.id }).catch(() => {})
+    setLocalViews((video?.view_count || 0) + 1)
+    supabase.rpc('increment_video_views', { p_video_id: video.id })
+      .then(() => {})
+      .catch(() => {})
   }, [video?.id])
 
   const ytId = getYoutubeId(video.youtube_url)
@@ -234,7 +238,7 @@ function FeaturedVideoCard({ video, onPlay }) {
         </div>
         {video.description && <p style={{ color:'var(--grey-500)', fontSize:13, lineHeight:1.7, marginBottom:20 }}>{video.description?.slice(0,120)}{video.description?.length > 120 ? '...' : ''}</p>}
         <div style={{ display:'flex', gap:16, fontSize:12, color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>
-          <span><Eye size={12} style={{ display:'inline', marginRight:4 }} />{video.view_count?.toLocaleString() || 0} views</span>
+          <span><Eye size={12} style={{ display:'inline', marginRight:4 }} />{(video.view_count || 0).toLocaleString()} views</span>
           <span><Clock size={12} style={{ display:'inline', marginRight:4 }} />{video.created_at?.slice(0,10)}</span>
         </div>
       </div>

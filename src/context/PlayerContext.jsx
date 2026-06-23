@@ -3,54 +3,51 @@ import React, { createContext, useContext, useState, useRef, useCallback, useEff
 const PlayerContext = createContext(null)
 
 export function PlayerProvider({ children }) {
-  const [queue,       setQueue]       = useState([])
-  const [queueIndex,  setQueueIndex]  = useState(0)
-  const [nowPlaying,  setNowPlaying]  = useState(null)
-  const [isPlaying,   setIsPlaying]   = useState(false)
-  const [progress,    setProgress]    = useState(0)
-  const [duration,    setDuration]    = useState(0)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [showInfo,    setShowInfo]    = useState(false)
-  const [minimized,   setMinimized]   = useState(false)
+  const [queue,       setQueue]      = useState([])
+  const [queueIndex,  setQueueIndex] = useState(0)
+  const [nowPlaying,  setNowPlaying] = useState(null)
+  const [isPlaying,   setIsPlaying]  = useState(false)
+  const [currentTime, setCurrentTime]= useState(0)
+  const [duration,    setDuration]   = useState(0)
+  const [volume,      setVolume]     = useState(1)
+  const [muted,       setMuted]      = useState(false)
   const audioRef = useRef(null)
 
+  // ── Core: play a track ──────────────────────────────────────
   const playTrack = useCallback((track, trackList = []) => {
-    if (!track) return
+    if (!track?.audio_url) return
     const list = trackList.length ? trackList : [track]
     const idx  = list.findIndex(t => t.id === track.id)
     setQueue(list)
     setQueueIndex(idx >= 0 ? idx : 0)
     setNowPlaying(track)
     setIsPlaying(true)
-    if (audioRef.current) {
-      const url = track.audio_url || null
-      if (url) {
-        audioRef.current.src = url
-        audioRef.current.play().catch(() => {})
-      }
-    }
-  }, [])
-
-  const stopPlayer = useCallback(() => {
+    setCurrentTime(0)
     if (audioRef.current) {
       audioRef.current.pause()
-      audioRef.current.src = ''
+      audioRef.current.currentTime = 0
+      audioRef.current.src = track.audio_url
+      audioRef.current.volume = volume
+      audioRef.current.muted  = muted
+      audioRef.current.play().catch(() => {})
     }
-    setNowPlaying(null)
-    setIsPlaying(false)
-    setProgress(0)
-  }, [])
+  }, [volume, muted])
 
+  // ── Skip next ───────────────────────────────────────────────
   const skipNext = useCallback(() => {
     setQueue(q => {
       if (!q.length) return q
       const idx  = q.findIndex(t => t.id === nowPlaying?.id)
-      const next = q[(idx + 1) % q.length]
-      if (next) {
-        setQueueIndex((idx + 1) % q.length)
+      const ni   = (idx + 1) % q.length
+      const next = q[ni]
+      if (next && next.audio_url) {
+        setQueueIndex(ni)
         setNowPlaying(next)
         setIsPlaying(true)
-        if (audioRef.current && next.audio_url) {
+        setCurrentTime(0)
+        if (audioRef.current) {
+          audioRef.current.pause()
+          audioRef.current.currentTime = 0
           audioRef.current.src = next.audio_url
           audioRef.current.play().catch(() => {})
         }
@@ -59,16 +56,26 @@ export function PlayerProvider({ children }) {
     })
   }, [nowPlaying?.id])
 
+  // ── Skip prev ───────────────────────────────────────────────
   const skipPrev = useCallback(() => {
+    // If more than 3 seconds in, restart current track
+    if (audioRef.current && audioRef.current.currentTime > 3) {
+      audioRef.current.currentTime = 0
+      return
+    }
     setQueue(q => {
       if (!q.length) return q
       const idx  = q.findIndex(t => t.id === nowPlaying?.id)
-      const prev = q[(idx - 1 + q.length) % q.length]
-      if (prev) {
-        setQueueIndex((idx - 1 + q.length) % q.length)
+      const pi   = (idx - 1 + q.length) % q.length
+      const prev = q[pi]
+      if (prev && prev.audio_url) {
+        setQueueIndex(pi)
         setNowPlaying(prev)
         setIsPlaying(true)
-        if (audioRef.current && prev.audio_url) {
+        setCurrentTime(0)
+        if (audioRef.current) {
+          audioRef.current.pause()
+          audioRef.current.currentTime = 0
           audioRef.current.src = prev.audio_url
           audioRef.current.play().catch(() => {})
         }
@@ -77,6 +84,52 @@ export function PlayerProvider({ children }) {
     })
   }, [nowPlaying?.id])
 
+  // ── Toggle play/pause ───────────────────────────────────────
+  const togglePlay = useCallback(() => {
+    if (!audioRef.current) return
+    if (isPlaying) {
+      audioRef.current.pause()
+    } else {
+      audioRef.current.play().catch(() => {})
+    }
+  }, [isPlaying])
+
+  // ── Stop ────────────────────────────────────────────────────
+  const stopPlayer = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ''
+    }
+    setNowPlaying(null)
+    setIsPlaying(false)
+    setCurrentTime(0)
+  }, [])
+
+  // ── Seek ────────────────────────────────────────────────────
+  const seekTo = useCallback((seconds) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = seconds
+    }
+  }, [])
+
+  // ── Volume ──────────────────────────────────────────────────
+  const changeVolume = useCallback((v) => {
+    const val = Math.max(0, Math.min(1, v))
+    setVolume(val)
+    if (audioRef.current) audioRef.current.volume = val
+    if (val > 0 && muted) {
+      setMuted(false)
+      if (audioRef.current) audioRef.current.muted = false
+    }
+  }, [muted])
+
+  const toggleMute = useCallback(() => {
+    const newMuted = !muted
+    setMuted(newMuted)
+    if (audioRef.current) audioRef.current.muted = newMuted
+  }, [muted])
+
+  // ── Add to play next ────────────────────────────────────────
   const addToPlayNext = useCallback((track) => {
     setQueue(q => {
       const idx  = q.findIndex(t => t.id === nowPlaying?.id)
@@ -86,57 +139,42 @@ export function PlayerProvider({ children }) {
     })
   }, [nowPlaying?.id])
 
-  const seekTo = useCallback((pct) => {
-    if (audioRef.current && audioRef.current.duration) {
-      audioRef.current.currentTime = pct * audioRef.current.duration
-    }
-  }, [])
-
-  const togglePlay = useCallback(() => {
-    setIsPlaying(p => {
-      if (p) audioRef.current?.pause()
-      else   audioRef.current?.play().catch(() => {})
-      return !p
-    })
-  }, [])
-
+  // ── Media Session API ───────────────────────────────────────
   useEffect(() => {
     if (!('mediaSession' in navigator) || !nowPlaying) return
     navigator.mediaSession.metadata = new MediaMetadata({
-      title:  nowPlaying.title  || 'Unknown',
-      artist: nowPlaying.profiles?.name || '',
+      title:   nowPlaying.title || 'Unknown',
+      artist:  nowPlaying.profiles?.name || '',
       artwork: nowPlaying.cover_url ? [{ src: nowPlaying.cover_url }] : [],
     })
+    navigator.mediaSession.setActionHandler('play',          () => { audioRef.current?.play(); setIsPlaying(true) })
+    navigator.mediaSession.setActionHandler('pause',         () => { audioRef.current?.pause(); setIsPlaying(false) })
     navigator.mediaSession.setActionHandler('nexttrack',     skipNext)
     navigator.mediaSession.setActionHandler('previoustrack', skipPrev)
   }, [nowPlaying, skipNext, skipPrev])
 
   return (
     <PlayerContext.Provider value={{
-      nowPlaying, isPlaying, progress, duration, currentTime,
-      audioRef, showInfo, setShowInfo, minimized, setMinimized,
-      queue, queueIndex,
+      nowPlaying, isPlaying, currentTime, duration,
+      queue, queueIndex, volume, muted,
+      audioRef,
       playTrack, stopPlayer,
       skipNext, skipPrev,
       playNext: skipNext, playPrev: skipPrev,
+      togglePlay, seekTo,
+      changeVolume, toggleMute,
       addToPlayNext,
-      seekTo, togglePlay,
       setIsPlaying,
     }}>
+      {/* Single global <audio> — the only audio element in the entire app */}
       <audio
         ref={audioRef}
         preload="auto"
-        onTimeUpdate={() => {
-          if (!audioRef.current) return
-          const d   = audioRef.current.duration || 0
-          const cur = audioRef.current.currentTime || 0
-          setProgress(d ? (cur / d) * 100 : 0)
-          setCurrentTime(cur)
-          setDuration(d)
-        }}
+        onPlay={()       => setIsPlaying(true)}
+        onPause={()      => setIsPlaying(false)}
         onEnded={skipNext}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onTimeUpdate={e  => { setCurrentTime(e.target.currentTime); setDuration(e.target.duration || 0) }}
+        onLoadedMetadata={e => setDuration(e.target.duration || 0)}
       />
       {children}
     </PlayerContext.Provider>
