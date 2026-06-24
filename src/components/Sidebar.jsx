@@ -52,7 +52,7 @@ export default function Sidebar({ items, activePage, setActivePage, setPage, cur
           <button
             key={item.key}
             className={`sidebar-nav-item ${activePage === item.key ? 'active' : ''}`}
-            onClick={() => setActivePage(item.key)}
+            onClick={() => { setActivePage(item.key); onClose?.() }}
           >
             <item.icon size={18} />
             {item.label}

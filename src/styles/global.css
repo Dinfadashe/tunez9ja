@@ -513,9 +513,6 @@ body {
   }
 }
 
-/* ════════════════════════════════════════════════════════════
-   DASHBOARD — MOBILE SIDEBAR DRAWER (definitive)
-════════════════════════════════════════════════════════════ */
 
 /* Desktop: sidebar is static in flex row */
 .dashboard-layout {
@@ -598,5 +595,62 @@ body {
   .navbar-safe {
     padding-top: env(safe-area-inset-top, 0px) !important;
     box-sizing: content-box;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   DASHBOARD MOBILE SIDEBAR — FINAL CORRECT VERSION
+   Uses transform (not left) to match the base CSS
+════════════════════════════════════════════════════════════ */
+
+/* Desktop */
+.dashboard-layout  { display: flex; min-height: 100vh; }
+.dashboard-main    { flex: 1; min-width: 0; overflow-x: hidden; }
+.dashboard-header  { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.dashboard-content { padding: 24px; }
+.dashboard-menu-toggle { display: none; }
+.sidebar-overlay   { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 9998; }
+
+@media (max-width: 900px) {
+  /* Layout: single column */
+  .dashboard-layout { display: block !important; }
+
+  /* Sidebar: hide using transform (matches base .sidebar rule) */
+  .dashboard-sidebar {
+    transform: translateX(-100%) !important;
+    transition: transform 0.28s ease !important;
+    z-index: 9999 !important;
+  }
+
+  /* Open: slide in */
+  .dashboard-sidebar.open {
+    transform: translateX(0) !important;
+    box-shadow: 6px 0 40px rgba(0,0,0,0.8) !important;
+  }
+
+  /* Overlay */
+  .sidebar-overlay.open {
+    display: block !important;
+    z-index: 9998 !important;
+  }
+
+  /* Show toggle button */
+  .dashboard-menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dashboard-header  { padding: 12px 16px !important; }
+  .dashboard-content { padding: 16px !important; }
+}
+
+/* iPhone PWA: push navbar below status bar */
+.navbar-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+@supports (padding-top: env(safe-area-inset-top)) {
+  .navbar-safe {
+    padding-top: env(safe-area-inset-top) !important;
   }
 }

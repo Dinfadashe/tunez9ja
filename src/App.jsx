@@ -15,10 +15,10 @@ import AboutPage from './pages/About.jsx'
 import TermsPage from './pages/Terms.jsx'
 import PrivacyPage from './pages/Privacy.jsx'
 import { LoginPage, RegisterPage } from './pages/Auth.jsx'
-import AdminDashboard from './pages/AdminDashboard.jsx'
-import ArtistDashboard from './pages/ArtistDashboard.jsx'
-import BloggerDashboard from './pages/BloggerDashboard.jsx'
-import UserDashboard    from './pages/UserDashboard.jsx'
+const AdminDashboard   = React.lazy(() => import('./pages/AdminDashboard.jsx'))
+const ArtistDashboard  = React.lazy(() => import('./pages/ArtistDashboard.jsx'))
+const BloggerDashboard = React.lazy(() => import('./pages/BloggerDashboard.jsx'))
+const UserDashboard    = React.lazy(() => import('./pages/UserDashboard.jsx'))
 import SearchPage       from './pages/SearchPage.jsx'
 
 const DASHBOARD_PAGES = ['admin-dashboard', 'artist-dashboard', 'blogger-dashboard', 'user-dashboard']
@@ -31,28 +31,27 @@ function TelegramPopup() {
   const [show, setShow] = useState(false)
 
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10)
     const stored = JSON.parse(localStorage.getItem('tg_popup') || '{}')
 
-    // Reset count if it's a new day
-    if (stored.date !== today) {
-      localStorage.setItem('tg_popup', JSON.stringify({ date: today, count: 0 }))
-      stored.date  = today
-      stored.count = 0
+    // If user already joined — never show again
+    if (stored.joined) return
+
+    // If shown in last 24 hours — skip
+    if (stored.lastShown) {
+      const hoursSince = (Date.now() - stored.lastShown) / 1000 / 3600
+      if (hoursSince < 24) return
     }
 
-    // Only show if shown less than 2 times today
-    if (stored.count >= 2) return
-
-    const timer = setTimeout(() => setShow(true), 8000)
+    // Show after 10 seconds
+    const timer = setTimeout(() => setShow(true), 10000)
     return () => clearTimeout(timer)
   }, [])
 
   const dismiss = (joined = false) => {
-    const today = new Date().toISOString().slice(0, 10)
-    const stored = JSON.parse(localStorage.getItem('tg_popup') || '{}')
-    const count = (stored.date === today ? stored.count : 0) + 1
-    localStorage.setItem('tg_popup', JSON.stringify({ date: today, count, joined }))
+    localStorage.setItem('tg_popup', JSON.stringify({
+      lastShown: Date.now(),
+      joined,
+    }))
     setShow(false)
   }
 
@@ -77,11 +76,12 @@ function TelegramPopup() {
       `}</style>
 
       {/* Close */}
-      <button onClick={dismiss} style={{
+      <button onClick={() => dismiss(false)} style={{
         position: 'absolute', top: 10, right: 12,
-        background: 'none', border: 'none', color: 'var(--grey-500)',
-        cursor: 'pointer', fontSize: 18, lineHeight: 1,
-      }}>✕</button>
+        background: 'none', border: 'none', color: 'var(--grey-400)',
+        cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '4px 6px',
+        borderRadius: 6,
+      }} title="Close">✕</button>
 
       {/* Telegram icon */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
@@ -296,6 +296,7 @@ function AppInner() {
           onLogout={async () => { await supabase.auth.signOut() }} />
       )}
       <main style={{ flex: 1 }}>
+        <React.Suspense fallback={<div style={{minHeight:'60vh',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--grey-500)',fontFamily:'var(--font-mono)',letterSpacing:2}}>LOADING...</div>}>
         {safePage === 'home'              && <Home setPage={setPage} />}
         {safePage === 'music'             && <MusicPage currentUser={profile} />}
         {safePage === 'videos'            && <VideosPage currentUser={profile} />}
@@ -310,6 +311,7 @@ function AppInner() {
         {safePage === 'artist-dashboard'  && <ArtistDashboard  {...dashboardProps} />}
         {safePage === 'blogger-dashboard' && <BloggerDashboard {...dashboardProps} />}
         {safePage === 'user-dashboard'    && <UserDashboard    {...dashboardProps} />}
+        </React.Suspense>
       </main>
       {!NO_FOOTER.includes(safePage) && <Footer setPage={setPage} />}
 
