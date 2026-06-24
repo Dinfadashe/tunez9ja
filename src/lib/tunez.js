@@ -281,7 +281,7 @@ export async function unlockPremium(userId, content, contentType) {
     .select('id')
     .eq('user_id', userId)
     .eq('content_id', content.id)
-    .single()
+    .maybeSingle()
   if (existing) return { success: true, alreadyUnlocked: true }
 
   // Check balance
@@ -296,13 +296,27 @@ export async function unlockPremium(userId, content, contentType) {
   const adminAmt = parseFloat((content.tunez_price * 0.30).toFixed(4))
   const ownerId  = content.artist_id || content.author_id || content.uploader_id
 
-  // Debit user
-  await supabase.rpc('spend_tunez', {
+  // Debit user - use direct balance update if RPC fails
+  const { error: spendErr } = await supabase.rpc('spend_tunez', {
     p_user_id: userId, p_amount: content.tunez_price,
     p_type: 'spend_premium',
     p_description: 'Unlocked premium: ' + content.title,
     p_ref_id: content.id
   })
+  if (spendErr) {
+    // Fallback: direct debit
+    await supabase.from('tunez_balances')
+      .update({ balance: bal.balance - content.tunez_price,
+                total_spent: (bal.total_spent || 0) + content.tunez_price,
+                updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+    await supabase.from('tunez_transactions').insert({
+      user_id: userId, type: 'spend_premium',
+      amount: -content.tunez_price,
+      description: 'Unlocked premium: ' + content.title,
+      ref_id: content.id
+    })
+  }
   // Credit owner
   if (ownerId) await supabase.rpc('add_tunez', {
     p_user_id: ownerId, p_amount: ownerAmt,
@@ -325,14 +339,19 @@ export async function unlockPremium(userId, content, contentType) {
 }
 
 export async function isUnlocked(userId, contentId) {
-  if (!userId) return false
-  const { data } = await supabase
-    .from('tunez_unlocks')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('content_id', contentId)
-    .single()
-  return !!data
+  if (!userId || !contentId) return false
+  try {
+    const { data, error } = await supabase
+      .from('tunez_unlocks')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('content_id', contentId)
+      .maybeSingle()
+    if (error) { console.error('isUnlocked error:', error); return false }
+    return !!data
+  } catch(e) {
+    return false
+  }
 }
 
 export async function getMyLibrary(userId) {

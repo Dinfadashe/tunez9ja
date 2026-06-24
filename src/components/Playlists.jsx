@@ -17,7 +17,7 @@ export default function Playlists({ currentUser }) {
   const fetchPlaylists = async () => {
     const { data } = await supabase
       .from('playlists')
-      .select('*, playlist_tracks(count)')
+      .select('*, playlist_tracks(id)')
       .eq('user_id', currentUser.id)
       .order('created_at', { ascending: false })
     setPlaylists(data || [])

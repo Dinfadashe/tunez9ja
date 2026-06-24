@@ -35,7 +35,7 @@ export default function BlogPage({ currentUser }) {
 
   // Open post from deep link
   useEffect(() => {
-    if (!deepLink?.type === 'post' || !deepLink?.id) return
+    if (deepLink?.type !== 'post' || !deepLink?.id) return
     supabase.from('blog_posts').select('*,profiles:author_id(name,is_verified,verified_type)')
       .eq('id', deepLink.id).single()
       .then(({ data }) => { if (data) setSelectedPost(data) })
@@ -147,7 +147,11 @@ export default function BlogPage({ currentUser }) {
                     const unlocked = await isUnlocked(currentUser?.id, post.id)
                     if (!unlocked) { setUnlockTarget(post); return }
                   }
-                  setSelectedPost(post)
+                  // Fetch full post to ensure content field is loaded
+                  supabase.from('blog_posts')
+                    .select('*, profiles:author_id(name, avatar_url, is_verified)')
+                    .eq('id', post.id).single()
+                    .then(({ data }) => setSelectedPost(data || post))
                 }} style={{ cursor: 'pointer' }}>
                     <div className="blog-card-img">
                       {post.cover_url

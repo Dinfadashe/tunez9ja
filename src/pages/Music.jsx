@@ -107,6 +107,7 @@ export default function MusicPage({ currentUser }) {
   const [activeGenre, setActiveGenre] = useState('All')
   const { nowPlaying, isPlaying, playTrack } = usePlayer()
   const [unlockTarget, setUnlockTarget] = React.useState(null)
+  const [unlockedIds, setUnlockedIds] = React.useState(new Set())
   const [view, setView] = React.useState('tracks')
   const earnedRef = React.useRef({})
 
@@ -138,10 +139,20 @@ export default function MusicPage({ currentUser }) {
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(200)
-      .then(({ data }) => {
+      .then(async ({ data }) => {
       const tracks = data || []
       setTracks(tracks)
       setLoading(false)
+      // Pre-fetch which premium tracks user has unlocked
+      if (currentUser?.id) {
+        const premiumIds = tracks.filter(t => t.is_premium).map(t => t.id)
+        if (premiumIds.length > 0) {
+          const { data: unlocks } = await supabase.from('tunez_unlocks')
+            .select('content_id').eq('user_id', currentUser.id)
+            .in('content_id', premiumIds)
+          if (unlocks) setUnlockedIds(new Set(unlocks.map(u => u.content_id)))
+        }
+      }
       // Auto-play track from deep link
       if (deepLink?.type === 'track') {
         const t = tracks.find(t => t.id === deepLink.id)
@@ -231,10 +242,10 @@ export default function MusicPage({ currentUser }) {
                   const playing = nowPlaying?.id === track.id
                   return (
                     <div key={track.id}
-                      onClick={async () => {
-                        if (track.is_premium) {
-                          const unlocked = await isUnlocked(currentUser?.id, track.id)
-                          if (!unlocked) { setUnlockTarget(track); return }
+                      onClick={() => {
+                        if (track.is_premium && !unlockedIds.has(track.id)) {
+                          if (!currentUser) { setUnlockTarget(track); return }
+                          setUnlockTarget(track); return
                         }
                         playTrack(track, filtered)
                         supabase.rpc('increment_play_count', { p_track_id: track.id }).then(() => {}).catch(() => {})
