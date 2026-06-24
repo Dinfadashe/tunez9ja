@@ -172,7 +172,7 @@ export function PlayerProvider({ children }) {
         preload="auto"
         onPlay={()       => setIsPlaying(true)}
         onPause={()      => setIsPlaying(false)}
-        onEnded={skipNext}
+        onEnded={() => {}} // Handled by FloatingPlayer with repeat/shuffle logic
         onTimeUpdate={e  => { setCurrentTime(e.target.currentTime); setDuration(e.target.duration || 0) }}
         onLoadedMetadata={e => setDuration(e.target.duration || 0)}
       />

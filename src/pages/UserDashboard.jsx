@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import HalvingBanner from '../components/HalvingBanner.jsx'
 import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import Sidebar from '../components/Sidebar.jsx'

@@ -25,8 +25,8 @@ export default function AlbumManager({ currentUser }) {
   }
 
   const fetchArtistTracks = async () => {
-    const { data } = await supabase.from('music_tracks').select('id,title,genre,album_id,track_number')
-      .eq('artist_id', currentUser.id).eq('status', 'approved').order('title')
+    const { data } = await supabase.from('music_tracks').select('id,title,genre,album_id,track_number,status')
+      .eq('artist_id', currentUser.id).order('title') // all statuses — pending tracks can be added to albums
     setAllTracks(data || [])
   }
 
@@ -166,7 +166,7 @@ export default function AlbumManager({ currentUser }) {
         {allTracks.filter(t => t.album_id !== selected.id).map((t, i) => (
           <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
             <span style={{ flex: 1, fontSize: 14 }}>{t.title}</span>
-            <span style={{ fontSize: 12, color: 'var(--grey-500)' }}>{t.album_id ? '(in another album)' : ''}</span>
+            <span style={{ fontSize: 12, color: t.status === 'approved' ? 'var(--grey-500)' : '#ffb400' }}>{t.album_id ? '(in another album)' : t.status !== 'approved' ? '(pending approval)' : ''}</span>
             <button onClick={() => assignTrack(t.id, selected.id, tracks.length + 1)}
               style={{ background: 'var(--red)', border: 'none', borderRadius: 6, color: 'white', cursor: 'pointer', padding: '6px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Plus size={12} /> Add

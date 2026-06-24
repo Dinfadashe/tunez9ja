@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
+import HalvingBanner from '../components/HalvingBanner.jsx'
 import VerificationPanel from '../components/VerificationPanel.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import Sidebar from '../components/Sidebar.jsx'
@@ -52,7 +53,14 @@ export default function BloggerDashboard({ setPage, currentUser: propUser, onRol
       <main className="dashboard-main">
         <div className="dashboard-header">
           <div>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>BLOGGER PORTAL</span>
+            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+              <button onClick={() => setSidebarOpen(o => !o)}
+                className="show-mobile"
+                style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--grey-300)', cursor:'pointer', display:'none', alignItems:'center', justifyContent:'center' }}>
+                &#9776;
+              </button>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>BLOGGER PORTAL</span>
+            </div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>
               {editingPost && active === 'write' ? 'Edit Post' : NAV.find(n => n.key === active)?.label}
             </h1>
@@ -183,6 +191,8 @@ function MyPosts({ currentUser, onEdit }) {
         {preview && (
           <div>
             
+      <HalvingBanner />
+
       {/* Test phase limits banner */}
       <div style={{ padding: '12px 18px', background: 'rgba(255,180,0,0.08)', border: '1px solid rgba(255,180,0,0.25)', borderRadius: 10, marginBottom: 24, display: 'flex', gap: 12, alignItems: 'flex-start', fontSize: 13 }}>
         <span style={{ fontSize: 18, flexShrink: 0 }}>🚀</span>

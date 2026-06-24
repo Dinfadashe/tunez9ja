@@ -179,6 +179,8 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
         role: form.role, active_role: form.role,
         available_roles: availableRoles,
         bio: form.bio || null, genre: form.genre || null,
+        is_verified: false, earn_multiplier: 1.0,
+        content_violations: 0,
       }
       await supabase.from('profiles').upsert(profileData)
       // Handle referral bonus
@@ -210,6 +212,9 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
       const refCodeNew = form.name.slice(0,4).toUpperCase().replace(/[^A-Z]/g,'X') + data.user.id.slice(0,4).toUpperCase()
       await supabase.from('profiles').update({ referral_code: refCodeNew }).eq('id', data.user.id)
 
+      // Clear any stale cache
+      sessionStorage.removeItem('t9_profile')
+      sessionStorage.removeItem('t9_ref')
       setProfile({ ...profileData, referral_code: refCodeNew })
       setActiveRole(form.role); setLoading(false)
       if (form.role === 'artist')       setPage('artist-dashboard')

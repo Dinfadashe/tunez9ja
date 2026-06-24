@@ -163,7 +163,19 @@ function AppInner() {
   }, [])
 
   useEffect(() => {
-    const timeout = setTimeout(() => setAuthReady(true), 1500)
+    const timeout = setTimeout(() => setAuthReady(true), 5000) // longer fallback
+
+    // Check localStorage immediately for instant persistent login
+    // This prevents the flash of "logged out" state on page refresh
+    try {
+      const keys = Object.keys(localStorage).filter(k => k.includes('t9ja_session') || k.includes('supabase'))
+      const hasStoredSession = keys.length > 0
+      if (!hasStoredSession) {
+        // No stored session — show page immediately without waiting
+        clearTimeout(timeout)
+        setAuthReady(true)
+      }
+    } catch (e) {}
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(timeout)
@@ -174,7 +186,8 @@ function AppInner() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       // Only act on explicit signout — ignore TOKEN_REFRESHED, INITIAL_SESSION etc
       if (event === 'SIGNED_OUT') {
-        // Double-check: confirm session is truly gone before logging out
+        // Verify session is truly gone (ignore spurious SIGNED_OUT events)
+        await new Promise(r => setTimeout(r, 500)) // small delay
         const { data: { session: currentSession } } = await supabase.auth.getSession()
         if (!currentSession) {
           sessionStorage.removeItem('t9_profile')
@@ -182,7 +195,7 @@ function AppInner() {
           setActiveRole(null)
           setPage('home')
         }
-        // If session still exists, ignore this event (it was a false SIGNED_OUT)
+        // If session still exists → false SIGNED_OUT (token refresh artifact), ignore
       }
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         // Only reload if we don't have a profile yet

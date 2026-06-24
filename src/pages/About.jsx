@@ -1,5 +1,6 @@
 import React from 'react'
 import { MapPin, Mail, Globe, Users, Music, Newspaper, Video, Coins } from 'lucide-react'
+import { HalvingInfo } from '../components/HalvingBanner.jsx'
 
 export default function AboutPage({ setPage }) {
   return (
@@ -102,6 +103,11 @@ export default function AboutPage({ setPage }) {
           <button onClick={() => setPage('login')} className="btn btn-primary" style={{ marginTop: 20, gap: 8 }}>
             Start Your Journey →
           </button>
+        </div>
+
+        {/* Halving */}
+        <div style={{ marginBottom: 60 }}>
+          <HalvingInfo />
         </div>
 
         {/* Contact */}

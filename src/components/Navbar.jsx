@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import { Logo } from './UI.jsx'
 import NotificationsPanel from './NotificationsPanel.jsx'
 import { Avatar } from './ProfileEditor.jsx'
-import { Search, Sun, Moon, Coins, Menu, X } from 'lucide-react'
+import { Search, Sun, Moon, Coins, Menu, X, Zap } from 'lucide-react'
 
 export default function Navbar({ page, setPage, profile, activeRole, onLogout }) {
   const [theme,    setTheme]    = useState(localStorage.getItem('t9_theme') || 'dark')

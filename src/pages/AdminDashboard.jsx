@@ -59,7 +59,14 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
       <main className="dashboard-main">
         <div className="dashboard-header">
           <div>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>ADMIN PORTAL</span>
+            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+              <button onClick={() => setSidebarOpen(o => !o)}
+                className="show-mobile"
+                style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--grey-300)', cursor:'pointer', display:'none', alignItems:'center', justifyContent:'center' }}>
+                &#9776;
+              </button>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>ADMIN PORTAL</span>
+            </div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>
               {NAV(pending).find(n => n.key === active)?.label}
             </h1>
