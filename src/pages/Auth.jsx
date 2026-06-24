@@ -40,7 +40,7 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
       } else {
         enterAs(profile, profile.role)
       }
-    } catch (err) { setError(err.message || 'Something went wrong.'); setLoading(false) }
+    } catch (err) { setError(typeof err === 'string' ? err : err.message || 'Something went wrong. Please try again.'); setLoading(false) }
   }
 
   const enterAs = (profile, role) => {
@@ -161,7 +161,7 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
         email: form.email, password: form.password,
         options: { data: { name: form.name, role: form.role, bio: form.bio || null, genre: form.genre || null } }
       })
-      if (signUpError) { setError(signUpError.message); setLoading(false); return }
+      if (signUpError) { setError(signUpError.message || JSON.stringify(signUpError) || 'Signup failed. Please try again.'); setLoading(false); return }
       // Everyone gets 'user' as base role + their chosen role
       const availableRoles = form.role === 'user'
         ? ['user']
@@ -203,7 +203,7 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
       else if (form.role === 'blogger') setPage('blogger-dashboard')
       else if (form.role === 'user')    setPage('user-dashboard')
       else setPage('home')
-    } catch (err) { setError(err.message || 'Something went wrong.'); setLoading(false) }
+    } catch (err) { setError(typeof err === 'string' ? err : err.message || 'Something went wrong. Please try again.'); setLoading(false) }
   }
 
   return (
@@ -239,7 +239,7 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
 
             {error && (
               <div style={{ background: 'var(--red-glow)', border: '1px solid var(--border-red)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#ff6b6b' }}>
-                ⚠️ {error}
+                ⚠️ {typeof error === 'string' ? error : JSON.stringify(error)}
               </div>
             )}
 
@@ -268,6 +268,23 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
               <div className="form-group">
                 <label className="form-label">Bio (optional)</label>
                 <textarea className="form-control" placeholder="Tell us about yourself..." rows={3} value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} />
+              </div>
+
+
+              {/* ── REFERRAL CODE ── */}
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  Referral Code
+                  {refCode && <span style={{ fontSize: 10, background: 'rgba(0,200,100,0.15)', color: '#00c864', borderRadius: 10, padding: '2px 8px', fontFamily: 'var(--font-mono)' }}>AUTO-FILLED</span>}
+                  {!refCode && <span style={{ fontSize: 10, color: 'var(--grey-600)' }}>(optional — earn 15 TUNEZ for both)</span>}
+                </label>
+                <input
+                  className="form-control"
+                  placeholder="Paste a friend's referral code"
+                  value={refCode}
+                  onChange={e => setRefCode(e.target.value.trim().toUpperCase())}
+                  style={{ letterSpacing: refCode ? 2 : 0, fontFamily: refCode ? 'var(--font-mono)' : 'inherit' }}
+                />
               </div>
 
               {/* ── TERMS AGREEMENT ── */}
