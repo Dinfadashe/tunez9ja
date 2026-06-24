@@ -386,23 +386,7 @@ button { touch-action: manipulation; }
   .navbar-links     { display: none !important; }
   .navbar-hamburger { display: flex !important; }
 
-  /* Sidebar — becomes a drawer */
-  .dashboard-sidebar {
-    position: fixed;
-    left: -240px;
-    top: 0;
-    bottom: 0;
-    width: 240px;
-    z-index: 150;
-    transition: left 0.3s ease;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
-  }
-  .dashboard-sidebar.open {
-    left: 0;
-  }
-  .sidebar-overlay.open {
-    display: block;
-  }
+  
   .dashboard-content { padding: 16px; }
 
   /* Grids */
@@ -553,34 +537,84 @@ body {
     align-items: center;
     justify-content: center;
   }
-  /* Sidebar becomes overlay on mobile */
+  
+}
+
+/* ════════════════════════════════════════════════════════════
+   DASHBOARD MOBILE — Definitive sidebar drawer
+   Works on all mobile browsers + iPhone PWA home screen
+════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* Dashboard becomes single column */
+  .dashboard-layout {
+    display: block !important;
+    position: relative;
+  }
+
+  /* Sidebar: hidden off-screen left, slides in when .open */
   .dashboard-sidebar {
     position: fixed !important;
-    left: -260px !important;
     top: 0 !important;
+    left: -280px !important;
     bottom: 0 !important;
-    width: 240px !important;
-    z-index: 500 !important;
-    transition: left 0.25s ease !important;
+    width: 260px !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    z-index: 9999 !important;
+    overflow-y: auto !important;
+    transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: none !important;
   }
+
   .dashboard-sidebar.open {
     left: 0 !important;
-    box-shadow: 4px 0 32px rgba(0,0,0,0.7) !important;
+    box-shadow: 6px 0 40px rgba(0,0,0,0.8) !important;
   }
+
+  /* Overlay: covers content when sidebar is open */
   .sidebar-overlay {
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 499;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0,0,0,0.65) !important;
+    z-index: 9998 !important;
+    backdrop-filter: blur(2px);
   }
+
   .sidebar-overlay.open {
     display: block !important;
   }
-  .dashboard-layout {
-    display: block !important;
-  }
+
+  /* Main content takes full width */
   .dashboard-main {
     width: 100% !important;
+    min-height: 100vh !important;
+  }
+
+  .dashboard-content {
+    padding: 16px !important;
+  }
+
+  /* Show the ☰ toggle button */
+  .dashboard-menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ── iPhone PWA / notch safe areas ──────────────────────────
+   Prevents status bar from overlapping the navbar
+   Requires viewport-fit=cover in <meta viewport>
+════════════════════════════════════════════════════════════ */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .navbar-safe {
+    padding-top: env(safe-area-inset-top) !important;
+  }
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
