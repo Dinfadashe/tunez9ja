@@ -66,6 +66,16 @@ export default function VideoUpload({ currentUser, onSuccess }) {
     if (mode === 'upload' && !videoFile) { setMessage('❌ Please select a video file'); return }
     if (fileError || urlError) { setMessage('❌ Please fix the errors above'); return }
 
+    // Test phase limit
+    const { count: vCount } = await supabase.from('videos')
+      .select('id', { count: 'exact', head: true })
+      .eq('uploader_id', currentUser.id)
+    if (vCount >= 6) {
+      setMessage('❌ Test phase: max 6 videos allowed. Reach verification milestone to upload more.')
+      return
+    }
+
+
     setLoading(true); setMessage('')
 
     const payload = {

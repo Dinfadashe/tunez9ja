@@ -62,6 +62,15 @@ export default function AlbumManager({ currentUser }) {
       cover_url = urlData.publicUrl
     }
 
+    // Test phase limit
+    const { count: aCount } = await supabase.from('albums')
+      .select('id', { count: 'exact', head: true })
+      .eq('artist_id', currentUser.id)
+    if (aCount >= 3) {
+      setError('❌ Test phase: max 3 albums allowed. Reach verification milestone to create more.')
+      return
+    }
+
     const { data } = await supabase.from('albums').insert({
       artist_id: currentUser.id,
       title: form.title.trim(),

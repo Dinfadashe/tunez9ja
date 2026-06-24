@@ -182,7 +182,19 @@ function MyPosts({ currentUser, onEdit }) {
       <Modal open={!!preview} onClose={() => setPreview(null)} title="Post Preview">
         {preview && (
           <div>
-            <div style={{ marginBottom: 12 }}><span className="badge badge-blog">{preview.category}</span></div>
+            
+      {/* Test phase limits banner */}
+      <div style={{ padding: '12px 18px', background: 'rgba(255,180,0,0.08)', border: '1px solid rgba(255,180,0,0.25)', borderRadius: 10, marginBottom: 24, display: 'flex', gap: 12, alignItems: 'flex-start', fontSize: 13 }}>
+        <span style={{ fontSize: 18, flexShrink: 0 }}>🚀</span>
+        <div>
+          <strong style={{ color: '#ffb400' }}>Test Phase Active</strong>
+          <div style={{ color: 'var(--grey-300)', marginTop: 3, lineHeight: 1.6 }}>
+            Upload limits are in place during our test phase: <strong>12 posts · 6 videos</strong>. 
+            Reach your verification milestone and get your 🔵 blue tick to unlock unlimited uploads.
+          </div>
+        </div>
+      </div>
+      <div style={{ marginBottom: 12 }}><span className="badge badge-blog">{preview.category}</span></div>
             <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 26, marginBottom: 10 }}>{preview.title}</h3>
             <div style={{ fontSize: 13, color: 'var(--grey-300)', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
               <span>{preview.created_at?.slice(0,10)}</span><StatusBadge status={preview.status} />
@@ -229,6 +241,20 @@ function WritePost({ currentUser, onSuccess, editingPost }) {
     setLoading(true); setMessage('')
     const tags = form.tags.split(',').map(t => t.trim()).filter(Boolean)
     const payload = { ...form, tags, cover_url: form.cover_url || null, author_id: currentUser.id, status: 'pending', is_premium: form.is_premium, tunez_price: form.is_premium ? parseFloat(form.tunez_price) || null : null }
+
+    // Upload limit check (test phase)
+    if (!editingPost) {
+      const isVerified = currentUser?.verified_type === 'milestone' || currentUser?.is_verified
+      if (!isVerified) {
+        const { count } = await supabase.from('blog_posts')
+          .select('id', { count: 'exact', head: true })
+          .eq('author_id', currentUser.id)
+        if (count >= 10) {
+          setError('❌ Test phase limit: max 10 posts. Get verified to publish more.')
+          setSaving(false); return
+        }
+      }
+    }
 
     let error
     if (editingPost) {

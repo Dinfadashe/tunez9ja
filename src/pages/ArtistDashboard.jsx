@@ -286,6 +286,18 @@ function UploadTrack({ currentUser, onSuccess }) {
       cover_url = publicUrl
     }
 
+    // Upload limit check (test phase)
+    const isVerified = currentUser?.verified_type === 'milestone' || currentUser?.is_verified
+    if (!isVerified) {
+      const { count } = await supabase.from('music_tracks')
+        .select('id', { count: 'exact', head: true })
+        .eq('artist_id', currentUser.id)
+      if (count >= 6) {
+        setMessage('❌ Test phase: max 6 tracks allowed. Reach verification milestone to unlock unlimited uploads.')
+        setUploading(false); return
+      }
+    }
+
     setMessage('⏳ Checking for duplicates...')
     const { data: existing } = await supabase
       .from('music_tracks')
