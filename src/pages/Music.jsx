@@ -100,7 +100,7 @@ function AddToPlaylist({ track, currentUser }) {
   )
 }
 
-export default function MusicPage({ currentUser }) {
+export default function MusicPage({ setPage, currentUser, deepLink }) {
   const [tracks, setTracks]           = useState([])
   const [loading, setLoading]         = useState(true)
   const [search, setSearch]           = useState('')

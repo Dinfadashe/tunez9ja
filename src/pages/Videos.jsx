@@ -29,7 +29,7 @@ function getYoutubeThumbnail(url) {
   return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null
 }
 
-export default function VideosPage({ currentUser }) {
+export default function VideosPage({ setPage, currentUser, deepLink }) {
   const [videos, setVideos]       = useState([])
   const [loading, setLoading]     = useState(true)
   const [search, setSearch]       = useState('')
