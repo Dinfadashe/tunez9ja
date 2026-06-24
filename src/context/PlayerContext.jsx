@@ -32,7 +32,14 @@ export function PlayerProvider({ children }) {
       audioRef.current.src = track.audio_url
       audioRef.current.volume = volume
       audioRef.current.muted  = muted
-      audioRef.current.play().catch(() => {})
+      const playPromise = audioRef.current.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          // Autoplay blocked by browser - user needs to click play button
+          console.warn('Autoplay blocked:', err.message)
+          setIsPlaying(false) // Show play button so user can click manually
+        })
+      }
     }
   }, [volume, muted])
 
@@ -52,7 +59,14 @@ export function PlayerProvider({ children }) {
           audioRef.current.pause()
           audioRef.current.currentTime = 0
           audioRef.current.src = next.audio_url
-          audioRef.current.play().catch(() => {})
+          const playPromise = audioRef.current.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          // Autoplay blocked by browser - user needs to click play button
+          console.warn('Autoplay blocked:', err.message)
+          setIsPlaying(false) // Show play button so user can click manually
+        })
+      }
         }
       }
       return q
@@ -80,7 +94,14 @@ export function PlayerProvider({ children }) {
           audioRef.current.pause()
           audioRef.current.currentTime = 0
           audioRef.current.src = prev.audio_url
-          audioRef.current.play().catch(() => {})
+          const playPromise = audioRef.current.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          // Autoplay blocked by browser - user needs to click play button
+          console.warn('Autoplay blocked:', err.message)
+          setIsPlaying(false) // Show play button so user can click manually
+        })
+      }
         }
       }
       return q
@@ -93,7 +114,14 @@ export function PlayerProvider({ children }) {
     if (isPlaying) {
       audioRef.current.pause()
     } else {
-      audioRef.current.play().catch(() => {})
+      const playPromise = audioRef.current.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          // Autoplay blocked by browser - user needs to click play button
+          console.warn('Autoplay blocked:', err.message)
+          setIsPlaying(false) // Show play button so user can click manually
+        })
+      }
     }
   }, [isPlaying])
 

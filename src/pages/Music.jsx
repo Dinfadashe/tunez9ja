@@ -31,7 +31,7 @@ function SaveButton({ track, currentUser }) {
       await supabase.from('saved_tracks').delete().eq('user_id', currentUser.id).eq('track_id', track.id)
       setSaved(false)
     } else {
-      await supabase.from('saved_tracks').insert({ user_id: currentUser.id, track_id: track.id })
+      await supabase.from('saved_tracks').insert({ user_id: currentUser.id, track_id: track.id, saved_at: new Date().toISOString() })
       setSaved(true)
     }
     setLoading(false)
@@ -105,7 +105,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
   const [loading, setLoading]         = useState(true)
   const [search, setSearch]           = useState('')
   const [activeGenre, setActiveGenre] = useState('All')
-  const { nowPlaying, isPlaying, playTrack } = usePlayer()
+  const { nowPlaying, isPlaying, playTrack, addToPlayNext } = usePlayer()
   const [unlockTarget, setUnlockTarget] = React.useState(null)
   const [unlockedIds, setUnlockedIds] = React.useState(new Set())
   const [unlocksLoaded, setUnlocksLoaded] = React.useState(false)
@@ -304,7 +304,16 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
           contentType="track"
           currentUser={currentUser}
           onClose={() => setUnlockTarget(null)}
-          onUnlocked={() => { playTrack(unlockTarget, filtered); setUnlockTarget(null) }}
+          onUnlocked={(track) => {
+              // Add to unlocked set so track row allows play
+              setUnlockedIds(prev => new Set([...prev, (track || unlockTarget).id]))
+              setUnlockTarget(null)
+              // Small delay then play - keeps user gesture chain intact
+              setTimeout(() => {
+                const t = track || unlockTarget
+                if (t) playTrack(t, filtered)
+              }, 100)
+            }}
           setPage={() => {}}
         />
       )}

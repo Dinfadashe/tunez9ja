@@ -296,7 +296,7 @@ export async function unlockPremium(userId, content, contentType) {
   const adminAmt = parseFloat((content.tunez_price * 0.30).toFixed(4))
   const ownerId  = content.artist_id || content.author_id || content.uploader_id
 
-  // Debit user - use direct balance update if RPC fails
+  // STEP 1: Debit user first
   const { error: spendErr } = await supabase.rpc('spend_tunez', {
     p_user_id: userId, p_amount: content.tunez_price,
     p_type: 'spend_premium',
@@ -304,12 +304,13 @@ export async function unlockPremium(userId, content, contentType) {
     p_ref_id: content.id
   })
   if (spendErr) {
-    // Fallback: direct debit
-    await supabase.from('tunez_balances')
+    // Fallback direct debit
+    const { error: debitErr } = await supabase.from('tunez_balances')
       .update({ balance: bal.balance - content.tunez_price,
                 total_spent: (bal.total_spent || 0) + content.tunez_price,
                 updated_at: new Date().toISOString() })
       .eq('user_id', userId)
+    if (debitErr) return { success: false, reason: 'debit_failed' }
     await supabase.from('tunez_transactions').insert({
       user_id: userId, type: 'spend_premium',
       amount: -content.tunez_price,
@@ -317,23 +318,38 @@ export async function unlockPremium(userId, content, contentType) {
       ref_id: content.id
     })
   }
-  // Credit owner
-  if (ownerId) await supabase.rpc('add_tunez', {
-    p_user_id: ownerId, p_amount: ownerAmt,
-    p_type: 'earn_content_owner',
-    p_description: 'Premium unlock: ' + content.title, p_ref_id: content.id
-  })
-  // Credit admin
-  if (adminProfile?.id) await supabase.rpc('add_tunez', {
-    p_user_id: adminProfile.id, p_amount: adminAmt,
-    p_type: 'earn_admin',
-    p_description: 'Premium admin share: ' + content.title, p_ref_id: content.id
-  })
-  // Record unlock
-  await supabase.from('tunez_unlocks').insert({
+
+  // STEP 2: Record unlock IMMEDIATELY after debit
+  const { error: unlockErr } = await supabase.from('tunez_unlocks').insert({
     user_id: userId, content_id: content.id,
-    content_type: contentType, tunez_paid: content.tunez_price
+    content_type: contentType || 'track', tunez_paid: content.tunez_price
   })
+  if (unlockErr) {
+    console.error('unlock insert error:', unlockErr)
+    // Refund if unlock failed
+    await supabase.rpc('add_tunez', {
+      p_user_id: userId, p_amount: content.tunez_price,
+      p_type: 'refund_premium',
+      p_description: 'Auto-refund: unlock failed for ' + content.title
+    })
+    return { success: false, reason: 'unlock_failed' }
+  }
+
+  // STEP 3: Credit owner and admin ONLY after successful unlock
+  if (ownerId) {
+    supabase.rpc('add_tunez', {
+      p_user_id: ownerId, p_amount: ownerAmt,
+      p_type: 'earn_content_owner',
+      p_description: 'Premium unlock: ' + content.title, p_ref_id: content.id
+    }).then(() => {}).catch(() => {})
+  }
+  if (adminProfile?.id) {
+    supabase.rpc('add_tunez', {
+      p_user_id: adminProfile.id, p_amount: adminAmt,
+      p_type: 'earn_admin',
+      p_description: 'Premium admin share: ' + content.title, p_ref_id: content.id
+    }).then(() => {}).catch(() => {})
+  }
 
   return { success: true, ownerAmt, adminAmt }
 }
