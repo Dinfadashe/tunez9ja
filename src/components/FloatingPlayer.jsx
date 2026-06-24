@@ -134,7 +134,7 @@ export default function FloatingPlayer({ currentUser }) {
 
         {/* Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          <button onClick={() => setShuffle(s => !s)} title="Shuffle"
+          <button onClick={() => setShuffle(s => !s)} title="Shuffle" className="player-shuffle"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 7, color: shuffleColor, display: 'flex', borderRadius: 6 }}>
             <Shuffle size={15} />
           </button>
@@ -157,14 +157,14 @@ export default function FloatingPlayer({ currentUser }) {
             <SkipForward size={19} />
           </button>
 
-          <button onClick={cycleRepeat} title={`Repeat: ${repeat}`}
+          <button onClick={cycleRepeat} title={`Repeat: ${repeat}`} className="player-repeat"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 7, color: repeatColor, display: 'flex', borderRadius: 6 }}>
             <RepeatIcon size={15} />
           </button>
         </div>
 
         {/* Time + Volume */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <div className="player-time player-volume" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)', minWidth: 75, textAlign: 'center' }}>
             {fmt(currentTime)} / {fmt(duration)}
           </span>

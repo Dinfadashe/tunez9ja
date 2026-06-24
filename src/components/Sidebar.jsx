@@ -10,7 +10,7 @@ const ROLES = [
   { key: 'user',    label: 'User',    icon: UserIcon,  color: '#00c864'     },
 ]
 
-export default function Sidebar({ items, activePage, setActivePage, setPage, currentUser, onRoleSwitch }) {
+export default function Sidebar({ items, activePage, setActivePage, setPage, currentUser, onRoleSwitch, isOpen, onClose }) {
   const [showRolePicker, setShowRolePicker] = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
 
@@ -34,7 +34,14 @@ export default function Sidebar({ items, activePage, setActivePage, setPage, cur
   const activeRole = ROLES.find(r => r.key === currentUser?.active_role) || ROLES[3]
 
   return (
-    <aside className="sidebar">
+    <>
+      {/* Mobile overlay */}
+      <div
+        className={`sidebar-overlay ${isOpen ? 'open' : ''}`}
+        onClick={onClose}
+      />
+      <aside className={`sidebar dashboard-sidebar ${isOpen ? 'open' : ''}`}
+        style={{ background: 'var(--bg-deep)' }}>
       <div className="sidebar-logo" onClick={() => setPage('home')} style={{ cursor: 'pointer' }}>
         <Logo size={36} />
         <span className="sidebar-logo-text">TUNEZ<span>9JA</span></span>
@@ -122,5 +129,6 @@ export default function Sidebar({ items, activePage, setActivePage, setPage, cur
         </button>
       </div>
     </aside>
+    </>
   )
 }

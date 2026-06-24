@@ -22,6 +22,7 @@ const NAV = [
 ]
 
 export default function UserDashboard({ setPage, currentUser: propUser, onRoleSwitch }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [active, setActive] = useState('overview')
   const { currentUser, setCurrentUser } = useDashboard(propUser)
 
@@ -221,7 +222,7 @@ function ReferralPage({ currentUser }) {
 
   const baseUrl    = window.location.origin
   const refCode    = currentUser.referral_code || currentUser.id.slice(0, 8).toUpperCase()
-  const refLink    = `${baseUrl}/?ref=${refCode}`
+  const refLink    = `${baseUrl}/?ref=${refCode}&signup=1`
 
   useEffect(() => {
     // Fetch referral earnings

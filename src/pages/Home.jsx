@@ -99,7 +99,7 @@ export default function Home({ setPage }) {
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
             <div>
               <div className="section-label"><TrendingUp size={12} style={{ display: 'inline', marginRight: 6 }} />Hot Right Now</div>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 48, letterSpacing: 1 }}>LATEST DROPS</h2>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 5vw, 48px)', letterSpacing: 1 }}>LATEST DROPS</h2>
             </div>
             <button className="btn btn-ghost" onClick={() => setPage('music')} style={{ gap: 6 }}>All Music <ArrowRight size={15} /></button>
           </div>
@@ -124,7 +124,7 @@ export default function Home({ setPage }) {
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
             <div>
               <div className="section-label"><Newspaper size={12} style={{ display: 'inline', marginRight: 6 }} />Entertainment Desk</div>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 48, letterSpacing: 1 }}>THE LATEST GIST</h2>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 5vw, 48px)', letterSpacing: 1 }}>THE LATEST GIST</h2>
             </div>
             <button className="btn btn-ghost" onClick={() => setPage('blog')} style={{ gap: 6 }}>All Posts <ArrowRight size={15} /></button>
           </div>

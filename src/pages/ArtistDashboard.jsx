@@ -29,6 +29,7 @@ const NAV = [
 ]
 
 export default function ArtistDashboard({ setPage, currentUser: propUser, onRoleSwitch }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [active, setActive] = useState('overview')
   const { currentUser, setCurrentUser } = useDashboard(propUser)
 

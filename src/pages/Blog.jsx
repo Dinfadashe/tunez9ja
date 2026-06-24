@@ -33,6 +33,14 @@ export default function BlogPage({ currentUser }) {
   const [activeCategory, setActiveCategory] = useState('All')
   const [selectedPost, setSelectedPost] = useState(null)
 
+  // Open post from deep link
+  useEffect(() => {
+    if (!deepLink?.type === 'post' || !deepLink?.id) return
+    supabase.from('blog_posts').select('*,profiles:author_id(name,is_verified,verified_type)')
+      .eq('id', deepLink.id).single()
+      .then(({ data }) => { if (data) setSelectedPost(data) })
+  }, [deepLink])
+
   useEffect(() => {
     supabase
       .from('blog_posts')
@@ -232,7 +240,7 @@ function PostDetail({ post, onBack, currentUser }) {
 
           {/* Title */}
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, marginBottom:20 }}>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px,5vw,52px)', letterSpacing: 0.5, lineHeight: 1.08, color: 'var(--white)' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,5vw,44px)', letterSpacing: 0.5, lineHeight: 1.08, color: 'var(--white)' }}>
               {post.title}
             </h1>
             <ShareButton url={window.location.origin + '/?post=' + post.id} text={'Read ' + post.title + ' on Tunez9ja!'} title={post.title} />

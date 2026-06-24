@@ -138,7 +138,16 @@ export default function MusicPage({ currentUser }) {
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(200)
-      .then(({ data }) => { setTracks(data || []); setLoading(false) })
+      .then(({ data }) => {
+      const tracks = data || []
+      setTracks(tracks)
+      setLoading(false)
+      // Auto-play track from deep link
+      if (deepLink?.type === 'track') {
+        const t = tracks.find(t => t.id === deepLink.id)
+        if (t) setTimeout(() => playTrack(t, tracks), 300)
+      }
+    })
   }, [])
 
   const genres   = ['All', ...new Set(tracks.map(t => t.genre).filter(Boolean))]
@@ -187,7 +196,7 @@ export default function MusicPage({ currentUser }) {
               <div style={{ flex: '1 1 260px', maxWidth: 360 }}>
                 <SearchBar value={search} onChange={setSearch} placeholder="Search tracks or artists..." />
               </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', overflowX: 'auto', paddingBottom: 4 }}>
                 {genres.map(g => (
                   <button key={g} onClick={() => setActiveGenre(g)}
                     style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontFamily: 'var(--font-mono)', border: '1px solid', cursor: 'pointer', transition: 'all 0.2s', background: activeGenre === g ? 'var(--red)' : 'transparent', borderColor: activeGenre === g ? 'var(--red)' : 'var(--border)', color: activeGenre === g ? 'white' : 'var(--grey-300)' }}>

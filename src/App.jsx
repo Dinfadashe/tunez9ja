@@ -136,6 +136,30 @@ function AppInner() {
   const [profile, setProfile]       = useState(null)
   const [activeRole, setActiveRole] = useState(null)
   const [authReady, setAuthReady]   = useState(false)
+  const [deepLink, setDeepLink]     = useState(null)
+
+
+  // ── Deep link handler — reads URL params on load ──────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const track   = params.get('track')
+    const post    = params.get('post')
+    const video   = params.get('video')
+    const artist  = params.get('artist')
+    const ref     = params.get('ref')
+    const signup  = params.get('signup')
+
+    if (track)  { setPage('music');  setDeepLink({ type: 'track',  id: track  }) }
+    if (post)   { setPage('blog');   setDeepLink({ type: 'post',   id: post   }) }
+    if (video)  { setPage('videos'); setDeepLink({ type: 'video',  id: video  }) }
+    if (artist) { setPage('music');  setDeepLink({ type: 'artist', id: artist }) }
+    if (ref || signup) { setPage('register'); setDeepLink(prev => ({ ...prev, ref })) }
+
+    // Clean URL without reloading
+    if (track || post || video || artist || ref || signup) {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   useEffect(() => {
     const timeout = setTimeout(() => setAuthReady(true), 1500)

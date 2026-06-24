@@ -311,3 +311,169 @@ button { touch-action: manipulation; }
 .skeleton-title { height: 22px; width: 50%; margin-bottom: 12px; }
 .skeleton-img   { width: 100%; padding-bottom: 100%; }
 .skeleton-card  { border-radius: 10px; height: 80px; width: 100%; margin-bottom: 8px; }
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN — Mobile First
+   Breakpoints: 480px | 768px | 1024px | 1280px
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Base responsive utilities ────────────────────────────── */
+.hide-mobile  { display: flex !important; }
+.show-mobile  { display: none !important; }
+.hide-tablet  { display: flex !important; }
+
+/* ── Container ────────────────────────────────────────────── */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Navbar mobile ─────────────────────────────────────────── */
+.navbar-links { display: flex; }
+.navbar-hamburger { display: none; }
+
+/* ── Sidebar responsive ───────────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 149;
+}
+
+/* ── Dashboard layout ─────────────────────────────────────── */
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+}
+.dashboard-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+}
+.dashboard-content {
+  flex: 1;
+  min-width: 0;
+  padding: 32px;
+}
+
+/* ── Grid helpers ──────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* ── Player mobile ─────────────────────────────────────────── */
+.player-time  { display: flex; }
+.player-volume { display: flex; }
+
+/* ══ TABLET (max 1024px) ══════════════════════════════════ */
+@media (max-width: 1024px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-4    { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-content { padding: 24px; }
+}
+
+/* ══ TABLET PORTRAIT (max 768px) ════════════════════════════ */
+@media (max-width: 768px) {
+  .container { padding: 0 16px; }
+
+  /* Navbar */
+  .navbar-links     { display: none !important; }
+  .navbar-hamburger { display: flex !important; }
+
+  /* Sidebar — becomes a drawer */
+  .dashboard-sidebar {
+    position: fixed;
+    left: -240px;
+    top: 0;
+    bottom: 0;
+    width: 240px;
+    z-index: 150;
+    transition: left 0.3s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+  .dashboard-sidebar.open {
+    left: 0;
+  }
+  .sidebar-overlay.open {
+    display: block;
+  }
+  .dashboard-content { padding: 16px; }
+
+  /* Grids */
+  .grid-2  { grid-template-columns: 1fr; }
+  .grid-3  { grid-template-columns: repeat(2, 1fr); }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Player — hide time/volume on small screens */
+  .player-time   { display: none !important; }
+  .player-volume { display: none !important; }
+
+  /* Utilities */
+  .hide-mobile  { display: none !important; }
+  .show-mobile  { display: flex !important; }
+
+  /* Section spacing */
+  .section { padding: 24px 0; }
+
+  /* Page titles */
+  .page-title { font-size: clamp(28px, 7vw, 56px) !important; }
+  .section-label { font-size: 10px !important; }
+
+  /* Cards */
+  .card { border-radius: 10px; }
+}
+
+/* ══ MOBILE (max 480px) ══════════════════════════════════════ */
+@media (max-width: 480px) {
+  .container  { padding: 0 12px; }
+
+  .grid-3    { grid-template-columns: 1fr; }
+  .grid-4    { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+  .hide-tablet { display: none !important; }
+
+  /* Stat cards compact */
+  .stat-card { padding: 16px 12px !important; }
+  .stat-value { font-size: 28px !important; }
+  .stat-label { font-size: 9px !important; }
+
+  /* Page title */
+  .page-title { font-size: clamp(22px, 8vw, 40px) !important; }
+
+  /* Buttons */
+  .btn { padding: 9px 14px !important; font-size: 13px !important; }
+  .btn-primary { gap: 6px !important; }
+
+  /* Toast */
+  .toast-container { left: 12px !important; right: 12px !important; bottom: 70px !important; }
+}
+
+/* ══ FLOATING PLAYER MOBILE ════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Compact player on mobile */
+  .player-shuffle { display: none !important; }
+  .player-repeat  { display: none !important; }
+}
+
+/* ══ FORM INPUTS ══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+}
+
+/* ══ IMAGES ═══════════════════════════════════════════════ */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ══ SCROLLBAR — hide on mobile ═══════════════════════════ */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar { width: 0; background: transparent; }
+}
