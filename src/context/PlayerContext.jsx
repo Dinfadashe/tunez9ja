@@ -15,7 +15,10 @@ export function PlayerProvider({ children }) {
 
   // ── Core: play a track ──────────────────────────────────────
   const playTrack = useCallback((track, trackList = []) => {
-    if (!track?.audio_url) return
+    if (!track?.audio_url) {
+      console.error('❌ playTrack: no audio_url on track', track?.title, track)
+      return
+    }
     const list = trackList.length ? trackList : [track]
     const idx  = list.findIndex(t => t.id === track.id)
     setQueue(list)

@@ -108,6 +108,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
   const { nowPlaying, isPlaying, playTrack } = usePlayer()
   const [unlockTarget, setUnlockTarget] = React.useState(null)
   const [unlockedIds, setUnlockedIds] = React.useState(new Set())
+  const [unlocksLoaded, setUnlocksLoaded] = React.useState(false)
   const [view, setView] = React.useState('tracks')
   const earnedRef = React.useRef({})
 
@@ -152,7 +153,9 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
             .in('content_id', premiumIds)
           if (unlocks) setUnlockedIds(new Set(unlocks.map(u => u.content_id)))
         }
+        setUnlocksLoaded(true)
       }
+      if (!currentUser?.id) setUnlocksLoaded(true)
       // Auto-play track from deep link
       if (deepLink?.type === 'track') {
         const t = tracks.find(t => t.id === deepLink.id)
@@ -243,10 +246,10 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
                   return (
                     <div key={track.id}
                       onClick={() => {
-                        if (track.is_premium && !unlockedIds.has(track.id)) {
-                          if (!currentUser) { setUnlockTarget(track); return }
+                        if (track.is_premium && unlocksLoaded && !unlockedIds.has(track.id)) {
                           setUnlockTarget(track); return
                         }
+                        console.log('🎵 Playing track:', track.title, 'audio_url:', track.audio_url)
                         playTrack(track, filtered)
                         supabase.rpc('increment_play_count', { p_track_id: track.id }).then(() => {}).catch(() => {})
                       }}

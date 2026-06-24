@@ -282,7 +282,10 @@ function UploadTrack({ currentUser, onSuccess }) {
         .from('music-audio')
         .upload(audioPath, audioFile, { upsert: false, contentType: audioFile.type || 'audio/mpeg' })
       if (audioErr) { setMessage('❌ Audio upload failed: ' + audioErr.message); setLoading(false); return }
-      audio_url = audioData.path
+      const { data: audioUrlData } = supabase.storage.from('music-audio').getPublicUrl(audioData.path)
+      const rawAudioUrl = audioUrlData?.publicUrl || ''
+      // Ensure full URL — fallback to manual construction if needed
+      audio_url = rawAudioUrl.startsWith('http') ? rawAudioUrl : `https://hjsmdxokyzwpwcjeczmh.supabase.co/storage/v1/object/public/music-audio/${audioData.path}`
     }
 
     // Upload cover art to Supabase Storage
@@ -295,8 +298,9 @@ function UploadTrack({ currentUser, onSuccess }) {
         .upload(coverPath, coverFile, { upsert: false })
       if (coverErr) { setMessage('❌ Cover upload failed: ' + coverErr.message); setLoading(false); return }
       // Get public URL for cover
-      const { data: { publicUrl } } = supabase.storage.from('music-covers').getPublicUrl(coverData.path)
-      cover_url = publicUrl
+      const { data: coverUrlData } = supabase.storage.from('music-covers').getPublicUrl(coverData.path)
+      const rawCoverUrl = coverUrlData?.publicUrl || ''
+      cover_url = rawCoverUrl.startsWith('http') ? rawCoverUrl : `https://hjsmdxokyzwpwcjeczmh.supabase.co/storage/v1/object/public/music-covers/${coverData.path}`
     }
 
     // Upload limit check (test phase)
