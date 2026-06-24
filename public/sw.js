@@ -1,4 +1,4 @@
-const CACHE_NAME  = 'tunez9ja-v5'
+const CACHE_NAME  = 'tunez9ja-v1782298553'
 const AUDIO_CACHE = 'tunez9ja-audio-v1'
 const APP_SHELL   = ['/', '/index.html', '/logo.png', '/manifest.json']
 
