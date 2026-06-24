@@ -25,7 +25,7 @@ function sanitizeHTML(html) {
 
 const CATEGORIES = ['Music Review','News','Feature','Gossip','Playlist','Interview','Opinion','Events']
 
-export default function BlogPage({ currentUser }) {
+export default function BlogPage({ setPage, currentUser, deepLink }) {
   const [unlockTarget, setUnlockTarget] = useState(null)
   const [posts, setPosts]               = useState([])
   const [loading, setLoading]           = useState(true)
