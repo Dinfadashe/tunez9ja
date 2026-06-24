@@ -153,6 +153,7 @@ function AppInner() {
     if (post)   { setPage('blog');   setDeepLink({ type: 'post',   id: post   }) }
     if (video)  { setPage('videos'); setDeepLink({ type: 'video',  id: video  }) }
     if (artist) { setPage('music');  setDeepLink({ type: 'artist', id: artist }) }
+    if (ref) sessionStorage.setItem('t9_ref', ref) // save before URL clean
     if (ref || signup) { setPage('register'); setDeepLink(prev => ({ ...prev, ref })) }
 
     // Clean URL without reloading

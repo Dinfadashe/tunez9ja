@@ -139,11 +139,18 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
   const [refCode, setRefCode] = useState('')
   const [form, setForm]     = useState({ name: '', email: '', password: '', role: '', bio: '', genre: '' })
 
-  // Check URL for referral code
+  // Check URL for referral code (also sessionStorage fallback after URL clean)
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const ref = params.get('ref')
-    if (ref) setRefCode(ref)
+    if (ref) {
+      setRefCode(ref)
+      sessionStorage.setItem('t9_ref', ref) // save before App cleans URL
+    } else {
+      // Fallback: check sessionStorage (set before URL was cleaned)
+      const saved = sessionStorage.getItem('t9_ref')
+      if (saved) setRefCode(saved)
+    }
   }, [])
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -179,17 +186,23 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
         const { data: referrer } = await supabase
           .from('profiles')
           .select('id')
-          .or(`referral_code.eq.${refCode},id.eq.${refCode}`)
-          .single()
-        if (referrer) {
-          const { add_tunez } = await import('../lib/tunez.js')
-          // Credit referrer
-          await supabase.rpc('add_tunez', {
-            p_user_id: referrer.id, p_amount: 15,
+          .or('referral_code.eq.' + refCode + ',id.eq.' + refCode)
+          .maybeSingle()
+        if (referrer?.id) {
+          // Credit referrer with 15 TUNEZ
+          supabase.rpc('add_tunez', {
+            p_user_id: referrer.id,
+            p_amount: 15,
             p_type: 'earn_referral',
-            p_description: 'Referral bonus: ' + form.name + ' signed up using your link',
-            p_ref_id: null
-          })
+            p_description: 'Referral bonus — ' + form.name + ' joined using your link'
+          }).then(() => {}).catch(() => {})
+          // Credit new user with 15 TUNEZ too
+          supabase.rpc('add_tunez', {
+            p_user_id: data.user.id,
+            p_amount: 15,
+            p_type: 'earn_referral',
+            p_description: 'Welcome bonus — you joined via referral link'
+          }).then(() => {}).catch(() => {})
         }
       }
 
