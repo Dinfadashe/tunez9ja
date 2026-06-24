@@ -40,7 +40,7 @@ export default function Sidebar({ items, activePage, setActivePage, setPage, cur
         className={`sidebar-overlay ${isOpen ? 'open' : ''}`}
         onClick={onClose}
       />
-      <aside className={`sidebar dashboard-sidebar ${isOpen ? 'open' : ''}`}
+      <aside className={`dashboard-sidebar ${isOpen ? 'open' : ''}`}
         style={{ background: 'var(--bg-deep)' }}>
       <div className="sidebar-logo" onClick={() => setPage('home')} style={{ cursor: 'pointer' }}>
         <Logo size={36} />
