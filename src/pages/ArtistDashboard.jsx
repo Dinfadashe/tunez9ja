@@ -282,6 +282,23 @@ function UploadTrack({ currentUser, onSuccess }) {
         .from('music-audio')
         .upload(audioPath, audioFile, { upsert: false, contentType: audioFile.type || 'audio/mpeg' })
       if (audioErr) { setMessage('❌ Audio upload failed: ' + audioErr.message); setLoading(false); return }
+      
+      // Verify uploaded file is playable
+      const verifyUrl = `https://hjsmdxokyzwpwcjeczmh.supabase.co/storage/v1/object/public/music-audio/${audioPath}`
+      const canPlay = await new Promise(resolve => {
+        const testAudio = new Audio()
+        testAudio.preload = 'metadata'
+        const timer = setTimeout(() => resolve(false), 8000)
+        testAudio.onloadedmetadata = () => { clearTimeout(timer); resolve(testAudio.duration > 0) }
+        testAudio.onerror = () => { clearTimeout(timer); resolve(false) }
+        testAudio.src = verifyUrl
+      })
+      if (!canPlay) {
+        // Delete the bad upload
+        await supabase.storage.from('music-audio').remove([audioPath])
+        setMessage('❌ Upload failed: file appears corrupted or is not a valid audio file. Please try a different file or convert to MP3 first.')
+        setLoading(false); return
+      }
       const { data: audioUrlData } = supabase.storage.from('music-audio').getPublicUrl(audioData.path)
       const rawAudioUrl = audioUrlData?.publicUrl || ''
       // Ensure full URL — fallback to manual construction if needed
