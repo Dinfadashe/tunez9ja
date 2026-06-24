@@ -174,6 +174,7 @@ export function PlayerProvider({ children }) {
         ref={audioRef}
         preload="auto"
         onPlay={()       => setIsPlaying(true)}
+        onError={(e)     => console.error('❌ Audio error:', e.target.error?.code, e.target.error?.message, audioRef.current?.src)}
         onPause={()      => setIsPlaying(false)}
         onEnded={() => {}} // Handled by FloatingPlayer with repeat/shuffle logic
         onTimeUpdate={e  => { setCurrentTime(e.target.currentTime); setDuration(e.target.duration || 0) }}
