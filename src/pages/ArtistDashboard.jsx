@@ -52,7 +52,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
             <div style={{ display:'flex', alignItems:'center', gap:12 }}>
               <button onClick={() => setSidebarOpen(o => !o)}
                 className="show-mobile"
-                style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--grey-300)', cursor:'pointer', , alignItems:'center', justifyContent:'center' }}>
+                style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--grey-300)', cursor:'pointer', alignItems:'center', justifyContent:'center' }}>
                 &#9776;
               </button>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>ARTIST PORTAL</span>
