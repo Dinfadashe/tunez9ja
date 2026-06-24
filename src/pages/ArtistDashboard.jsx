@@ -279,7 +279,7 @@ function UploadTrack({ currentUser, onSuccess }) {
       const audioPath = `${currentUser.id}/${Date.now()}.${audioExt}`
       const { data: audioData, error: audioErr } = await supabase.storage
         .from('music-audio')
-        .upload(audioPath, audioFile, { upsert: false })
+        .upload(audioPath, audioFile, { upsert: false, contentType: audioFile.type || 'audio/mpeg' })
       if (audioErr) { setMessage('❌ Audio upload failed: ' + audioErr.message); setLoading(false); return }
       audio_url = audioData.path
     }

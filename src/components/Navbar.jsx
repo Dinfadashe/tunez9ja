@@ -45,6 +45,7 @@ export default function Navbar({ page, setPage, profile, activeRole, onLogout })
         background: 'rgba(10,10,10,0.97)',
         backdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border)',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
       }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', height: 56, gap: 6 }}>
           {/* Logo */}

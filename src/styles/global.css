@@ -495,3 +495,50 @@ img {
   .player-repeat  { display: none !important; }
   .player-volume  { display: none !important; }
 }
+
+/* ══ PWA / SAFE AREA INSETS ════════════════════════════════
+   Prevents status bar from overlapping content on iOS/Android
+   when app is added to home screen
+═══════════════════════════════════════════════════════════ */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* Navbar gets extra top padding for status bar */
+nav.navbar, nav[style] {
+  padding-top: var(--sat) !important;
+}
+
+/* Floating player gets extra bottom padding for home indicator */
+.floating-player-wrap {
+  padding-bottom: var(--sab) !important;
+}
+
+/* Body padding for safe areas */
+body {
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+/* Fix: show-mobile must always override */
+@media (max-width: 768px) {
+  .show-mobile {
+    display: flex !important;
+  }
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* ── Mobile menu button — hidden on desktop, visible on mobile ── */
+.mobile-menu-btn-wrap {
+  display: none !important;
+}
+@media (max-width: 768px) {
+  .mobile-menu-btn-wrap {
+    display: block !important;
+  }
+}

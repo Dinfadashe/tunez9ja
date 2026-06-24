@@ -137,6 +137,7 @@ export default function FloatingPlayer({ currentUser }) {
       borderTop: '1px solid rgba(255,255,255,0.08)',
       boxShadow: '0 -8px 40px rgba(0,0,0,0.6)',
       transition: 'height 0.25s ease',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
 
       {/* ── Progress bar — always visible, clickable ─────────── */}
