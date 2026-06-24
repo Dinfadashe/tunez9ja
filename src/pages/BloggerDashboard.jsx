@@ -33,6 +33,7 @@ const NAV = [
 ]
 
 export default function BloggerDashboard({ setPage, currentUser: propUser, onRoleSwitch }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [active, setActive]     = useState('overview')
   const [editingPost, setEditingPost] = useState(null)
   const { currentUser, setCurrentUser } = useDashboard(propUser)

@@ -23,6 +23,7 @@ const NAV = (pending) => [
 ]
 
 export default function AdminDashboard({ setPage, currentUser: propUser, setCurrentUser: propSetUser, onRoleSwitch }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [active, setActive]           = useState('overview')
   const [currentUser, setCurrentUser] = useState(null)
   const [pending, setPending]         = useState({ music: 0, posts: 0 })
