@@ -196,8 +196,6 @@ function MyPosts({ currentUser, onEdit }) {
         {preview && (
           <div>
             
-      <HalvingBanner />
-
       {/* Test phase limits banner */}
       <div style={{ padding: '12px 18px', background: 'rgba(255,180,0,0.08)', border: '1px solid rgba(255,180,0,0.25)', borderRadius: 10, marginBottom: 24, display: 'flex', gap: 12, alignItems: 'flex-start', fontSize: 13 }}>
         <span style={{ fontSize: 18, flexShrink: 0 }}>🚀</span>

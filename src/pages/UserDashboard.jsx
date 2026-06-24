@@ -188,24 +188,7 @@ function UserOverview({ currentUser, setActive, setPage }) {
       )}
 
       {/* How to earn */}
-      <div className="card" style={{ padding: 24 }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, marginBottom: 20 }}>HOW TO EARN MORE TUNEZ</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
-          {[
-            { icon: '🎵', action: 'Stream a full track',  earn: '+5 TUNEZ',  cap: '50/day'  },
-            { icon: '📰', action: 'Read a full post',      earn: '+3 TUNEZ',  cap: '30/day'  },
-            { icon: '🎬', action: 'Watch a full video',    earn: '+4 TUNEZ',  cap: 'Unlimited'},
-            { icon: '👍', action: 'React to content',      earn: '+1 TUNEZ',  cap: 'Once each'},
-            { icon: '💬', action: 'Leave a comment',       earn: '+2 TUNEZ',  cap: 'Once each'},
-            { icon: '👥', action: 'Refer a friend',        earn: '+15 TUNEZ', cap: 'Unlimited'},
-            { icon: '☀️', action: 'Log in daily',          earn: '+5 TUNEZ',  cap: 'Once/day' },
-            { icon: '💎', action: 'Buy TUNEZ',             earn: 'Instant',   cap: 'Anytime'  },
-          ].map(({ icon, action, earn, cap }) => (
-            <div key={action} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px' }}>
-              <div style={{ fontSize: 22, marginBottom: 8 }}>{icon}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{action}</div>
-              <div style={{ fontSize: 13, color: '#00c864', fontWeight: 700 }}>{earn}</div>
-              <div style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{cap}</div>
+
             </div>
           ))}
         </div>
