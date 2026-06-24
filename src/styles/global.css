@@ -542,3 +542,45 @@ body {
     display: block !important;
   }
 }
+
+/* ── Dashboard mobile menu toggle ─────────────────────────── */
+.dashboard-menu-toggle {
+  display: none;
+}
+@media (max-width: 900px) {
+  .dashboard-menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Sidebar becomes overlay on mobile */
+  .dashboard-sidebar {
+    position: fixed !important;
+    left: -260px !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 240px !important;
+    z-index: 500 !important;
+    transition: left 0.25s ease !important;
+  }
+  .dashboard-sidebar.open {
+    left: 0 !important;
+    box-shadow: 4px 0 32px rgba(0,0,0,0.7) !important;
+  }
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 499;
+  }
+  .sidebar-overlay.open {
+    display: block !important;
+  }
+  .dashboard-layout {
+    display: block !important;
+  }
+  .dashboard-main {
+    width: 100% !important;
+  }
+}

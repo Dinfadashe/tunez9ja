@@ -48,10 +48,9 @@ export default function UserDashboard({ setPage, currentUser: propUser, onRoleSw
             <div style={{ display:'flex', alignItems:'center', gap:12 }}>
               <button
                 onClick={() => setSidebarOpen(o => !o)}
-                style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'7px 10px', color:'var(--grey-300)', cursor:'pointer', alignItems:'center', justifyContent:'center' }}
-                className="show-mobile"
-                aria-label="Open menu">
-                &#9776;
+                className="dashboard-menu-toggle"
+                style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--grey-300)', cursor:'pointer', fontSize:18, lineHeight:1 }}>
+                ☰
               </button>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>USER PORTAL</span>
             </div>
