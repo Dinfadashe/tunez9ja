@@ -187,11 +187,6 @@ function UserOverview({ currentUser, setActive, setPage }) {
         />
       )}
 
-      {/* How to earn */}
-
-            </div>
-          ))}
-        </div>
 
         <div style={{ display: 'flex', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
           <button className="btn btn-primary" onClick={() => setPage('music')} style={{ gap: 8 }}>
