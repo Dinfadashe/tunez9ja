@@ -479,3 +479,19 @@ img {
 @media (max-width: 768px) {
   ::-webkit-scrollbar { width: 0; background: transparent; }
 }
+
+/* ══ FLOATING PLAYER RESPONSIVE ══════════════════════════════ */
+.player-shuffle { display: flex !important; }
+.player-repeat  { display: flex !important; }
+.player-time    { display: flex !important; }
+.player-volume  { display: flex !important; }
+
+@media (max-width: 768px) {
+  .player-time   { display: none !important; } /* hide time on mobile */
+}
+
+@media (max-width: 580px) {
+  .player-shuffle { display: none !important; }
+  .player-repeat  { display: none !important; }
+  .player-volume  { display: none !important; }
+}

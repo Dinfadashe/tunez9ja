@@ -46,7 +46,7 @@ export default function Navbar({ page, setPage, profile, activeRole, onLogout })
         backdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border)',
       }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', height: 60, gap: 8 }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', height: 56, gap: 6 }}>
           {/* Logo */}
           <div onClick={() => navigate('home')}
             style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flexShrink: 0 }}>
@@ -105,7 +105,7 @@ export default function Navbar({ page, setPage, profile, activeRole, onLogout })
                   borderRadius: 8, background: 'var(--red)', border: 'none', color: 'white',
                   cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
                 <Avatar profile={profile} size={24} style={{ border: 'none' }} />
-                <span className="hide-mobile" style={{ display: 'inline' }}>Dashboard</span>
+                <span className="hide-mobile">Dashboard</span>
               </button>
             ) : (
               <button onClick={() => navigate('login')}

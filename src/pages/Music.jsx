@@ -263,9 +263,9 @@ export default function MusicPage({ currentUser }) {
                         </div>
                       </div>
 
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)', padding: '3px 10px', borderRadius: 20, border: '1px solid var(--border)', flexShrink: 0, display: 'none' }} className="hide-mobile">{track.genre}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)', padding: '3px 10px', borderRadius: 20, border: '1px solid var(--border)', flexShrink: 0 }} className="hide-mobile">{track.genre}</span>
                       {track.is_premium && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', padding: '2px 8px', borderRadius: 20, background: 'rgba(255,180,0,0.15)', color: '#ffb400', border: '1px solid rgba(255,180,0,0.3)', flexShrink: 0 }}>💎{track.tunez_price}T</span>}
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--grey-500)', width: 40, textAlign: 'right', flexShrink: 0 }}>{track.duration || '—'}</span>
+                      <span className="hide-mobile" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--grey-500)', width: 40, textAlign: 'right', flexShrink: 0 }}>{track.duration || '—'}</span>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)', width: 48, textAlign: 'right', flexShrink: 0 }}>
                         {track.play_count >= 1000 ? (track.play_count/1000).toFixed(1)+'K' : track.play_count || 0}
                       </span>

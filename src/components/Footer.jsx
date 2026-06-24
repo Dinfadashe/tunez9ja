@@ -15,7 +15,7 @@ export default function Footer({ setPage }) {
             </div>
             <p className="footer-brand-text">
               Nigeria's premier music blog and entertainment platform.
-              Championing African talent since 2021. From the streets of Lagos to the world.
+              Championing African talent since 2021. From the streets of Jos to the world.
             </p>
             <div style={{ marginTop: 16, display: 'flex', gap: 12 }}>
               <a href="https://instagram.com/tunez9ja" target="_blank" rel="noreferrer" className="footer-link" style={{ margin: 0 }}>Instagram</a>
