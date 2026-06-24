@@ -37,12 +37,24 @@ export default function UserDashboard({ setPage, currentUser: propUser, onRoleSw
 
   return (
     <div className="dashboard-layout">
-      <Sidebar items={NAV} activePage={active} setActivePage={setActive}
+      <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          items={NAV} activePage={active} setActivePage={setActive}
         setPage={setPage} currentUser={currentUser} onRoleSwitch={onRoleSwitch} />
       <main className="dashboard-main">
         <div className="dashboard-header">
           <div>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>USER PORTAL</span>
+            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+              <button
+                onClick={() => setSidebarOpen(o => !o)}
+                style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'7px 10px', color:'var(--grey-300)', cursor:'pointer', alignItems:'center', justifyContent:'center' }}
+                className="show-mobile"
+                aria-label="Open menu">
+                &#9776;
+              </button>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>USER PORTAL</span>
+            </div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>
               {NAV.find(n => n.key === active)?.label}
             </h1>

@@ -319,7 +319,7 @@ button { touch-action: manipulation; }
 
 /* ── Base responsive utilities ────────────────────────────── */
 .hide-mobile  { display: flex !important; }
-.show-mobile  { display: none !important; }
+.show-mobile  { display: none !important; } /* hidden on desktop */
 .hide-tablet  { display: flex !important; }
 
 /* ── Container ────────────────────────────────────────────── */
@@ -379,6 +379,8 @@ button { touch-action: manipulation; }
 /* ══ TABLET PORTRAIT (max 768px) ════════════════════════════ */
 @media (max-width: 768px) {
   .container { padding: 0 16px; }
+  .show-mobile { display: flex !important; }
+  .hide-mobile { display: none !important; }
 
   /* Navbar */
   .navbar-links     { display: none !important; }
