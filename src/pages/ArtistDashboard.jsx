@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
 import HalvingBanner from '../components/HalvingBanner.jsx'
 import VerificationPanel from '../components/VerificationPanel.jsx'
+import EditorApplication from '../components/EditorApplication.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import Sidebar from '../components/Sidebar.jsx'
 import { MusicArt, StatusBadge, Modal, ConfirmModal, EmptyState } from '../components/UI.jsx'
@@ -12,7 +13,7 @@ import AlbumManager from '../components/AlbumManager.jsx'
 import MyLibrary   from '../components/MyLibrary.jsx'
 import VideoUpload from '../components/VideoUpload.jsx'
 import MyVideos from '../components/MyVideos.jsx'
-import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube, Coins, BookMarked, Disc , Shield } from 'lucide-react'
+import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube, Coins, BookMarked, Disc , Shield , Newspaper, Pen } from 'lucide-react'
 
 const GENRES = ['Afrobeats','Afropop','Highlife','Fuji','Juju','Gospel','Hip-Hop','R&B','Pop','Rap','Reggae','Dancehall','Amapiano','Bongo Flava','Afro-Soul','Jazz','Electronic','Alternative']
 
@@ -27,6 +28,7 @@ const NAV = [
   { key: 'wallet',     label: 'TUNEZ Wallet',  icon: Coins           },
   { key: 'library',    label: 'My Library',    icon: BookMarked      },
   { key: 'profile',    label: 'My Profile',    icon: User            },
+  { key: 'editor',     label: 'Become Editor', icon: Pen             },
 ]
 
 export default function ArtistDashboard({ setPage, currentUser: propUser, onRoleSwitch }) {
@@ -66,6 +68,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
           {active === 'my-music' && <MyMusic currentUser={currentUser} />}
           {active === 'upload'   && <UploadTrack currentUser={currentUser} onSuccess={() => setActive('my-music')} />}
           {active === 'profile'    && <ArtistProfile currentUser={currentUser} setCurrentUser={setCurrentUser} />}
+        {active === 'editor'    && <EditorApplication  currentUser={currentUser} />}
           {active === 'my-videos'   && <MyVideos currentUser={currentUser} />}
           {active === 'video-upload' && <VideoUpload currentUser={currentUser} onSuccess={() => setActive('my-videos')} />}
           {active === 'albums'       && <AlbumManager currentUser={currentUser} />}

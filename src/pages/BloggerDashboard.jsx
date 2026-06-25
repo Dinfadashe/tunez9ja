@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
 import HalvingBanner from '../components/HalvingBanner.jsx'
 import VerificationPanel from '../components/VerificationPanel.jsx'
+import EditorApplication from '../components/EditorApplication.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import Sidebar from '../components/Sidebar.jsx'
 import { StatusBadge, Modal, ConfirmModal, EmptyState } from '../components/UI.jsx'
@@ -13,7 +14,7 @@ import RichTextEditor from '../components/RichTextEditor.jsx'
 import CoverImagePicker from '../components/CoverImagePicker.jsx'
 import VideoUpload from '../components/VideoUpload.jsx'
 import MyVideos from '../components/MyVideos.jsx'
-import { LayoutDashboard, Newspaper, PenSquare, User, Trash2, Edit3, Eye, CheckCircle, Clock, XCircle, Video, Youtube, Coins, BookMarked , Shield } from 'lucide-react'
+import { LayoutDashboard, Newspaper, PenSquare, User, Trash2, Edit3, Eye, CheckCircle, Clock, XCircle, Video, Youtube, Coins, BookMarked , Shield, Pen } from 'lucide-react'
 
 const CATEGORIES = ['Music News','Album Review','Artist Spotlight','Entertainment','Culture','Events','Interviews','Opinion','Tutorials']
 
@@ -30,6 +31,7 @@ const NAV = [
   { key: 'wallet',      label: 'TUNEZ Wallet',  icon: Coins           },
   { key: 'library',     label: 'My Library',    icon: BookMarked      },
   { key: 'profile',     label: 'My Profile',    icon: User            },
+  { key: 'editor',     label: 'Become Editor', icon: Pen             },
 ]
 
 export default function BloggerDashboard({ setPage, currentUser: propUser, onRoleSwitch }) {
@@ -76,6 +78,7 @@ export default function BloggerDashboard({ setPage, currentUser: propUser, onRol
           {active === 'my-posts' && <MyPosts currentUser={currentUser} onEdit={handleEdit} />}
           {active === 'write'    && <WritePost currentUser={currentUser} editingPost={editingPost} onSuccess={() => { setActive('my-posts'); setEditingPost(null) }} />}
           {active === 'profile'     && <BloggerProfile currentUser={currentUser} setCurrentUser={setCurrentUser} />}
+        {active === 'editor'    && <EditorApplication  currentUser={currentUser} />}
           {active === 'my-videos'    && <MyVideos currentUser={currentUser} />}
           {active === 'video-upload'  && <VideoUpload currentUser={currentUser} onSuccess={() => setActive('my-videos')} />}
           {active === 'wallet'        && <TunezWallet currentUser={currentUser} />}
