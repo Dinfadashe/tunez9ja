@@ -47,7 +47,22 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
       <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
-          items={NAV.map(n => n.key === 'editor' ? { ...n, label: currentUser?.editor_status === 'approved' ? '✏️ Editor Dashboard' : 'Become Editor' } : n)} activePage={active} setActivePage={setActive} setPage={setPage} currentUser={currentUser} onRoleSwitch={onRoleSwitch} />
+          items={NAV.map(n => n.key === 'editor' ? {
+            ...n,
+            label: currentUser?.editor_status === 'approved' ? '✏️ Editor Dashboard' : 'Become Editor'
+          } : n)}
+          activePage={active}
+          setActivePage={(key) => {
+            if (key === 'editor' && currentUser?.editor_status === 'approved') {
+              setPage('editor-dashboard')
+              return
+            }
+            setActive(key)
+            setSidebarOpen(false)
+          }}
+          setPage={setPage}
+          currentUser={currentUser}
+          onRoleSwitch={onRoleSwitch} />
       <main className="dashboard-main">
         <div className="dashboard-header">
           <div>
