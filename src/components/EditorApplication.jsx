@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Upload, CheckCircle, Clock, XCircle } from 'lucide-react'
 
-export default function EditorApplication({ currentUser }) {
+export default function EditorApplication({ currentUser, onSwitchToEditor }) {
   const [form,      setForm]      = useState({ whyEditor: '', experience: '' })
   const [cvFile,    setCvFile]    = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -15,10 +15,16 @@ export default function EditorApplication({ currentUser }) {
   if (status === 'approved') return (
     <div className="card" style={{ padding:28, textAlign:'center' }}>
       <CheckCircle size={40} color="#00c864" style={{ margin:'0 auto 12px', display:'block' }} />
-      <h3 style={{ fontFamily:'var(--font-display)', fontSize:24 }}>YOU ARE AN EDITOR</h3>
-      <p style={{ color:'var(--grey-400)', marginTop:8, fontSize:14 }}>
-        Switch to your Editor role from the sidebar to start reviewing posts.
+      <h3 style={{ fontFamily:'var(--font-display)', fontSize:24, marginBottom:8 }}>YOU ARE AN EDITOR ✏️</h3>
+      <p style={{ color:'var(--grey-400)', marginBottom:24, fontSize:14 }}>
+        Your editor application was approved. Click below to access your Editor Dashboard.
       </p>
+      <button
+        onClick={() => onSwitchToEditor?.()}
+        className="btn btn-primary"
+        style={{ width:'100%', justifyContent:'center', padding:14, fontSize:15 }}>
+        ✏️ Open Editor Dashboard
+      </button>
     </div>
   )
 

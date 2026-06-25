@@ -31,7 +31,7 @@ const NAV = [
   { key: 'wallet',      label: 'TUNEZ Wallet',  icon: Coins           },
   { key: 'library',     label: 'My Library',    icon: BookMarked      },
   { key: 'profile',     label: 'My Profile',    icon: User            },
-  { key: 'editor',     label: 'Become Editor', icon: Pen             },
+  { key: 'editor',     label: 'Become Editor', icon: Pen             }, // label overridden dynamically
 ]
 
 export default function BloggerDashboard({ setPage, currentUser: propUser, onRoleSwitch }) {
@@ -53,7 +53,7 @@ export default function BloggerDashboard({ setPage, currentUser: propUser, onRol
       <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
-          items={NAV} activePage={active}
+          items={NAV.map(n => n.key === 'editor' ? { ...n, label: currentUser?.editor_status === 'approved' ? '✏️ Editor Dashboard' : 'Become Editor' } : n)} activePage={active}
         setActivePage={(k) => { if (k !== 'write') setEditingPost(null); setActive(k) }}
         setPage={setPage} currentUser={currentUser} onRoleSwitch={onRoleSwitch} />
       <main className="dashboard-main">
@@ -78,7 +78,7 @@ export default function BloggerDashboard({ setPage, currentUser: propUser, onRol
           {active === 'my-posts' && <MyPosts currentUser={currentUser} onEdit={handleEdit} />}
           {active === 'write'    && <WritePost currentUser={currentUser} editingPost={editingPost} onSuccess={() => { setActive('my-posts'); setEditingPost(null) }} />}
           {active === 'profile'     && <BloggerProfile currentUser={currentUser} setCurrentUser={setCurrentUser} />}
-        {active === 'editor'    && <EditorApplication  currentUser={currentUser} />}
+        {active === 'editor'    && <EditorApplication  currentUser={currentUser} onSwitchToEditor={() => { setPage('editor-dashboard') }} />}
           {active === 'my-videos'    && <MyVideos currentUser={currentUser} />}
           {active === 'video-upload'  && <VideoUpload currentUser={currentUser} onSuccess={() => setActive('my-videos')} />}
           {active === 'wallet'        && <TunezWallet currentUser={currentUser} />}

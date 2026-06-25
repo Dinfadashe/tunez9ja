@@ -28,7 +28,7 @@ const NAV = [
   { key: 'wallet',     label: 'TUNEZ Wallet',  icon: Coins           },
   { key: 'library',    label: 'My Library',    icon: BookMarked      },
   { key: 'profile',    label: 'My Profile',    icon: User            },
-  { key: 'editor',     label: 'Become Editor', icon: Pen             },
+  { key: 'editor',     label: 'Become Editor', icon: Pen             }, // label overridden dynamically
 ]
 
 export default function ArtistDashboard({ setPage, currentUser: propUser, onRoleSwitch }) {
@@ -47,7 +47,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
       <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
-          items={NAV} activePage={active} setActivePage={setActive} setPage={setPage} currentUser={currentUser} onRoleSwitch={onRoleSwitch} />
+          items={NAV.map(n => n.key === 'editor' ? { ...n, label: currentUser?.editor_status === 'approved' ? '✏️ Editor Dashboard' : 'Become Editor' } : n)} activePage={active} setActivePage={setActive} setPage={setPage} currentUser={currentUser} onRoleSwitch={onRoleSwitch} />
       <main className="dashboard-main">
         <div className="dashboard-header">
           <div>
@@ -68,7 +68,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
           {active === 'my-music' && <MyMusic currentUser={currentUser} />}
           {active === 'upload'   && <UploadTrack currentUser={currentUser} onSuccess={() => setActive('my-music')} />}
           {active === 'profile'    && <ArtistProfile currentUser={currentUser} setCurrentUser={setCurrentUser} />}
-        {active === 'editor'    && <EditorApplication  currentUser={currentUser} />}
+        {active === 'editor'    && <EditorApplication  currentUser={currentUser} onSwitchToEditor={() => { setPage('editor-dashboard') }} />}
           {active === 'my-videos'   && <MyVideos currentUser={currentUser} />}
           {active === 'video-upload' && <VideoUpload currentUser={currentUser} onSuccess={() => setActive('my-videos')} />}
           {active === 'albums'       && <AlbumManager currentUser={currentUser} />}
