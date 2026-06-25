@@ -7,6 +7,7 @@ import MyLibrary from '../components/MyLibrary.jsx'
 import Playlists from '../components/Playlists.jsx'
 import ProfileEditor from '../components/ProfileEditor.jsx'
 import HalvingBanner from '../components/HalvingBanner.jsx'
+import EditorApplication from '../components/EditorApplication.jsx'
 import {
   LayoutDashboard, Coins, BookMarked, ListMusic,
   Link, User, Music, Newspaper, Video
@@ -20,6 +21,7 @@ const NAV = [
   { key: 'playlists', label: 'Playlists',     icon: ListMusic       },
   { key: 'referral',  label: 'Referral',      icon: Link            },
   { key: 'profile',   label: 'My Profile',    icon: User            },
+  { key: 'editor',    label: 'Become Editor', icon: Newspaper       },
 ]
 
 export default function UserDashboard({ setPage, currentUser: propUser, onRoleSwitch }) {
@@ -69,6 +71,7 @@ export default function UserDashboard({ setPage, currentUser: propUser, onRoleSw
           {active === 'playlists' && <Playlists     currentUser={currentUser} />}
           {active === 'referral'  && <ReferralTab   currentUser={currentUser} />}
           {active === 'profile'   && <ProfileEditor currentUser={currentUser} onUpdated={(u) => setCurrentUser(prev => ({ ...prev, ...u }))} />}
+          {active === 'editor'    && <EditorApplication currentUser={currentUser} />}
         </div>
       </main>
     </div>

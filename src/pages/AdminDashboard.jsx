@@ -18,6 +18,7 @@ const NAV = (pending) => [
   { key: 'users',         label: 'Manage Users',   icon: Users },
   { key: 'analytics',     label: 'Analytics',       icon: BarChart2, badge: null },
   { key: 'kyc-review',    label: 'KYC Review 🔵',   icon: Shield,    badge: null },
+  { key: 'editor-review', label: 'Editor Review', icon: Newspaper, badge: null },
   { key: 'album-review',  label: 'Albums',          icon: Disc,  badge: null },
   { key: 'wallet',        label: 'TUNEZ Earnings',  icon: Coins, badge: null },
 ]
@@ -92,6 +93,7 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
           {active === 'wallet'        && <TunezWallet currentUser={currentUser} />}
           {active === 'analytics'      && <AdminAnalytics />}
           {active === 'kyc-review'    && <KYCReview />}
+          {active === 'editor-review' && <EditorReview />}
           {active === 'album-review'   && <AlbumReview />}
         </div>
       </main>
@@ -990,3 +992,66 @@ function KYCReview() {
   )
 }
 
+// ── Admin: Editor Applications Review ────────────────────────
+function EditorReview() {
+  const [apps, setApps]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [msg, setMsg]     = useState(null)
+  const [actTab, setActTab] = useState('pending') // pending | activity
+
+  const load = () => {
+    supabase.from('profiles')
+      .select('id,name,email,role,editor_status,editor_applied_at,editor_cv_url')
+      .eq('editor_status', 'applied')
+      .order('editor_applied_at', { ascending: true })
+      .then(({ data }) => { setApps(data || []); setLoading(false) })
+  }
+  useEffect(() => { load() }, [])
+
+  const approve = async (id) => {
+    await supabase.rpc('approve_editor', { p_user_id: id })
+    setMsg('✅ Editor approved!')
+    load()
+  }
+  const reject = async (id) => {
+    const reason = window.prompt('Rejection reason:')
+    if (!reason) return
+    await supabase.rpc('reject_editor', { p_user_id: id, p_reason: reason })
+    setMsg('Application rejected.')
+    load()
+  }
+
+  if (loading) return <div style={{ padding:40, textAlign:'center', color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>LOADING...</div>
+
+  return (
+    <div>
+      <h2 style={{ fontFamily:'var(--font-display)', fontSize:28, marginBottom:20 }}>EDITOR APPLICATIONS</h2>
+      {msg && <div style={{ padding:'10px 14px', borderRadius:8, marginBottom:16, fontSize:13, background:'rgba(0,200,100,0.1)', border:'1px solid #00c864', color:'#00c864' }}>{msg}</div>}
+      {apps.length === 0 ? (
+        <div style={{ padding:40, textAlign:'center', color:'var(--grey-500)' }}>No pending editor applications</div>
+      ) : apps.map(app => (
+        <div key={app.id} className="card" style={{ padding:20, marginBottom:12 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12 }}>
+            <div>
+              <div style={{ fontFamily:'var(--font-display)', fontSize:18, marginBottom:4 }}>{app.name}</div>
+              <div style={{ fontSize:13, color:'var(--grey-400)' }}>{app.email} · {app.role?.toUpperCase()}</div>
+              <div style={{ fontSize:11, color:'var(--grey-600)', fontFamily:'var(--font-mono)', marginTop:6 }}>
+                Applied: {new Date(app.editor_applied_at).toLocaleDateString('en-NG')}
+              </div>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
+              {app.editor_cv_url && (
+                <a href={app.editor_cv_url} target="_blank" rel="noopener noreferrer"
+                  className="btn btn-secondary" style={{ fontSize:13, padding:'8px 14px' }}>View CV</a>
+              )}
+              <button onClick={() => approve(app.id)} className="btn btn-primary"
+                style={{ fontSize:13, padding:'8px 14px' }}>✅ Approve Editor</button>
+              <button onClick={() => reject(app.id)}
+                style={{ fontSize:13, padding:'8px 14px', borderRadius:8, background:'transparent', border:'1px solid var(--red)', color:'var(--red)', cursor:'pointer' }}>✕ Reject</button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
