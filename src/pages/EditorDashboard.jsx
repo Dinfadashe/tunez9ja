@@ -313,7 +313,12 @@ function EditorActivity({ currentUser }) {
       .eq('editor_id', currentUser.id)
       .order('created_at', { ascending: false })
       .limit(50)
-      .then(({ data }) => { setActivity(data || []); setLoading(false) })
+      .then(({ data, error }) => {
+        if (error) console.warn('editor_activity not found:', error.message)
+        setActivity(data || [])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [currentUser.id])
 
   if (loading) return (

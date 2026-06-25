@@ -49,7 +49,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
           onClose={() => setSidebarOpen(false)}
           items={NAV.map(n => n.key === 'editor' ? {
             ...n,
-            label: currentUser?.editor_status === 'approved' ? '✏️ Editor Dashboard' : 'Become Editor'
+            label: currentUser?.editor_status === 'approved' ? 'Editor Dashboard' : 'Become Editor'
           } : n)}
           activePage={active}
           setActivePage={(key) => {

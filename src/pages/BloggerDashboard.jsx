@@ -53,7 +53,7 @@ export default function BloggerDashboard({ setPage, currentUser: propUser, onRol
       <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
-          items={NAV.map(n => n.key === 'editor' ? { ...n, label: currentUser?.editor_status === 'approved' ? '✏️ Editor Dashboard' : 'Become Editor' } : n)} activePage={active}
+          items={NAV.map(n => n.key === 'editor' ? { ...n, label: currentUser?.editor_status === 'approved' ? 'Editor Dashboard' : 'Become Editor' } : n)} activePage={active}
         setActivePage={(k) => { if (k !== 'write') setEditingPost(null); setActive(k) }}
         setPage={setPage} currentUser={currentUser} onRoleSwitch={onRoleSwitch} />
       <main className="dashboard-main">
