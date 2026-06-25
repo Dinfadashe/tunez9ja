@@ -6,6 +6,8 @@ import ProfileEditor from '../components/ProfileEditor.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import { LayoutDashboard, Newspaper, Coins, User, CheckCircle, XCircle, Eye, Clock } from 'lucide-react'
 
+const sanitize = (html) => html ? html.replace(/<script[^>]*>.*?<\/script>/gis, '').replace(/<iframe[^>]*>.*?<\/iframe>/gis, '') : ''
+
 const NAV = [
   { key: 'overview', label: 'Overview',     icon: LayoutDashboard },
   { key: 'review',   label: 'Review Posts', icon: Newspaper       },
@@ -242,7 +244,7 @@ function ReviewPosts({ currentUser }) {
             <img src={selected.cover_url} style={{ width:'100%', maxHeight:320, objectFit:'cover', borderRadius:10, marginBottom:20 }} />
           )}
           <div style={{ fontSize:14, color:'var(--grey-300)', lineHeight:1.9 }}
-            dangerouslySetInnerHTML={{ __html: editedContent.replace(/<script[\s\S]*?<\/script>/gi,'') }} />
+            dangerouslySetInnerHTML={{ __html: sanitize(editedContent) }} />
         </div>
       )}
 
