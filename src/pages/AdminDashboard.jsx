@@ -1026,19 +1026,23 @@ function EditorReview() {
   useEffect(() => { load() }, [])
 
   const approve = async (id) => {
-    await supabase.rpc('approve_editor', { p_user_id: id })
+    const { data, error } = await supabase.rpc('approve_editor', { p_user_id: id })
+    if (error) { setMsg('❌ Error: ' + error.message); return }
+    if (data?.success === false) { setMsg('❌ Error: ' + data.reason); return }
     setMsg('✅ Editor approved! They have been notified.')
     setSelected(null)
-    load()
+    // Immediately remove from pending list
+    setEditors(prev => prev.filter(e => e.id !== id))
   }
 
   const reject = async (id) => {
     const reason = window.prompt('Enter rejection reason (will be sent to applicant):')
     if (!reason) return
-    await supabase.rpc('reject_editor', { p_user_id: id, p_reason: reason })
+    const { error } = await supabase.rpc('reject_editor', { p_user_id: id, p_reason: reason })
+    if (error) { setMsg('❌ Error: ' + error.message); return }
     setMsg('Application rejected — applicant notified.')
     setSelected(null)
-    load()
+    setEditors(prev => prev.filter(e => e.id !== id))
   }
 
   const suspend = async (id) => {
