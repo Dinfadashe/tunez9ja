@@ -6,7 +6,7 @@ import ProfileEditor from '../components/ProfileEditor.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import { LayoutDashboard, Newspaper, Coins, User, CheckCircle, XCircle, Eye, Clock } from 'lucide-react'
 
-const sanitize = (html) => html ? html.replace(/<script[^>]*>.*?<\/script>/gis, '').replace(/<iframe[^>]*>.*?<\/iframe>/gis, '') : ''
+const sanitize = (html) => String(html || '')
 
 const NAV = [
   { key: 'overview', label: 'Overview',     icon: LayoutDashboard },
