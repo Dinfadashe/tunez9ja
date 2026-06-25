@@ -994,64 +994,267 @@ function KYCReview() {
 
 // ── Admin: Editor Applications Review ────────────────────────
 function EditorReview() {
-  const [apps, setApps]   = useState([])
-  const [loading, setLoading] = useState(true)
-  const [msg, setMsg]     = useState(null)
-  const [actTab, setActTab] = useState('pending') // pending | activity
+  const [tab,     setTab]     = useState('pending') // pending | active | all
+  const [editors, setEditors] = useState([])
+  const [selected, setSelected] = useState(null) // selected editor for detail view
+  const [activity, setActivity] = useState([])
+  const [loading, setLoading]  = useState(true)
+  const [msg,     setMsg]      = useState(null)
 
-  const load = () => {
-    supabase.from('profiles')
-      .select('id,name,email,role,editor_status,editor_applied_at,editor_cv_url')
-      .eq('editor_status', 'applied')
-      .order('editor_applied_at', { ascending: true })
-      .then(({ data }) => { setApps(data || []); setLoading(false) })
+  const load = (tabName = tab) => {
+    setLoading(true)
+    const query = supabase.from('profiles')
+      .select('id,name,email,role,editor_status,editor_applied_at,editor_approved_at,editor_cv_url,editor_posts_reviewed,editor_total_earned,editor_reject_reason')
+      .not('editor_status', 'is', null)
+      .order('editor_applied_at', { ascending: false })
+
+    if (tabName === 'pending') query.eq('editor_status', 'applied')
+    else if (tabName === 'active') query.eq('editor_status', 'approved')
+
+    query.then(({ data }) => { setEditors(data || []); setLoading(false) })
   }
+
+  const loadActivity = (editorId) => {
+    supabase.from('editor_activity')
+      .select('*, post:post_id(title)')
+      .eq('editor_id', editorId)
+      .order('created_at', { ascending: false })
+      .limit(30)
+      .then(({ data }) => setActivity(data || []))
+  }
+
   useEffect(() => { load() }, [])
 
   const approve = async (id) => {
     await supabase.rpc('approve_editor', { p_user_id: id })
-    setMsg('✅ Editor approved!')
+    setMsg('✅ Editor approved! They have been notified.')
+    setSelected(null)
     load()
   }
+
   const reject = async (id) => {
-    const reason = window.prompt('Rejection reason:')
+    const reason = window.prompt('Enter rejection reason (will be sent to applicant):')
     if (!reason) return
     await supabase.rpc('reject_editor', { p_user_id: id, p_reason: reason })
-    setMsg('Application rejected.')
+    setMsg('Application rejected — applicant notified.')
+    setSelected(null)
     load()
   }
 
-  if (loading) return <div style={{ padding:40, textAlign:'center', color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>LOADING...</div>
+  const suspend = async (id) => {
+    if (!window.confirm('Suspend this editor? They will lose editor access immediately.')) return
+    await supabase.from('profiles').update({
+      editor_status: 'suspended',
+      available_roles: supabase.rpc ? undefined : null
+    }).eq('id', id)
+    // Remove editor from available_roles
+    await supabase.rpc ? null : null
+    const { data: prof } = await supabase.from('profiles').select('available_roles').eq('id', id).single()
+    if (prof?.available_roles) {
+      await supabase.from('profiles').update({
+        available_roles: prof.available_roles.filter(r => r !== 'editor'),
+        editor_status: 'suspended'
+      }).eq('id', id)
+    }
+    await supabase.from('notifications').insert({
+      user_id: id, type: 'general',
+      message: '⚠️ Your editor access has been suspended by admin. Please contact us for more information.'
+    })
+    setMsg('Editor suspended.')
+    setSelected(null)
+    load()
+  }
 
-  return (
+  const reinstate = async (id) => {
+    await supabase.from('profiles').update({ editor_status: 'approved' }).eq('id', id)
+    const { data: prof } = await supabase.from('profiles').select('available_roles').eq('id', id).single()
+    if (prof?.available_roles && !prof.available_roles.includes('editor')) {
+      await supabase.from('profiles').update({
+        available_roles: [...prof.available_roles, 'editor']
+      }).eq('id', id)
+    }
+    await supabase.from('notifications').insert({
+      user_id: id, type: 'general',
+      message: '✅ Your editor access has been reinstated. You can now review posts again.'
+    })
+    setMsg('✅ Editor reinstated.')
+    setSelected(null)
+    load()
+  }
+
+  const openEditor = (editor) => {
+    setSelected(editor)
+    loadActivity(editor.id)
+  }
+
+  const TAB_LABEL = { pending: 'Pending', active: 'Active Editors', all: 'All' }
+  const STATUS_COLOR = { applied: '#ffb400', approved: '#00c864', rejected: 'var(--red)', suspended: 'var(--grey-500)' }
+
+  // ── Detail view ──────────────────────────────────────────────
+  if (selected) return (
     <div>
-      <h2 style={{ fontFamily:'var(--font-display)', fontSize:28, marginBottom:20 }}>EDITOR APPLICATIONS</h2>
-      {msg && <div style={{ padding:'10px 14px', borderRadius:8, marginBottom:16, fontSize:13, background:'rgba(0,200,100,0.1)', border:'1px solid #00c864', color:'#00c864' }}>{msg}</div>}
-      {apps.length === 0 ? (
-        <div style={{ padding:40, textAlign:'center', color:'var(--grey-500)' }}>No pending editor applications</div>
-      ) : apps.map(app => (
-        <div key={app.id} className="card" style={{ padding:20, marginBottom:12 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12 }}>
-            <div>
-              <div style={{ fontFamily:'var(--font-display)', fontSize:18, marginBottom:4 }}>{app.name}</div>
-              <div style={{ fontSize:13, color:'var(--grey-400)' }}>{app.email} · {app.role?.toUpperCase()}</div>
-              <div style={{ fontSize:11, color:'var(--grey-600)', fontFamily:'var(--font-mono)', marginTop:6 }}>
-                Applied: {new Date(app.editor_applied_at).toLocaleDateString('en-NG')}
-              </div>
-            </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
-              {app.editor_cv_url && (
-                <a href={app.editor_cv_url} target="_blank" rel="noopener noreferrer"
-                  className="btn btn-secondary" style={{ fontSize:13, padding:'8px 14px' }}>View CV</a>
-              )}
-              <button onClick={() => approve(app.id)} className="btn btn-primary"
-                style={{ fontSize:13, padding:'8px 14px' }}>✅ Approve Editor</button>
-              <button onClick={() => reject(app.id)}
-                style={{ fontSize:13, padding:'8px 14px', borderRadius:8, background:'transparent', border:'1px solid var(--red)', color:'var(--red)', cursor:'pointer' }}>✕ Reject</button>
-            </div>
+      <button onClick={() => setSelected(null)} className="btn btn-secondary" style={{ marginBottom:20, gap:8 }}>
+        ← Back
+      </button>
+
+      <div className="card" style={{ padding:28, marginBottom:20 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:16 }}>
+          <div>
+            <h2 style={{ fontFamily:'var(--font-display)', fontSize:28, marginBottom:4 }}>{selected.name}</h2>
+            <div style={{ fontSize:13, color:'var(--grey-400)', marginBottom:8 }}>{selected.email} · {selected.role?.toUpperCase()}</div>
+            <span style={{ fontSize:11, fontFamily:'var(--font-mono)', padding:'4px 10px', borderRadius:20,
+              background: `${STATUS_COLOR[selected.editor_status]}22`,
+              border: `1px solid ${STATUS_COLOR[selected.editor_status]}`,
+              color: STATUS_COLOR[selected.editor_status], letterSpacing:1 }}>
+              {selected.editor_status?.toUpperCase()}
+            </span>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
+            {/* CV Button */}
+            {selected.editor_cv_url && (
+              <a href={selected.editor_cv_url} target="_blank" rel="noopener noreferrer"
+                className="btn btn-secondary" style={{ fontSize:13, textAlign:'center' }}>
+                📄 View CV / Resume
+              </a>
+            )}
+            {/* Action buttons based on status */}
+            {selected.editor_status === 'applied' && <>
+              <button onClick={() => approve(selected.id)} className="btn btn-primary"
+                style={{ background:'#00c864', borderColor:'#00c864' }}>
+                ✅ Approve Editor
+              </button>
+              <button onClick={() => reject(selected.id)}
+                style={{ padding:'9px 16px', borderRadius:8, background:'transparent', border:'1px solid var(--red)', color:'var(--red)', cursor:'pointer', fontSize:13 }}>
+                ✕ Reject
+              </button>
+            </>}
+            {selected.editor_status === 'approved' && (
+              <button onClick={() => suspend(selected.id)}
+                style={{ padding:'9px 16px', borderRadius:8, background:'transparent', border:'1px solid #ffb400', color:'#ffb400', cursor:'pointer', fontSize:13 }}>
+                ⚠️ Suspend Editor
+              </button>
+            )}
+            {selected.editor_status === 'suspended' && (
+              <button onClick={() => reinstate(selected.id)} className="btn btn-primary">
+                ✅ Reinstate Editor
+              </button>
+            )}
           </div>
         </div>
-      ))}
+
+        {/* Stats for active editors */}
+        {selected.editor_status === 'approved' && (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:12, marginTop:20 }}>
+            {[
+              { label:'Posts Reviewed', value: selected.editor_posts_reviewed || 0 },
+              { label:'TUNEZ Earned', value: Number(selected.editor_total_earned||0).toFixed(1)+'T' },
+              { label:'Approved Since', value: selected.editor_approved_at ? new Date(selected.editor_approved_at).toLocaleDateString('en-NG') : '—' },
+            ].map((s,i) => (
+              <div key={i} style={{ background:'var(--bg-surface)', borderRadius:8, padding:'14px 16px' }}>
+                <div style={{ fontFamily:'var(--font-display)', fontSize:22 }}>{s.value}</div>
+                <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--grey-500)', letterSpacing:1, marginTop:4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {selected.editor_reject_reason && (
+          <div style={{ marginTop:16, padding:'12px 14px', background:'rgba(200,16,46,0.08)', borderRadius:8, fontSize:13, color:'var(--grey-300)' }}>
+            <strong>Rejection reason:</strong> {selected.editor_reject_reason}
+          </div>
+        )}
+      </div>
+
+      {/* Activity log */}
+      {selected.editor_status === 'approved' && (
+        <div>
+          <h3 style={{ fontFamily:'var(--font-display)', fontSize:20, marginBottom:14 }}>RECENT ACTIVITY</h3>
+          {activity.length === 0 ? (
+            <div style={{ color:'var(--grey-500)', fontSize:13 }}>No activity yet</div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {activity.map(a => (
+                <div key={a.id} className="card" style={{ padding:'12px 16px', display:'flex', alignItems:'center', gap:12 }}>
+                  <span style={{ fontSize:16 }}>{a.action === 'approved' ? '✅' : '❌'}</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {a.post?.title || 'Unknown post'}
+                    </div>
+                    <div style={{ fontSize:11, color:'var(--grey-500)', marginTop:2 }}>
+                      {a.action === 'approved' ? 'Approved' : `Rejected — ${a.reason || ''}`}
+                      {' · '}{new Date(a.created_at).toLocaleDateString('en-NG')}
+                    </div>
+                  </div>
+                  {a.action === 'approved' && (
+                    <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'#ffb400', flexShrink:0 }}>+{Number(a.earned).toFixed(1)}T</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+
+  // ── List view ────────────────────────────────────────────────
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24, flexWrap:'wrap', gap:12 }}>
+        <h2 style={{ fontFamily:'var(--font-display)', fontSize:28 }}>EDITOR MANAGEMENT</h2>
+        <div style={{ display:'flex', gap:8 }}>
+          {['pending','active','all'].map(t => (
+            <button key={t} onClick={() => { setTab(t); load(t) }}
+              style={{ padding:'7px 14px', borderRadius:8, fontSize:13, cursor:'pointer',
+                background: tab === t ? 'var(--red)' : 'transparent',
+                border: `1px solid ${tab === t ? 'var(--red)' : 'var(--border)'}`,
+                color: tab === t ? 'white' : 'var(--grey-300)' }}>
+              {TAB_LABEL[t]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {msg && <div style={{ padding:'10px 14px', borderRadius:8, marginBottom:16, fontSize:13,
+        background:'rgba(0,200,100,0.1)', border:'1px solid #00c864', color:'#00c864' }}>{msg}</div>}
+
+      {loading ? (
+        <div style={{ padding:40, textAlign:'center', color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>LOADING...</div>
+      ) : editors.length === 0 ? (
+        <div style={{ padding:40, textAlign:'center', color:'var(--grey-500)' }}>
+          No {tab === 'pending' ? 'pending applications' : tab === 'active' ? 'active editors' : 'records'} found
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {editors.map(e => (
+            <div key={e.id} className="card" style={{ padding:'16px 20px', display:'flex', alignItems:'center', gap:16, cursor:'pointer' }}
+              onClick={() => openEditor(e)}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:700, fontSize:15 }}>{e.name}</div>
+                <div style={{ fontSize:12, color:'var(--grey-400)', marginTop:2 }}>
+                  {e.email} · {e.role?.toUpperCase()}
+                  {e.editor_posts_reviewed > 0 && ` · ${e.editor_posts_reviewed} posts reviewed`}
+                </div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+                {e.editor_cv_url && (
+                  <a href={e.editor_cv_url} target="_blank" rel="noopener noreferrer"
+                    onClick={ev => ev.stopPropagation()}
+                    style={{ fontSize:12, color:'var(--grey-400)', textDecoration:'none', padding:'4px 10px', border:'1px solid var(--border)', borderRadius:6 }}>
+                    📄 CV
+                  </a>
+                )}
+                <span style={{ fontSize:11, fontFamily:'var(--font-mono)', padding:'4px 10px', borderRadius:20,
+                  background: `${STATUS_COLOR[e.editor_status]}22`,
+                  border: `1px solid ${STATUS_COLOR[e.editor_status]}`,
+                  color: STATUS_COLOR[e.editor_status] }}>
+                  {e.editor_status?.toUpperCase()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
