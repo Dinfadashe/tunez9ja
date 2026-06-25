@@ -15,12 +15,12 @@ import AboutPage from './pages/About.jsx'
 import TermsPage from './pages/Terms.jsx'
 import PrivacyPage from './pages/Privacy.jsx'
 import { LoginPage, RegisterPage } from './pages/Auth.jsx'
+import SearchPage       from './pages/SearchPage.jsx'
 const AdminDashboard   = React.lazy(() => import('./pages/AdminDashboard.jsx'))
 const ArtistDashboard  = React.lazy(() => import('./pages/ArtistDashboard.jsx'))
 const BloggerDashboard = React.lazy(() => import('./pages/BloggerDashboard.jsx'))
 const UserDashboard    = React.lazy(() => import('./pages/UserDashboard.jsx'))
 const EditorDashboard  = React.lazy(() => import('./pages/EditorDashboard.jsx'))
-import SearchPage       from './pages/SearchPage.jsx'
 
 const DASHBOARD_PAGES = ['admin-dashboard', 'artist-dashboard', 'blogger-dashboard', 'user-dashboard', 'editor-dashboard']
 const AUTH_PAGES      = ['login', 'register']
