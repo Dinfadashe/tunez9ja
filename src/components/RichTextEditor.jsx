@@ -73,8 +73,11 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
   }
 
   const getYtId = (url) => {
-    const pats = [/youtube\.com\/watch\?v=([^&]+)/, /youtu\.be\/([^?]+)/, /youtube\.com\/shorts\/([^?]+)/]
-    for (const p of pats) { const m = url?.match(p); if (m) return m[1] }
+    const u = url ? url.trim() : ''
+    if (u.includes('watch?v=')) return u.split('watch?v=')[1].split('&')[0]
+    if (u.includes('youtu.be/')) return u.split('youtu.be/')[1].split('?')[0]
+    if (u.includes('/shorts/')) return u.split('/shorts/')[1].split('?')[0]
+    return null
     return null
   }
 

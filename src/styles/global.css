@@ -692,3 +692,8 @@ body {
     padding-top: env(safe-area-inset-top) !important;
   }
 }
+
+/* Track card hover effect */
+.card:hover .track-play-overlay {
+  opacity: 1 !important;
+}

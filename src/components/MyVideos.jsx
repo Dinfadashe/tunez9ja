@@ -4,7 +4,8 @@ import { StatusBadge, ConfirmModal, EmptyState } from '../components/UI.jsx'
 import { Video, Youtube, Trash2, Eye } from 'lucide-react'
 
 function getYoutubeId(url) {
-  const patterns = [/youtube\.com\/watch\?v=([^&]+)/,/youtu\.be\/([^?]+)/,/youtube\.com\/shorts\/([^?]+)/]
+  // youtube id extraction - no regex
+  const getYoutubeId = null
   for (const p of patterns) { const m = url?.match(p); if (m) return m[1] }
   return null
 }

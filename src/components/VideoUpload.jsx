@@ -12,7 +12,7 @@ function getYoutubeId(url) {
     /youtube\.com\/watch\?v=([^&]+)/,
     /youtu\.be\/([^?]+)/,
     /youtube\.com\/embed\/([^?]+)/,
-    /youtube\.com\/shorts\/([^?]+)/,
+    
   ]
   for (const p of patterns) { const m = url?.match(p); if (m) return m[1] }
   return null

@@ -11,16 +11,12 @@ import { Play, Youtube, Video, Eye, Clock, Filter } from 'lucide-react'
 
 function getYoutubeId(url) {
   if (!url) return null
-  const patterns = [
-    /youtube\.com\/watch\?v=([^&]+)/,
-    /youtu\.be\/([^?]+)/,
-    /youtube\.com\/embed\/([^?]+)/,
-    /youtube\.com\/shorts\/([^?]+)/,
-  ]
-  for (const p of patterns) {
-    const m = url.match(p)
-    if (m) return m[1]
-  }
+  if (!url) return null
+    const u = url.trim()
+    if (u.includes('watch?v=')) return u.split('watch?v=')[1].split('&')[0]
+    if (u.includes('youtu.be/')) return u.split('youtu.be/')[1].split('?')[0]
+    if (u.includes('/shorts/')) return u.split('/shorts/')[1].split('?')[0]
+    return null
   return null
 }
 

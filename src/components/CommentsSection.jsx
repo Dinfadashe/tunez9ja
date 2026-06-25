@@ -4,7 +4,7 @@ import { sendNotification } from './NotificationsPanel.jsx'
 import { earnReact, earnComment } from '../lib/tunez.js'
 import { ThumbsUp, ThumbsDown, MessageCircle, Reply, Trash2, Send, ChevronDown, ChevronUp } from 'lucide-react'
 
-const sanitizeText = (s) => s?.trim().replace(/<[^>]*>/g, '') || ''
+const sanitizeText = function(s) { if (!s) return ''; var t = s.trim(); var out = ''; var inTag = false; for (var i=0;i<t.length;i++) { if (t[i]==='<') inTag=true; else if (t[i]==='>') inTag=false; else if (!inTag) out+=t[i]; } return out }
 
 
 // ── Reaction bar (likes/dislikes) ─────────────────────────────

@@ -11,14 +11,20 @@ import { Newspaper, Clock, User, ArrowLeft, Eye } from 'lucide-react'
 // Simple HTML sanitizer — strips dangerous tags/attrs before render
 function sanitizeHTML(html) {
   if (!html) return ''
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
-    .replace(/<object[\s\S]*?<\/object>/gi, '')
-    .replace(/<embed[\s\S]*?>/gi, '')
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/data:text\/html/gi, '')
+  var s = String(html)
+  var tags = ['script','iframe','object','embed']
+  tags.forEach(function(t) {
+    while (s.toLowerCase().indexOf('<' + t) >= 0) {
+      var start = s.toLowerCase().indexOf('<' + t)
+      var end = s.toLowerCase().indexOf('</' + t + '>')
+      if (end >= 0) { s = s.slice(0, start) + s.slice(end + t.length + 3) }
+      else { s = s.slice(0, start) + s.slice(start + t.length + 1) }
+    }
+  })
+  while (s.toLowerCase().indexOf('javascript:') >= 0) {
+    s = s.slice(0, s.toLowerCase().indexOf('javascript:')) + s.slice(s.toLowerCase().indexOf('javascript:') + 11)
+  }
+  return s
 }
 
 

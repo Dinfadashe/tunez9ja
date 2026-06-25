@@ -4,8 +4,8 @@ import { Logo } from '../components/UI.jsx'
 import { Eye, EyeOff, Mic2, Newspaper, Shield, User as User2, Headphones } from 'lucide-react'
 
 // Input sanitization
-const sanitize = (str) => str?.trim().replace(/[<>"'`]/g, '') || ''
-const sanitizeEmail = (email) => email?.trim().toLowerCase().replace(/[^a-z0-9@._+-]/g, '') || ''
+const sanitize = (str) => { if (!str) return ''; return str.trim().split('<').join('').split('>').join('').split('"').join('').split("'").join('').split('`').join('') }
+const sanitizeEmail = (email) => { if (!email) return ''; var e = email.trim().toLowerCase(); var ok = 'abcdefghijklmnopqrstuvwxyz0123456789@._+-'; var out = ''; for (var i=0;i<e.length;i++) { if (ok.indexOf(e[i]) >= 0) out += e[i]; } return out }
 
 
 
@@ -209,7 +209,7 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
       }
 
       // Generate referral code for new user
-      const refCodeNew = form.name.slice(0,4).toUpperCase().replace(/[^A-Z]/g,'X') + data.user.id.slice(0,4).toUpperCase()
+      const refCodeNew = form.name.slice(0,4).toUpperCase().split('').map(function(c){ return c >= 'A' && c <= 'Z' ? c : 'X' }).join('') + data.user.id.slice(0,4).toUpperCase()
       await supabase.from('profiles').update({ referral_code: refCodeNew }).eq('id', data.user.id)
 
       // Clear any stale cache

@@ -104,7 +104,7 @@ export default function ProfileEditor({ currentUser, onUpdated }) {
       name:       name.trim().slice(0, 80),
       bio:        bio.trim().slice(0, 300),
       location:   location.trim().slice(0, 100),
-      website:    website.trim().replace(/[<>"']/g, '').slice(0, 200),
+      website:    website.trim().split('<').join('').split('>').join('').split('"').join('').split("'").join('').slice(0, 200),
       avatar_url: avatar,
       updated_at: new Date().toISOString(),
     }

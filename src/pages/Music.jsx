@@ -8,6 +8,7 @@ import PremiumUnlockModal from '../components/PremiumUnlockModal.jsx'
 import { MusicArt, SearchBar, EmptyState } from '../components/UI.jsx'
 import { Play, Pause, Music, Heart, Plus, ListMusic, Disc, Headphones } from 'lucide-react'
 import ShareButton from '../components/ShareButton.jsx'
+import TrackPage   from '../components/TrackPage.jsx'
 import Albums from '../components/Albums.jsx'
 
 
@@ -109,6 +110,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
   const [unlockTarget, setUnlockTarget] = React.useState(null)
   const [unlockedIds, setUnlockedIds] = React.useState(new Set())
   const [unlocksLoaded, setUnlocksLoaded] = React.useState(false)
+  const [trackPage, setTrackPage] = React.useState(null)
   const [view, setView] = React.useState('tracks')
   const earnedRef = React.useRef({})
 
@@ -240,55 +242,87 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
                 title={tracks.length === 0 ? 'No tracks yet' : 'No tracks found'}
                 message={tracks.length === 0 ? 'Artists are uploading. Check back soon!' : 'Try adjusting your search or genre filter.'} />
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {filtered.map((track, idx) => {
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 12 }}>
+                {filtered.map((track) => {
                   const playing = nowPlaying?.id === track.id
+                  const locked  = track.is_premium && unlocksLoaded && !unlockedIds.has(track.id)
                   return (
-                    <div key={track.id}
-                      onClick={() => {
-                        if (track.is_premium && unlocksLoaded && !unlockedIds.has(track.id)) {
-                          setUnlockTarget(track); return
+                    <div key={track.id} className="card" style={{
+                      display: 'flex', flexDirection: 'column', gap: 0,
+                      border: playing ? '1px solid var(--border-red)' : '1px solid var(--border)',
+                      background: playing ? 'var(--red-glow)' : 'var(--bg-card)',
+                      transition: 'all 0.2s', overflow: 'hidden'
+                    }}>
+                      {/* Cover + play area */}
+                      <div style={{ position: 'relative', cursor: 'pointer' }}
+                        onClick={() => {
+                          if (locked) { setUnlockTarget(track); return }
+                          console.log('🎵 Playing track:', track.title, 'audio_url:', track.audio_url)
+                          playTrack(track, filtered)
+                          supabase.rpc('increment_play_count', { p_track_id: track.id }).then(() => {}).catch(() => {})
+                        }}>
+                        {track.cover_url
+                          ? <img loading="lazy" src={track.cover_url} alt={track.title}
+                              style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                          : <div style={{ width: '100%', aspectRatio: '1', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <MusicArt title={track.title} size={80} />
+                            </div>
                         }
-                        console.log('🎵 Playing track:', track.title, 'audio_url:', track.audio_url)
-                        playTrack(track, filtered)
-                        supabase.rpc('increment_play_count', { p_track_id: track.id }).then(() => {}).catch(() => {})
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 14px', borderRadius: 8, cursor: 'pointer', background: playing ? 'var(--red-glow)' : 'transparent', border: `1px solid ${playing ? 'var(--border-red)' : 'transparent'}`, transition: 'all 0.2s' }}
-                      onMouseEnter={e => { if (!playing) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                      onMouseLeave={e => { if (!playing) e.currentTarget.style.background = 'transparent' }}>
-
-                      <div style={{ width: 32, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 13, color: playing ? 'var(--red)' : 'var(--grey-500)', flexShrink: 0 }}>
-                        {playing
-                          ? (isPlaying ? <Pause size={14} fill="var(--red)" color="var(--red)" /> : <Play size={14} fill="var(--red)" color="var(--red)" />)
-                          : idx + 1}
+                        {/* Play overlay */}
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: playing ? 1 : 0, transition: 'opacity 0.2s' }}
+                          className="track-play-overlay">
+                          {playing
+                            ? (isPlaying ? <Pause size={40} fill="white" color="white" /> : <Play size={40} fill="white" color="white" />)
+                            : <Play size={40} fill="white" color="white" />}
+                        </div>
+                        {/* Premium badge */}
+                        {track.is_premium && (
+                          <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontFamily: 'var(--font-mono)', color: locked ? '#ffb400' : '#00c864', border: '1px solid ' + (locked ? 'rgba(255,180,0,0.4)' : 'rgba(0,200,100,0.4)') }}>
+                            {locked ? '💎 ' + track.tunez_price + 'T' : '✅ Unlocked'}
+                          </div>
+                        )}
+                        {/* Playing indicator */}
+                        {playing && (
+                          <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'var(--red)', borderRadius: 4, padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'white', letterSpacing: 1 }}>
+                            PLAYING
+                          </div>
+                        )}
                       </div>
 
-                      {track.cover_url
-                        ? <img loading="lazy" src={track.cover_url} alt={track.title} style={{ width: 44, height: 44, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                        : <MusicArt title={track.title} size={44} />
-                      }
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14, color: playing ? 'var(--red)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {track.title}
+                      {/* Info */}
+                      <div style={{ padding: '12px 14px 8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              onClick={() => setTrackPage(track)}
+                              style={{ fontWeight: 700, fontSize: 14, color: playing ? 'var(--red)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                              title={track.title}>
+                              {track.title}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--grey-400)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {track.profiles?.name}{track.profiles?.is_verified ? ' ✅' : ''}
+                            </div>
+                          </div>
+                          <span style={{ fontSize: 11, color: 'var(--grey-600)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
+                            {track.play_count >= 1000 ? (track.play_count/1000).toFixed(1)+'K' : track.play_count || 0} plays
+                          </span>
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--grey-300)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {track.profiles?.name}{track.profiles?.is_verified && ' ✅'}
+                        <div style={{ fontSize: 11, color: 'var(--grey-600)', marginBottom: 10 }}>
+                          {track.genre}{track.duration ? ' · ' + track.duration : ''}
                         </div>
                       </div>
 
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)', padding: '3px 10px', borderRadius: 20, border: '1px solid var(--border)', flexShrink: 0 }} className="hide-mobile">{track.genre}</span>
-                      {track.is_premium && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', padding: '2px 8px', borderRadius: 20, background: 'rgba(255,180,0,0.15)', color: '#ffb400', border: '1px solid rgba(255,180,0,0.3)', flexShrink: 0 }}>💎{track.tunez_price}T</span>}
-                      <span className="hide-mobile" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--grey-500)', width: 40, textAlign: 'right', flexShrink: 0 }}>{track.duration || '—'}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)', width: 48, textAlign: 'right', flexShrink: 0 }}>
-                        {track.play_count >= 1000 ? (track.play_count/1000).toFixed(1)+'K' : track.play_count || 0}
-                      </span>
-                      <div onClick={e => e.stopPropagation()} style={{ flexShrink: 0 }}>
+                      {/* Actions */}
+                      <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 10px 10px', flexWrap: 'wrap' }}>
                         <ReactionBar targetType="track" targetId={track.id} currentUser={currentUser} compact />
+                        <SaveButton track={track} currentUser={currentUser} />
+                        <AddToPlaylist track={track} currentUser={currentUser} />
+                        <button onClick={() => setTrackPage(track)}
+                          style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', color: 'var(--grey-400)', cursor: 'pointer', fontSize: 11 }}>
+                          View
+                        </button>
+                        <ShareButton url={window.location.origin + '/?track=' + track.id} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} compact />
                       </div>
-                      <SaveButton track={track} currentUser={currentUser} />
-                      <AddToPlaylist track={track} currentUser={currentUser} />
-                      <ShareButton url={window.location.origin + '/?track=' + track.id} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} compact />
                     </div>
                   )
                 })}
