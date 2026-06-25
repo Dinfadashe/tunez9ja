@@ -6,21 +6,12 @@ export function useDashboard(propUser) {
   const [currentUser, setCurrentUser] = useState(propUser || null)
 
   useEffect(() => {
-    // If prop provided, use it immediately — no delay
-    if (propUser) {
-      setCurrentUser(propUser)
-      return
-    }
-    // Only fetch if no prop (direct URL navigation)
-    let cancelled = false
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (cancelled || !session?.user) return
-      const { data } = await supabase
-        .from('profiles').select('*').eq('id', session.user.id).single()
-      if (!cancelled && data) setCurrentUser(data)
-    })
-    return () => { cancelled = true }
-  }, [propUser?.id]) // only re-run if user ID changes
+    if (!propUser?.id) return
+    // Always fetch fresh profile from DB — prop may be stale
+    supabase.from('profiles').select('*').eq('id', propUser.id).single()
+      .then(({ data }) => { if (data) setCurrentUser(data) })
+      .catch(() => setCurrentUser(propUser)) // fallback to prop on error
+  }, [propUser?.id])
 
   return { currentUser, setCurrentUser }
 }
