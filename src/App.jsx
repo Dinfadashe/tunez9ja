@@ -1,3 +1,4 @@
+import WhitepaperWidget from './components/WhitepaperWidget.jsx'
 import React, { useState, useEffect } from 'react'
 import { AppProvider } from './context/AppContext.jsx'
 import { PlayerProvider } from './context/PlayerContext.jsx'
@@ -393,6 +394,7 @@ function AppInner() {
       {!NO_FOOTER.includes(safePage) && <Footer setPage={setPage} />}
 
       {/* Floating player — renders on ALL pages, survives navigation */}
+      <WhitepaperWidget />
       <FloatingPlayer currentUser={profile} />
       <FloatingVideoPlayer />
       <TelegramPopup />

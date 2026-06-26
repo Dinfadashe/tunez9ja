@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { MusicArt } from '../components/UI.jsx'
-import { Play, TrendingUp, Mic2, Newspaper, ArrowRight, Music } from 'lucide-react'
+import { Play, TrendingUp, Mic2, Newspaper, ArrowRight, Music, Video, Youtube } from 'lucide-react'
 
 const TICKER_ITEMS = ['🎵 Afrobeats','🔥 New Drops','🎤 Artist Spotlight','📰 Latest Gist','🌍 Global Sound','🎵 Top Charts','🔥 Hot Takes','🎤 Studio Sessions']
 
 export default function Home({ setPage }) {
   const [tracks, setTracks] = useState([])
-  const [posts, setPosts]   = useState([])
-  const [stats, setStats]   = useState({ artists: 0, tracks: 0, posts: 0 })
+  const [posts,  setPosts]  = useState([])
+  const [videos, setVideos] = useState([])
+  const [stats,  setStats]  = useState({ artists: 0, tracks: 0, posts: 0 })
 
   useEffect(() => {
-    // Fetch approved tracks
+    // Approved tracks
     supabase.from('music_tracks')
       .select('*, profiles:artist_id(name, is_verified)')
       .eq('status', 'approved')
@@ -19,13 +20,15 @@ export default function Home({ setPage }) {
       .limit(6)
       .then(({ data }) => setTracks(data || []))
 
-    // Fetch approved posts
+    // Approved videos
     supabase.from('videos')
       .select('id,title,youtube_url,video_url,uploader_id,profiles:uploader_id(name)')
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(3)
-      .then(r => setVideos(r.data || []))
+      .then(({ data }) => setVideos(data || []))
+
+    // Approved blog posts
     supabase.from('blog_posts')
       .select('*, profiles:author_id(name)')
       .eq('status', 'approved')
@@ -33,17 +36,11 @@ export default function Home({ setPage }) {
       .limit(3)
       .then(({ data }) => setPosts(data || []))
 
-    // Fetch counts
+    // Stats counts
     Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'artist'),
       supabase.from('music_tracks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-      supabase.from('videos')
-      .select('id,title,youtube_url,video_url,uploader_id,profiles:uploader_id(name)')
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false })
-      .limit(3)
-      .then(r => setVideos(r.data || []))
-    supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+      supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
     ]).then(([a, t, p]) => setStats({ artists: a.count || 0, tracks: t.count || 0, posts: p.count || 0 }))
   }, [])
 
@@ -68,7 +65,7 @@ export default function Home({ setPage }) {
                 <button className="btn btn-secondary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => setPage('blog')}>
                   Read the Blog
                 </button>
-                <button className="btn btn-secondary" style={{ padding: '14px 28px', fontSize: 15, borderColor: '#ff4444', color: '#ff4444' }} onClick={() => setPage('videos')}>
+                <button className="btn btn-secondary" style={{ padding: '14px 28px', fontSize: 15, borderColor: '#ff3333', color: '#ff3333' }} onClick={() => setPage('videos')}>
                   <Youtube size={16} /> Watch Videos
                 </button>
               </div>
@@ -96,8 +93,8 @@ export default function Home({ setPage }) {
             {[
               { label: 'Years Online',    value: (new Date().getFullYear() - 2021) + '+' },
               { label: 'Artists',         value: stats.artists > 0 ? stats.artists + '+' : '—' },
-              { label: 'Songs Published', value: stats.tracks > 0 ? stats.tracks + '+' : '—' },
-              { label: 'Articles',        value: stats.posts  > 0 ? stats.posts  + '+' : '—' },
+              { label: 'Songs Published', value: stats.tracks  > 0 ? stats.tracks  + '+' : '—' },
+              { label: 'Articles',        value: stats.posts   > 0 ? stats.posts   + '+' : '—' },
             ].map(s => (
               <div key={s.label} style={{ textAlign: 'center' }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 40, lineHeight: 1, color: 'var(--red)' }}>{s.value}</div>
@@ -118,7 +115,6 @@ export default function Home({ setPage }) {
             </div>
             <button className="btn btn-ghost" onClick={() => setPage('music')} style={{ gap: 6 }}>All Music <ArrowRight size={15} /></button>
           </div>
-
           {tracks.length === 0 ? (
             <div className="empty-state">
               <Music size={48} />
@@ -133,29 +129,8 @@ export default function Home({ setPage }) {
         </div>
       </section>
 
-      {/* ── LATEST BLOG ── */}
-      <section className="section" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-        <div className="container">
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
-            <div>
-              <div className="section-label"><Newspaper size={12} style={{ display: 'inline', marginRight: 6 }} />Entertainment Desk</div>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 5vw, 48px)', letterSpacing: 1 }}>THE LATEST GIST</h2>
-            </div>
-            <button className="btn btn-ghost" onClick={() => setPage('blog')} style={{ gap: 6 }}>All Posts <ArrowRight size={15} /></button>
-          </div>
-
-          {posts.length === 0 ? (
-            <div className="empty-state"><p>No posts published yet. Check back soon.</p></div>
-          ) : (
-            <div className="grid-3">
-              {posts.map(post => <BlogCard key={post.id} post={post} setPage={setPage} />)}
-            </div>
-          )}
-        </div>
-      </section>
-
       {/* ── LATEST VIDEOS ── */}
-      <section className="section">
+      <section className="section" style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
         <div className="container">
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
             <div>
@@ -173,6 +148,26 @@ export default function Home({ setPage }) {
           ) : (
             <div className="grid-3">
               {videos.map(v => <VideoCard key={v.id} video={v} setPage={setPage} />)}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── LATEST BLOG ── */}
+      <section className="section" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+        <div className="container">
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
+            <div>
+              <div className="section-label"><Newspaper size={12} style={{ display: 'inline', marginRight: 6 }} />Entertainment Desk</div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 5vw, 48px)', letterSpacing: 1 }}>THE LATEST GIST</h2>
+            </div>
+            <button className="btn btn-ghost" onClick={() => setPage('blog')} style={{ gap: 6 }}>All Posts <ArrowRight size={15} /></button>
+          </div>
+          {posts.length === 0 ? (
+            <div className="empty-state"><p>No posts published yet. Check back soon.</p></div>
+          ) : (
+            <div className="grid-3">
+              {posts.map(post => <BlogCard key={post.id} post={post} setPage={setPage} />)}
             </div>
           )}
         </div>
@@ -199,14 +194,14 @@ function HeroVisual({ tracks }) {
   return (
     <div style={{ position: 'relative', width: 320, height: 320 }}>
       {[
-        { top: 0, left: 0, size: 200, zIndex: 2 },
-        { top: 40, left: 160, size: 160, zIndex: 1 },
-        { top: 170, left: 20, size: 140, zIndex: 1 },
+        { top: 0,   left: 0,   size: 200, zIndex: 2 },
+        { top: 40,  left: 160, size: 160, zIndex: 1 },
+        { top: 170, left: 20,  size: 140, zIndex: 1 },
       ].map((pos, i) => (
-        <div key={i} style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.size, height: pos.size, borderRadius: 12, overflow: 'hidden', border: `2px solid ${i === 0 ? 'var(--border-red)' : 'var(--border)'}`, boxShadow: i === 0 ? '0 0 40px rgba(200,16,46,0.3)' : 'none', zIndex: pos.zIndex }}>
-          {tracks[i]?.cover_url
+        <div key={i} style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.size, height: pos.size, borderRadius: 12, overflow: 'hidden', border: i === 0 ? '2px solid var(--border-red)' : '2px solid var(--border)', boxShadow: i === 0 ? '0 0 40px rgba(200,16,46,0.3)' : 'none', zIndex: pos.zIndex }}>
+          {tracks[i] && tracks[i].cover_url
             ? <img src={tracks[i].cover_url} alt={tracks[i].title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <MusicArt title={tracks[i]?.title || String.fromCharCode(84 + i)} size={pos.size} />
+            : <MusicArt title={tracks[i] ? tracks[i].title : String.fromCharCode(84 + i)} size={pos.size} />
           }
         </div>
       ))}
@@ -218,7 +213,7 @@ function HeroVisual({ tracks }) {
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tracks[0].title}</div>
-              <div style={{ fontSize: 11, color: 'var(--red)' }}>{tracks[0].profiles?.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--red)' }}>{tracks[0].profiles ? tracks[0].profiles.name : ''}</div>
             </div>
             <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-300)', flexShrink: 0 }}>{tracks[0].duration || '—'}</div>
           </div>
@@ -233,61 +228,45 @@ function MusicCard({ track, setPage }) {
     <div onClick={() => {
       setPage('music')
       setTimeout(() => window.dispatchEvent(new CustomEvent('openTrackPage', { detail: track })), 100)
-    }} style={{
-      cursor: 'pointer', borderRadius: 12, overflow: 'hidden',
-      background: 'var(--bg-card)', border: '1px solid var(--border)',
-      transition: 'all 0.3s',
-    }}
-      onMouseEnter={e => { e.currentTarget.style.transform='translateY(-4px)'; e.currentTarget.style.borderColor='var(--border-red)'; e.currentTarget.style.boxShadow='0 8px 32px rgba(200,16,46,0.2)' }}
-      onMouseLeave={e => { e.currentTarget.style.transform='none'; e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.boxShadow='none' }}
+    }} style={{ cursor: 'pointer', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid var(--border)', transition: 'all 0.3s' }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--border-red)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(200,16,46,0.2)' }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
     >
-      {/* Cover art — uses padding trick for perfect square */}
       <div style={{ position: 'relative', width: '100%', paddingBottom: '100%', background: '#000', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0 }}>
           {track.cover_url
-            ? <div style={{
-                width: '100%', height: '100%',
-                backgroundImage: 'url(' + track.cover_url + ')',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                transition: 'transform 0.4s ease',
-              }}
-                onMouseEnter={e => e.currentTarget.style.transform='scale(1.06)'}
-                onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}
+            ? <div style={{ width: '100%', height: '100%', backgroundImage: 'url(' + track.cover_url + ')', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', transition: 'transform 0.4s ease' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
               />
-            : <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#1a0a0d,#0a0d1a)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#1a0a0d,#0a0d1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <MusicArt title={track.title} size={120} />
               </div>
           }
-          {/* Hover play overlay */}
-          <div className="card-play-overlay" style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'opacity 0.2s' }}>
-            <div style={{ width:56, height:56, borderRadius:'50%', background:'var(--red)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 24px rgba(200,16,46,0.6)' }}>
-              <Play size={24} fill="white" color="white" style={{ marginLeft:3 }} />
+          <div className="card-play-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 24px rgba(200,16,46,0.6)' }}>
+              <Play size={24} fill="white" color="white" style={{ marginLeft: 3 }} />
             </div>
           </div>
-          {/* Genre badge */}
-          <div style={{ position:'absolute', top:10, right:10, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', borderRadius:20, padding:'3px 10px', fontSize:10, fontFamily:'var(--font-mono)', color:'var(--grey-300)', letterSpacing:1 }}>
+          <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '3px 10px', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--grey-300)', letterSpacing: 1 }}>
             {track.genre}
           </div>
         </div>
       </div>
-
-      {/* Info */}
-      <div style={{ padding:'14px 16px 16px' }}>
-        <div style={{ fontWeight:700, fontSize:15, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{track.title}</div>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <span style={{ fontSize:13, color:'var(--red)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {track.profiles?.name || '—'}{track.profiles?.is_verified && ' ✅'}
+      <div style={{ padding: '14px 16px 16px' }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {track.profiles ? track.profiles.name : '—'}{track.profiles && track.profiles.is_verified ? ' ✅' : ''}
           </span>
-          <span style={{ fontSize:12, color:'var(--grey-500)', fontFamily:'var(--font-mono)', flexShrink:0, marginLeft:8 }}>{track.duration || '—'}</span>
+          <span style={{ fontSize: 12, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', flexShrink: 0, marginLeft: 8 }}>{track.duration || '—'}</span>
         </div>
       </div>
     </div>
   )
 }
 
-function getYoutubeId(url) {
+function getYtId(url) {
   if (!url) return null
   if (url.includes('watch?v=')) return url.split('watch?v=')[1].split('&')[0]
   if (url.includes('youtu.be/')) return url.split('youtu.be/')[1].split('?')[0]
@@ -297,14 +276,13 @@ function getYoutubeId(url) {
 }
 
 function VideoCard({ video, setPage }) {
-  const ytId = getYoutubeId(video.youtube_url)
+  const ytId = getYtId(video.youtube_url)
   const thumb = ytId ? 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg' : null
   return (
     <div onClick={() => setPage('videos')}
       style={{ cursor: 'pointer', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid var(--border)', transition: 'all 0.3s' }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--border-red)' }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border)' }}>
-      {/* Thumbnail */}
       <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', background: '#000', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0 }}>
           {thumb
@@ -313,7 +291,6 @@ function VideoCard({ video, setPage }) {
                 <Video size={40} style={{ opacity: 0.3 }} />
               </div>
           }
-          {/* Play overlay */}
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(255,0,0,0.5)' }}>
               <Play size={22} fill="white" color="white" style={{ marginLeft: 3 }} />
@@ -326,13 +303,12 @@ function VideoCard({ video, setPage }) {
           )}
         </div>
       </div>
-      {/* Info */}
       <div style={{ padding: '14px 16px 16px' }}>
         <div style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4, marginBottom: 8 }}>
           {video.title}
         </div>
         <div style={{ fontSize: 12, color: 'var(--grey-400)' }}>
-          {video.profiles?.name || 'Unknown'}
+          {video.profiles ? video.profiles.name : 'Unknown'}
         </div>
       </div>
     </div>
@@ -355,22 +331,23 @@ function BlogCard({ post, setPage }) {
         <h3 className="blog-card-title">{post.title}</h3>
         <p className="blog-card-excerpt">{post.excerpt}</p>
         <div className="blog-card-meta">
-          <span>{post.profiles?.name || 'Tunez9ja'}</span>
-          <span>{post.published_at?.slice(0,10) || post.created_at?.slice(0,10)}</span>
+          <span>{post.profiles ? post.profiles.name : 'Tunez9ja'}</span>
+          <span>{post.published_at ? post.published_at.slice(0,10) : post.created_at ? post.created_at.slice(0,10) : ''}</span>
         </div>
       </div>
     </div>
   )
 }
 
-function CTA({ icon, title, desc, action, onClick, accent = 'var(--red)' }) {
+function CTA({ icon, title, desc, action, onClick, accent }) {
+  const color = accent || 'var(--red)'
   return (
     <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 32, position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: accent }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color }} />
       <div style={{ marginBottom: 16 }}>{icon}</div>
       <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 32, letterSpacing: 1, marginBottom: 12 }}>{title}</h3>
       <p style={{ color: 'var(--grey-300)', fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>{desc}</p>
-      <button className="btn btn-primary" onClick={onClick} style={{ background: accent, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <button className="btn btn-primary" onClick={onClick} style={{ background: color, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
         {action} <ArrowRight size={15} />
       </button>
     </div>
