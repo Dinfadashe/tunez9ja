@@ -165,7 +165,7 @@ export default function MyLibrary({ currentUser }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {savedTracks.map((track, idx) => (
-              <div key={track.id}
+              <div key={track.saved_id || track.id + idx}
                 onClick={() => playTrack(track, savedTracks)}
                 style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}

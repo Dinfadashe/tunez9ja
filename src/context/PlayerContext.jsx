@@ -161,6 +161,13 @@ export function PlayerProvider({ children }) {
   }, [muted])
 
   // ── Add to play next ────────────────────────────────────────
+  const addToQueue = useCallback((track) => {
+    setQueue(q => {
+      if (q.find(t => t.id === track.id)) return q
+      return [...q, track]
+    })
+  }, [])
+
   const addToPlayNext = useCallback((track) => {
     setQueue(q => {
       const idx  = q.findIndex(t => t.id === nowPlaying?.id)
@@ -195,6 +202,7 @@ export function PlayerProvider({ children }) {
       togglePlay, seekTo,
       changeVolume, toggleMute,
       addToPlayNext,
+      addToQueue,
       setIsPlaying,
     }}>
       {/* Single global <audio> — the only audio element in the entire app */}

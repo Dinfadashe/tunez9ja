@@ -380,7 +380,7 @@ function WritePost({ currentUser, onSuccess, editingPost }) {
           <BlogCopyrightAgreement agreed={copyrightAgreed} onChange={setCopyrightAgreed} />
 
           <button className="btn btn-primary" type="submit"
-            style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: 15, opacity: copyrightAgreed ? 1 : 0.6 }}
+            style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: 15, opacity: copyrightAgreed ? 1 : 0.65 }}
             disabled={loading || !copyrightAgreed}>
             {loading ? 'Submitting...' : editingPost ? '✅ Update & Resubmit' : '📝 Submit for Review'}
           </button>

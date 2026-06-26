@@ -539,7 +539,7 @@ function UploadTrack({ currentUser, onSuccess }) {
           <MusicCopyrightAgreement agreed={copyrightAgreed} onChange={setCopyrightAgreed} />
 
           <button className="btn btn-primary" type="submit"
-            style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: 15, opacity: copyrightAgreed && !fileError && !coverError ? 1 : 0.6 }}
+            style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: 15, opacity: copyrightAgreed && !fileError && !coverError ? 1 : 0.65 }}
             disabled={loading || !copyrightAgreed || !!fileError || !!coverError}>
             {loading ? 'Submitting...' : <><Upload size={16} /> Submit for Review</>}
           </button>

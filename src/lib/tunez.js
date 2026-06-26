@@ -373,7 +373,7 @@ export async function isUnlocked(userId, contentId) {
 export async function getMyLibrary(userId) {
   const { data } = await supabase
     .from('tunez_unlocks')
-    .select('*, track:content_id(id,title,genre,audio_url,cover_url,duration,artist_id,profiles:artist_id(name)), post:content_id(id,title,category,cover_url,excerpt,author_id,profiles:author_id(name)), video:content_id(id,title,youtube_url,video_url,uploader_id,profiles:uploader_id(name))')
+    .select('*')
     .eq('user_id', userId)
     .order('unlocked_at', { ascending: false })
   return data || []

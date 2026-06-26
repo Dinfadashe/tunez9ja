@@ -20,6 +20,12 @@ export default function Home({ setPage }) {
       .then(({ data }) => setTracks(data || []))
 
     // Fetch approved posts
+    supabase.from('videos')
+      .select('id,title,youtube_url,video_url,uploader_id,profiles:uploader_id(name)')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+      .limit(3)
+      .then(r => setVideos(r.data || []))
     supabase.from('blog_posts')
       .select('*, profiles:author_id(name)')
       .eq('status', 'approved')
@@ -31,7 +37,13 @@ export default function Home({ setPage }) {
     Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'artist'),
       supabase.from('music_tracks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-      supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+      supabase.from('videos')
+      .select('id,title,youtube_url,video_url,uploader_id,profiles:uploader_id(name)')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+      .limit(3)
+      .then(r => setVideos(r.data || []))
+    supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
     ]).then(([a, t, p]) => setStats({ artists: a.count || 0, tracks: t.count || 0, posts: p.count || 0 }))
   }, [])
 
@@ -55,6 +67,9 @@ export default function Home({ setPage }) {
                 </button>
                 <button className="btn btn-secondary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => setPage('blog')}>
                   Read the Blog
+                </button>
+                <button className="btn btn-secondary" style={{ padding: '14px 28px', fontSize: 15, borderColor: '#ff4444', color: '#ff4444' }} onClick={() => setPage('videos')}>
+                  <Youtube size={16} /> Watch Videos
                 </button>
               </div>
             </div>
@@ -139,6 +154,30 @@ export default function Home({ setPage }) {
         </div>
       </section>
 
+      {/* ── LATEST VIDEOS ── */}
+      <section className="section">
+        <div className="container">
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
+            <div>
+              <div className="section-label"><Video size={12} style={{ display: 'inline', marginRight: 6 }} />Visual Vibes</div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 5vw, 48px)', letterSpacing: 1 }}>LATEST VIDEOS</h2>
+            </div>
+            <button className="btn btn-ghost" onClick={() => setPage('videos')} style={{ gap: 6 }}>All Videos <ArrowRight size={15} /></button>
+          </div>
+          {videos.length === 0 ? (
+            <div className="empty-state">
+              <Video size={48} />
+              <h3>No videos yet</h3>
+              <p>Artists are uploading. Check back soon.</p>
+            </div>
+          ) : (
+            <div className="grid-3">
+              {videos.map(v => <VideoCard key={v.id} video={v} setPage={setPage} />)}
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* ── JOIN CTA ── */}
       <section className="section">
         <div className="container">
@@ -191,7 +230,10 @@ function HeroVisual({ tracks }) {
 
 function MusicCard({ track, setPage }) {
   return (
-    <div onClick={() => setPage('music')} style={{
+    <div onClick={() => {
+      setPage('music')
+      setTimeout(() => window.dispatchEvent(new CustomEvent('openTrackPage', { detail: track })), 100)
+    }} style={{
       cursor: 'pointer', borderRadius: 12, overflow: 'hidden',
       background: 'var(--bg-card)', border: '1px solid var(--border)',
       transition: 'all 0.3s',
@@ -239,6 +281,58 @@ function MusicCard({ track, setPage }) {
             {track.profiles?.name || '—'}{track.profiles?.is_verified && ' ✅'}
           </span>
           <span style={{ fontSize:12, color:'var(--grey-500)', fontFamily:'var(--font-mono)', flexShrink:0, marginLeft:8 }}>{track.duration || '—'}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function getYoutubeId(url) {
+  if (!url) return null
+  if (url.includes('watch?v=')) return url.split('watch?v=')[1].split('&')[0]
+  if (url.includes('youtu.be/')) return url.split('youtu.be/')[1].split('?')[0]
+  if (url.includes('/shorts/')) return url.split('/shorts/')[1].split('?')[0]
+  if (url.includes('/embed/')) return url.split('/embed/')[1].split('?')[0]
+  return null
+}
+
+function VideoCard({ video, setPage }) {
+  const ytId = getYoutubeId(video.youtube_url)
+  const thumb = ytId ? 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg' : null
+  return (
+    <div onClick={() => setPage('videos')}
+      style={{ cursor: 'pointer', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid var(--border)', transition: 'all 0.3s' }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--border-red)' }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border)' }}>
+      {/* Thumbnail */}
+      <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', background: '#000', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0 }}>
+          {thumb
+            ? <img src={thumb} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#1a0a0d,#0a0d1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Video size={40} style={{ opacity: 0.3 }} />
+              </div>
+          }
+          {/* Play overlay */}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(255,0,0,0.5)' }}>
+              <Play size={22} fill="white" color="white" style={{ marginLeft: 3 }} />
+            </div>
+          </div>
+          {ytId && (
+            <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.8)', borderRadius: 4, padding: '2px 6px', fontSize: 10, color: 'white', fontFamily: 'var(--font-mono)' }}>
+              YouTube
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Info */}
+      <div style={{ padding: '14px 16px 16px' }}>
+        <div style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4, marginBottom: 8 }}>
+          {video.title}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--grey-400)' }}>
+          {video.profiles?.name || 'Unknown'}
         </div>
       </div>
     </div>

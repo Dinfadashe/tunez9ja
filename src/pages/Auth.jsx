@@ -168,12 +168,30 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
         email: form.email, password: form.password,
         options: { data: { name: form.name, role: form.role, bio: form.bio || null, genre: form.genre || null } }
       })
-      if (signUpError) { setError(signUpError.message || JSON.stringify(signUpError) || 'Signup failed. Please try again.'); setLoading(false); return }
+      if (signUpError) {
+        const msg = signUpError.message || signUpError.msg || signUpError.error_description || ''
+        if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already exists')) {
+          setError('This email is already registered. Please log in instead.')
+        } else if (msg) {
+          setError(msg)
+        } else {
+          setError('Signup failed. Please check your details and try again.')
+        }
+        setLoading(false); return
+      }
       // Everyone gets 'user' as base role + their chosen role
       const availableRoles = form.role === 'user'
         ? ['user']
         : ['user', form.role]
 
+      // If email confirmation required, data.user may be null
+      if (!data?.user?.id) {
+        setError(''); setLoading(false)
+        setStep && setStep('verify') // will show success message
+        // Show success message
+        setError('✅ Account created! Please check your email to confirm your account.')
+        return
+      }
       const profileData = {
         id: data.user.id, email: form.email, name: form.name,
         role: form.role, active_role: form.role,
@@ -182,7 +200,11 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
         is_verified: false, earn_multiplier: 1.0,
         content_violations: 0,
       }
-      await supabase.from('profiles').upsert(profileData)
+      const { error: profileErr } = await supabase.from('profiles').upsert(profileData)
+      if (profileErr) {
+        console.error('Profile upsert error:', profileErr)
+        // Still continue - auth account was created
+      }
       // Handle referral bonus
       if (refCode) {
         const { data: referrer } = await supabase
@@ -257,7 +279,7 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
 
             {error && (
               <div style={{ background: 'var(--red-glow)', border: '1px solid var(--border-red)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#ff6b6b' }}>
-                ⚠️ {typeof error === 'string' ? error : JSON.stringify(error)}
+                ⚠️ {typeof error === 'string' ? error : (error && error.message) ? error.message : 'Something went wrong. Please try again.'}
               </div>
             )}
 
@@ -321,7 +343,7 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
               </div>
 
               <button className="btn btn-primary" type="submit"
-                style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: 15, opacity: termsAgreed ? 1 : 0.6 }}
+                style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: 15, opacity: termsAgreed ? 1 : 0.65 }}
                 disabled={loading || !termsAgreed}>
                 {loading ? 'Creating account...' : 'Create Account'}
               </button>

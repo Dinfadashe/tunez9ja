@@ -111,6 +111,13 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
   const [unlockedIds, setUnlockedIds] = React.useState(new Set())
   const [unlocksLoaded, setUnlocksLoaded] = React.useState(false)
   const [trackPage, setTrackPage] = React.useState(null)
+
+  // Listen for FloatingPlayer click to open track page
+  React.useEffect(() => {
+    const handler = (e) => setTrackPage(e.detail)
+    window.addEventListener('openTrackPage', handler)
+    return () => window.removeEventListener('openTrackPage', handler)
+  }, [])
   const [view, setView] = React.useState('tracks')
   const earnedRef = React.useRef({})
 
@@ -174,6 +181,25 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
     const matchGenre = activeGenre === 'All' || t.genre === activeGenre
     return matchSearch && matchGenre
   })
+
+  if (trackPage) return (
+    <TrackPage
+      track={trackPage}
+      currentUser={currentUser}
+      onBack={() => setTrackPage(null)}
+      onPlay={(t) => { playTrack(t, filtered) }}
+      isPlaying={isPlaying}
+      nowPlaying={nowPlaying}
+      unlocked={unlockedIds.has(trackPage.id)}
+      onUnlocked={(t) => {
+        const trk = t || trackPage
+        setUnlockedIds(prev => new Set([...prev, trk.id]))
+        setTrackPage(trk)
+        setTimeout(() => playTrack(trk, filtered), 100)
+      }}
+      setPage={setPage}
+    />
+  )
 
   return (
     <div style={{ minHeight: '80vh', paddingBottom: nowPlaying ? 80 : 0 }}>

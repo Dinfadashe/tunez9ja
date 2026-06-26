@@ -197,8 +197,9 @@ export default function FloatingPlayer({ currentUser }) {
             )}
           </div>
 
-          {/* Title + artist */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Title + artist — click to open track page */}
+          <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+            onClick={() => { window.dispatchEvent(new CustomEvent('openTrackPage', { detail: nowPlaying })) }}>
             <div style={{
               fontSize: 12, fontWeight: 700,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -271,8 +272,9 @@ export default function FloatingPlayer({ currentUser }) {
             )}
           </div>
 
-          {/* Track info */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Track info — click to open track page */}
+          <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+            onClick={() => { window.dispatchEvent(new CustomEvent('openTrackPage', { detail: nowPlaying })) }}>
             <div style={{
               fontWeight: 700, fontSize: 13,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

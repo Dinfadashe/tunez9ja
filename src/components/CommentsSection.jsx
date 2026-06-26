@@ -207,7 +207,7 @@ function CommentInput({ currentUser, onSubmit, placeholder = 'Write a comment...
             width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border)',
             borderRadius: 8, padding: '10px 14px', color: 'var(--white)', fontSize: 14,
             lineHeight: 1.6, resize: 'vertical', outline: 'none', fontFamily: 'var(--font-body)',
-            transition: 'border-color 0.2s', opacity: currentUser ? 1 : 0.6,
+            transition: 'border-color 0.2s', opacity: currentUser ? 1 : 0.65,
           }}
           onFocus={e => e.target.style.borderColor = 'var(--red)'}
           onBlur={e => e.target.style.borderColor = 'var(--border)'}
