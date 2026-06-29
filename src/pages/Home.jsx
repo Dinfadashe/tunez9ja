@@ -3,13 +3,57 @@ import { supabase } from '../lib/supabase.js'
 import { MusicArt } from '../components/UI.jsx'
 import { Play, TrendingUp, Mic2, Newspaper, ArrowRight, Music, Video, Youtube } from 'lucide-react'
 
-const TICKER_ITEMS = ['🎵 Afrobeats','🔥 New Drops','🎤 Artist Spotlight','📰 Latest Gist','🌍 Global Sound','🎵 Top Charts','🔥 Hot Takes','🎤 Studio Sessions']
+const TICKER_ITEMS = ['\U0001f3b5 Afrobeats','\U0001f525 New Drops','\U0001f3a4 Artist Spotlight','\U0001f4f0 Latest Gist','\U0001f30d Global Sound','\U0001f3b5 Top Charts','\U0001f525 Hot Takes','\U0001f3a4 Studio Sessions']
+
+const SK_STYLE = '@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}.sk{background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);background-size:400px 100%;animation:shimmer 1.4s ease infinite;border-radius:8px}'
+
+function HomeSkeleton() {
+  return (
+    <div>
+      <style>{SK_STYLE}</style>
+      <div style={{ background: 'var(--bg-surface)', padding: '60px 24px 80px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
+          <div>
+            <div className="sk" style={{ height: 14, width: 160, marginBottom: 20 }} />
+            <div className="sk" style={{ height: 52, width: '90%', marginBottom: 10 }} />
+            <div className="sk" style={{ height: 52, width: '70%', marginBottom: 10 }} />
+            <div className="sk" style={{ height: 52, width: '80%', marginBottom: 20 }} />
+            <div className="sk" style={{ height: 15, width: '95%', marginBottom: 8 }} />
+            <div className="sk" style={{ height: 15, width: '80%', marginBottom: 24 }} />
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div className="sk" style={{ height: 46, width: 150 }} />
+              <div className="sk" style={{ height: 46, width: 140 }} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="sk" style={{ width: 280, height: 280, borderRadius: 12 }} />
+          </div>
+        </div>
+      </div>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 24px' }}>
+        <div className="sk" style={{ height: 36, width: 200, marginBottom: 24 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 16 }}>
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              <div className="sk" style={{ paddingBottom: '100%', display: 'block' }} />
+              <div style={{ padding: '12px 14px 14px' }}>
+                <div className="sk" style={{ height: 14, width: '80%', marginBottom: 8 }} />
+                <div className="sk" style={{ height: 11, width: '55%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function Home({ setPage }) {
   const [tracks, setTracks] = useState([])
   const [posts,  setPosts]  = useState([])
   const [videos, setVideos] = useState([])
   const [stats,  setStats]  = useState({ artists: 0, tracks: 0, posts: 0 })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Approved tracks
@@ -41,8 +85,10 @@ export default function Home({ setPage }) {
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'artist'),
       supabase.from('music_tracks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
       supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-    ]).then(([a, t, p]) => setStats({ artists: a.count || 0, tracks: t.count || 0, posts: p.count || 0 }))
+    ]).then(([a, t, p]) => { setStats({ artists: a.count || 0, tracks: t.count || 0, posts: p.count || 0 }); setLoading(false) })
   }, [])
+
+  if (loading) return <HomeSkeleton />
 
   return (
     <div>

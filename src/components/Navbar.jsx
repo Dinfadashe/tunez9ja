@@ -7,8 +7,10 @@ import { getPageLabel } from '../hooks/useNavigation.js'
 import {
   Search, Sun, Moon, Coins, Menu, X,
   ChevronLeft, ChevronRight, Home, Music2, Radio,
-  Video, Newspaper, Info, LayoutDashboard,
-  ChevronRight as Sep,
+  Video, Newspaper, Info, LayoutDashboard, TrendingUp,
+  ChevronRight as Sep, Users, BarChart2,
+  Upload, BadgeCheck, PenLine, BookMarked,
+  ListMusic, Share2, UserCircle, LogOut,
 } from 'lucide-react'
 
 const NAV_LINKS = [
@@ -16,6 +18,7 @@ const NAV_LINKS = [
   { label: 'Music',  page: 'music',  icon: Music2 },
   { label: 'Videos', page: 'videos', icon: Video },
   { label: 'Blog',   page: 'blog',   icon: Newspaper },
+  { label: 'Charts', page: 'charts', icon: TrendingUp },
   { label: 'About',  page: 'about',  icon: Info },
 ]
 

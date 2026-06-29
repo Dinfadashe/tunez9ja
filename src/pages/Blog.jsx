@@ -31,6 +31,34 @@ function sanitizeHTML(html) {
 
 const CATEGORIES = ['Music Review','News','Feature','Gossip','Playlist','Interview','Opinion','Events']
 
+
+function BlogSkeleton() {
+  return (
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 80px' }}>
+      <style>{'@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}.sk{background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);background-size:400px 100%;animation:shimmer 1.4s ease infinite;border-radius:8px}'}</style>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        {Array.from({ length: 6 }, (_, i) => <div key={i} className="sk" style={{ height: 32, width: 80 }} />)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 20 }}>
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+            <div className="sk" style={{ height: 180, display: 'block' }} />
+            <div style={{ padding: '14px 16px 16px' }}>
+              <div className="sk" style={{ height: 11, width: '40%', marginBottom: 10 }} />
+              <div className="sk" style={{ height: 16, width: '90%', marginBottom: 6 }} />
+              <div className="sk" style={{ height: 16, width: '70%', marginBottom: 10 }} />
+              <div className="sk" style={{ height: 11, width: '80%', marginBottom: 6 }} />
+              <div className="sk" style={{ height: 11, width: '60%', marginBottom: 14 }} />
+              <div className="sk" style={{ height: 11, width: '50%' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
 export default function BlogPage({ setPage, currentUser, deepLink }) {
   const [unlockTarget, setUnlockTarget] = useState(null)
   const [posts, setPosts]               = useState([])
@@ -53,6 +81,7 @@ export default function BlogPage({ setPage, currentUser, deepLink }) {
       .select('*, profiles:author_id ( name, avatar_url )')
       .eq('status', 'approved')
       .order('published_at', { ascending: false })
+      .limit(12)
       .then(({ data, error }) => {
         if (error) console.error('Blog fetch error:', error)
         setPosts(data || [])

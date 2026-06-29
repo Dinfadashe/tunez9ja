@@ -1,5 +1,8 @@
 import WhitepaperWidget from './components/WhitepaperWidget.jsx'
 import AIDJPlayer from './components/AIDJPlayer.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
+import ChartsPage from './pages/ChartsPage.jsx'
+import AlbumsPage from './components/Albums.jsx'
 import React, { useState, useEffect } from 'react'
 import { AppProvider } from './context/AppContext.jsx'
 import { PlayerProvider } from './context/PlayerContext.jsx'
@@ -409,6 +412,8 @@ function AppInner() {
         {safePage === 'blog'              && <BlogPage currentUser={profile} />}
         {safePage === 'about'             && <AboutPage setPage={setPage} />}
         {safePage === 'search'            && <SearchPage setPage={setPage} currentUser={profile} />}
+        {safePage === 'charts'           && <ChartsPage currentUser={profile} />}
+        {safePage === 'albums'           && <AlbumsPage currentUser={profile} setPage={setPage} />}
         {safePage === 'profile'           && <ProfilePage profileId={profileId} currentUser={profile} setPage={setPage} />}
         {safePage === 'terms'             && <TermsPage />}
         {safePage === 'privacy'           && <PrivacyPage />}
@@ -441,10 +446,12 @@ const ALLOWED_PAGES = new Set([
 
 export default function App() {
   return (
-    <AppProvider>
-      <PlayerProvider>
-        <AppInner />
-      </PlayerProvider>
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <PlayerProvider>
+          <AppInner />
+        </PlayerProvider>
+      </AppProvider>
+    </ErrorBoundary>
   )
 }

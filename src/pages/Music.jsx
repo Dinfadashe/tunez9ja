@@ -101,6 +101,34 @@ function AddToPlaylist({ track, currentUser }) {
   )
 }
 
+
+function MusicSkeleton() {
+  return (
+    <div style={{ padding: '0 0 80px' }}>
+      <style>{'@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}.sk{background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);background-size:400px 100%;animation:shimmer 1.4s ease infinite;border-radius:8px}'}</style>
+      <div style={{ height: 120, background: 'var(--bg-surface)', marginBottom: 24, padding: '32px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div className="sk" style={{ width: 200, height: 40 }} />
+        <div className="sk" style={{ width: 120, height: 36 }} />
+        <div className="sk" style={{ width: 80, height: 36 }} />
+      </div>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 16 }}>
+          {Array.from({ length: 12 }, (_, i) => (
+            <div key={i} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              <div className="sk" style={{ paddingBottom: '100%', display: 'block' }} />
+              <div style={{ padding: '12px 14px 14px' }}>
+                <div className="sk" style={{ height: 14, width: '80%', marginBottom: 8 }} />
+                <div className="sk" style={{ height: 11, width: '55%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
 export default function MusicPage({ setPage, currentUser, deepLink }) {
   const [tracks, setTracks]           = useState([])
   const [loading, setLoading]         = useState(true)
@@ -148,7 +176,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
       .select('*, profiles:artist_id(name, is_verified, avatar_url)')
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
-      .limit(200)
+      .limit(24).range(0, 23)
       .then(async ({ data }) => {
       const tracks = data || []
       setTracks(tracks)
@@ -200,6 +228,29 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
       setPage={setPage}
     />
   )
+
+
+  const loadMore = async () => {
+    const nextPage = page + 1
+    const from = nextPage * 24
+    const to = from + 23
+    const { data } = await supabase.from('music_tracks')
+      .select('*, profiles:artist_id(name, is_verified, avatar_url)')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+      .range(from, to)
+    if (data && data.length > 0) {
+      setTracks(prev => {
+        const ids = new Set(prev.map(t => t.id))
+        return [...prev, ...data.filter(t => !ids.has(t.id))]
+      })
+      setPage2(nextPage)
+      if (data.length < 24) setHasMore(false)
+    } else {
+      setHasMore(false)
+    }
+  }
+
 
   return (
     <div style={{ minHeight: '80vh', paddingBottom: nowPlaying ? 80 : 0 }}>

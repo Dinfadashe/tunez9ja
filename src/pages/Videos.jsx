@@ -25,6 +25,28 @@ function getYoutubeThumbnail(url) {
   return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null
 }
 
+
+function VideoSkeleton() {
+  return (
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 80px' }}>
+      <style>{'@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}.sk{background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);background-size:400px 100%;animation:shimmer 1.4s ease infinite;border-radius:8px}'}</style>
+      <div className="sk" style={{ height: 36, width: 200, marginBottom: 24 }} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
+        {Array.from({ length: 9 }, (_, i) => (
+          <div key={i} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+            <div className="sk" style={{ paddingBottom: '56.25%', display: 'block' }} />
+            <div style={{ padding: '12px 14px 14px' }}>
+              <div className="sk" style={{ height: 14, width: '85%', marginBottom: 8 }} />
+              <div className="sk" style={{ height: 11, width: '50%' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
 export default function VideosPage({ setPage, currentUser, deepLink }) {
   const [videos, setVideos]       = useState([])
   const [loading, setLoading]     = useState(true)
@@ -39,6 +61,7 @@ export default function VideosPage({ setPage, currentUser, deepLink }) {
     `)
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
+      .limit(20)
     .then(({ data }) => { setVideos(data || []); setLoading(false) })
   }, [])
 

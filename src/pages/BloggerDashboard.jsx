@@ -96,7 +96,7 @@ function BloggerOverview({ setActive, currentUser }) {
   useEffect(() => {
     supabase.from('blog_posts').select('id,title,category,cover_url,status,is_premium,tunez_price,created_at,view_count').eq('author_id', currentUser.id)
       .order('created_at', { ascending: false })
-      .limit(100)
+      .limit(30)
       .then(({ data }) => { setPosts(data || []); setLoading(false) })
   }, [currentUser.id])
 

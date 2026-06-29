@@ -10,16 +10,18 @@ import { MusicArt, StatusBadge, Modal, ConfirmModal, EmptyState } from '../compo
 import { MusicCopyrightAgreement, DMCANotice } from '../components/CopyrightCheckbox.jsx'
 import TunezWallet from '../components/TunezWallet.jsx'
 import AlbumManager from '../components/AlbumManager.jsx'
+import ArtistAnalytics from '../components/ArtistAnalytics.jsx'
 import MyLibrary   from '../components/MyLibrary.jsx'
 import VideoUpload from '../components/VideoUpload.jsx'
 import MyVideos from '../components/MyVideos.jsx'
-import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube, Coins, BookMarked, Disc , Shield , Newspaper, Pen } from 'lucide-react'
+import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube, Coins, BookMarked, Disc, Shield, Newspaper, Pen, BarChart2 } from 'lucide-react'
 
 const GENRES = ['Afrobeats','Afropop','Highlife','Fuji','Juju','Gospel','Hip-Hop','R&B','Pop','Rap','Reggae','Dancehall','Amapiano','Bongo Flava','Afro-Soul','Jazz','Electronic','Alternative']
 
 
 const NAV = [
   { key: 'overview',   label: 'Overview',      icon: LayoutDashboard },
+  { key: 'analytics',  label: 'Analytics',     icon: BarChart2       },
   { key: 'my-music',   label: 'My Music',      icon: Music           },
   { key: 'upload',     label: 'Upload Track',  icon: Upload          },
   { key: 'my-videos',  label: 'My Videos',     icon: Video           },
@@ -87,6 +89,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
           {active === 'my-videos'   && <MyVideos currentUser={currentUser} />}
           {active === 'video-upload' && <VideoUpload currentUser={currentUser} onSuccess={() => setActive('my-videos')} />}
           {active === 'albums'       && <AlbumManager currentUser={currentUser} />}
+        {active === 'analytics'     && <ArtistAnalytics currentUser={currentUser} />}
           {active === 'wallet'       && <TunezWallet currentUser={currentUser} />}
           {active === 'library'      && <MyLibrary   currentUser={currentUser} />}
         </div>
@@ -102,7 +105,7 @@ function ArtistOverview({ setActive, currentUser }) {
   useEffect(() => {
     supabase.from('music_tracks').select('id,title,genre,cover_url,audio_url,duration,play_count,status,is_premium,tunez_price,created_at').eq('artist_id', currentUser.id)
       .order('created_at', { ascending: false })
-      .limit(100)
+      .limit(30)
       .then(({ data }) => { setTracks(data || []); setLoading(false) })
   }, [currentUser.id])
 
