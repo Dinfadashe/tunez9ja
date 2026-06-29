@@ -57,6 +57,38 @@ export default function FloatingPlayer({ currentUser }) {
   const [repeat,     setRepeat]    = useState('none') // none | all | one
   const [minimised,  setMinimised] = useState(false)
 
+  // ── Premium guard helpers ─────────────────────────────────────
+  const [unlockedIds, setUnlockedIds] = React.useState(new Set())
+
+  React.useEffect(() => {
+    if (!currentUser?.id) { setUnlockedIds(new Set()); return }
+    supabase.from('tunez_unlocks')
+      .select('content_id')
+      .eq('user_id', currentUser.id)
+      .eq('content_type', 'track')
+      .then(({ data }) => setUnlockedIds(new Set((data || []).map(u => u.content_id))))
+  }, [currentUser?.id])
+
+  const isTrackLocked = (track) => {
+    if (!track || !track.is_premium) return false
+    if (!currentUser) return true
+    return !unlockedIds.has(track.id)
+  }
+
+  const skipNextUnlocked = () => {
+    if (!queue.length) return
+    let idx = (queueIndex + 1) % queue.length
+    let attempts = 0
+    while (isTrackLocked(queue[idx]) && attempts < queue.length) {
+      idx = (idx + 1) % queue.length
+      attempts++
+    }
+    if (!isTrackLocked(queue[idx])) {
+      playTrack(queue[idx], queue)
+    }
+  }
+
+
   // ── Track change ─────────────────────────────────────────────
   useEffect(() => {
     if (!nowPlaying?.id || nowPlaying.id === prevIdRef.current) return
@@ -86,14 +118,20 @@ export default function FloatingPlayer({ currentUser }) {
         return
       }
       if (shuffle && queue.length > 1) {
+        // Skip locked premium tracks in shuffle
+        let attempts = 0
         let idx
-        do { idx = Math.floor(Math.random() * queue.length) }
-        while (idx === queueIndex && queue.length > 1)
-        playTrack(queue[idx], queue)
+        do {
+          idx = Math.floor(Math.random() * queue.length)
+          attempts++
+        } while (attempts < queue.length && (idx === queueIndex || isTrackLocked(queue[idx])))
+        if (!isTrackLocked(queue[idx])) {
+          playTrack(queue[idx], queue)
+        }
         return
       }
       if (repeat === 'all' || queueIndex < queue.length - 1) {
-        skipNext()
+        skipNextUnlocked()
       }
       // else: stop — last track, no repeat
     }

@@ -50,7 +50,10 @@ export default function FloatingVideoPlayer() {
 
   const isYoutube = video.youtube_url?.includes('youtu')
   const ytId = isYoutube
-    ? (video.youtube_url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/)?.[1])
+    ? (video.youtube_url.includes('watch?v=') ? video.youtube_url.split('watch?v=')[1].split('&')[0]
+      : video.youtube_url.includes('youtu.be/') ? video.youtube_url.split('youtu.be/')[1].split('?')[0]
+      : video.youtube_url.includes('/embed/') ? video.youtube_url.split('/embed/')[1].split('?')[0]
+      : null)
     : null
 
   const width  = minimized ? 280 : 420

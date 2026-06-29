@@ -164,7 +164,7 @@ export default function VerificationPanel({ currentUser, onRoleSwitch }) {
 
   // ── Status page — show progress ───────────────────────────
   if (step === 'status') {
-    const t = eligibility?.thresholds || {}
+    const t = eligibility && eligibility.thresholds ? eligibility.thresholds : {}
     const role = eligibility?.role
 
     const milestones = role === 'artist' ? [

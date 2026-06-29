@@ -8,13 +8,11 @@ const ALLOWED_VID_MIME = ['video/mp4','video/quicktime','video/webm','video/x-ma
 const MAX_VIDEO_MB     = 200
 
 function getYoutubeId(url) {
-  const patterns = [
-    /youtube\.com\/watch\?v=([^&]+)/,
-    /youtu\.be\/([^?]+)/,
-    /youtube\.com\/embed\/([^?]+)/,
-    
-  ]
-  for (const p of patterns) { const m = url?.match(p); if (m) return m[1] }
+  if (!url) return null
+  if (url.includes('watch?v=')) return url.split('watch?v=')[1].split('&')[0]
+  if (url.includes('youtu.be/')) return url.split('youtu.be/')[1].split('?')[0]
+  if (url.includes('/embed/')) return url.split('/embed/')[1].split('?')[0]
+  if (url.includes('/shorts/')) return url.split('/shorts/')[1].split('?')[0]
   return null
 }
 

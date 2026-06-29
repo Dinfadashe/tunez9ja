@@ -1,4 +1,5 @@
 import WhitepaperWidget from './components/WhitepaperWidget.jsx'
+import AIDJPlayer from './components/AIDJPlayer.jsx'
 import React, { useState, useEffect } from 'react'
 import { AppProvider } from './context/AppContext.jsx'
 import { PlayerProvider } from './context/PlayerContext.jsx'
@@ -17,6 +18,7 @@ import TermsPage from './pages/Terms.jsx'
 import PrivacyPage from './pages/Privacy.jsx'
 import { LoginPage, RegisterPage } from './pages/Auth.jsx'
 import SearchPage       from './pages/SearchPage.jsx'
+import ProfilePage     from './components/ProfilePage.jsx'
 
 // ── Offline audio cache: sync saved + library tracks every 5min ──
 function useOfflineAudioSync(currentUser) {
@@ -210,7 +212,10 @@ function TelegramPopup() {
 }
 
 function AppInner() {
-  const [page, setPage]             = useState('home')
+  const [profileId, setProfileId] = React.useState(null)
+  const [djOpen, setDjOpen] = React.useState(false)
+  const [page, rawSetPage]          = useState(() => sessionStorage.getItem('t9_page') || 'home')
+  const setPage = React.useCallback((p) => { if (p) { sessionStorage.setItem('t9_page', p); rawSetPage(p) } }, [])
   const [profile, setProfile]       = useState(null)
   const [activeRole, setActiveRole] = useState(null)
   const [authReady, setAuthReady]   = useState(false)
@@ -343,6 +348,29 @@ function AppInner() {
     else if (newRole === 'user')    setPage('user-dashboard')
   }
 
+
+  // Listen for profile open events from any component
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.detail?.profileId) {
+        setProfileId(e.detail.profileId)
+        rawSetPage('profile')
+        sessionStorage.setItem('t9_page', 'profile')
+        sessionStorage.setItem('t9_profileId', e.detail.profileId)
+      }
+    }
+    window.addEventListener('openProfile', handler)
+    return () => window.removeEventListener('openProfile', handler)
+  }, [])
+
+  // Restore profileId from session on refresh
+  React.useEffect(() => {
+    const stored = sessionStorage.getItem('t9_profileId')
+    if (stored && sessionStorage.getItem('t9_page') === 'profile') {
+      setProfileId(stored)
+    }
+  }, [])
+
   // Show home page immediately while auth resolves in background
   if (!authReady && !profile) {
     return (
@@ -370,7 +398,7 @@ function AppInner() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {!isDashboard && !isAuth && (
-        <Navbar page={safePage} setPage={setPage} profile={profile} activeRole={activeRole}
+        <Navbar page={safePage} setPage={setPage} profile={profile} activeRole={activeRole} onDJOpen={() => setDjOpen(true)}
           onLogout={async () => { await supabase.auth.signOut() }} />
       )}
       <main style={{ flex: 1 }}>
@@ -381,6 +409,7 @@ function AppInner() {
         {safePage === 'blog'              && <BlogPage currentUser={profile} />}
         {safePage === 'about'             && <AboutPage setPage={setPage} />}
         {safePage === 'search'            && <SearchPage setPage={setPage} currentUser={profile} />}
+        {safePage === 'profile'           && <ProfilePage profileId={profileId} currentUser={profile} setPage={setPage} />}
         {safePage === 'terms'             && <TermsPage />}
         {safePage === 'privacy'           && <PrivacyPage />}
         {safePage === 'login'             && <LoginPage setPage={setPage} setProfile={setProfile} setActiveRole={setActiveRole} />}
@@ -395,6 +424,7 @@ function AppInner() {
 
       {/* Floating player — renders on ALL pages, survives navigation */}
       <WhitepaperWidget />
+      {djOpen && <AIDJPlayer currentUser={profile} onClose={() => setDjOpen(false)} />}
       <FloatingPlayer currentUser={profile} />
       <FloatingVideoPlayer />
       <TelegramPopup />

@@ -34,7 +34,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
 
   const countWords = () => {
     const t = editorRef.current?.innerText || ''
-    setWordCount(t.trim().split(/\s+/).filter(Boolean).length)
+    setWordCount(t.trim().split(' ').filter(w => w.length > 0).length)
   }
 
   const updateFormats = () => {
