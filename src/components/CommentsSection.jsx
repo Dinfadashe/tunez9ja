@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { sendNotification } from './NotificationsPanel.jsx'
 import { earnReact, earnComment } from '../lib/tunez.js'
+import { queuedMutation } from '../lib/syncQueue.js'
 import { ThumbsUp, ThumbsDown, MessageCircle, Reply, Trash2, Send, ChevronDown, ChevronUp } from 'lucide-react'
 
 const sanitizeText = function(s) { if (!s) return ''; var t = s.trim(); var out = ''; var inTag = false; for (var i=0;i<t.length;i++) { if (t[i]==='<') inTag=true; else if (t[i]==='>') inTag=false; else if (!inTag) out+=t[i]; } return out }
@@ -280,16 +281,53 @@ export default function CommentsSection({ targetType, targetId, currentUser }) {
       parent_id: parentId || null,
       [col]:     targetId,
     }
-    await supabase.from('comments').insert(payload)
-    await fetchComments()
-    // Earn TUNEZ for commenting
-    await earnComment(currentUser.id, null, targetId, 'content').catch(() => {})
+    // Optimistic local entry so the comment appears immediately even if
+    // the device is offline — queuedMutation durably retries the real
+    // insert in the background (5-minute Background Sync) without the
+    // user needing to do anything or losing what they typed.
+    const optimistic = {
+      id: 'pending-' + Date.now(),
+      ...payload,
+      created_at: new Date().toISOString(),
+      profiles: currentUser.name ? { name: currentUser.name, avatar_url: currentUser.avatar_url } : null,
+      replies: [],
+      _pending: true,
+    }
+    setComments(prev => parentId
+      ? prev.map(c => c.id === parentId ? { ...c, replies: [...(c.replies || []), optimistic] } : c)
+      : [optimistic, ...prev])
+
+    const result = await queuedMutation({
+      id: 'comment:' + currentUser.id + ':' + targetId + ':' + Date.now(),
+      table: 'comments',
+      op: 'insert',
+      payload,
+    })
+
+    if (result.ok) {
+      await fetchComments()
+      // Earn TUNEZ for commenting
+      await earnComment(currentUser.id, null, targetId, 'content').catch(() => {})
+    }
+    // If queued (offline), the optimistic entry stays visible until the
+    // next successful fetchComments() after the queue flushes.
     if (parentId) setReplyingTo(null)
   }
 
   const deleteComment = async (id) => {
     if (!confirm('Delete this comment?')) return
-    await supabase.from('comments').delete().eq('id', id)
+    if (String(id).startsWith('pending-')) {
+      // Never synced yet — just drop it locally, nothing to queue-delete.
+      await fetchComments()
+      return
+    }
+    await queuedMutation({
+      id: 'comment-delete:' + id,
+      table: 'comments',
+      op: 'delete',
+      payload: { id },
+      match: { id },
+    })
     await fetchComments()
   }
 

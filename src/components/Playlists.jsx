@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
+import { queuedMutation } from '../lib/syncQueue.js'
 import { Plus, Play, Trash2, Music, Edit3, Check, X, Globe, Lock } from 'lucide-react'
 
 export default function Playlists({ currentUser }) {
@@ -56,17 +57,29 @@ export default function Playlists({ currentUser }) {
   }
 
   const removeTrack = async (trackId) => {
-    await supabase.from('playlist_tracks')
-      .delete().eq('playlist_id', selected.id).eq('track_id', trackId)
-    setTracks(prev => prev.filter(t => t.id !== trackId))
+    setTracks(prev => prev.filter(t => t.id !== trackId)) // optimistic
+    await queuedMutation({
+      id: 'playlist-remove-track:' + selected.id + ':' + trackId,
+      table: 'playlist_tracks',
+      op: 'delete',
+      payload: { playlist_id: selected.id, track_id: trackId },
+      match: { playlist_id: selected.id, track_id: trackId },
+    })
   }
 
   const renamePlaylist = async (id) => {
     if (!editName.trim()) return
-    await supabase.from('playlists').update({ name: editName.trim() }).eq('id', id)
-    setPlaylists(prev => prev.map(p => p.id === id ? { ...p, name: editName.trim() } : p))
-    if (selected?.id === id) setSelected(prev => ({ ...prev, name: editName.trim() }))
+    const name = editName.trim()
+    setPlaylists(prev => prev.map(p => p.id === id ? { ...p, name } : p)) // optimistic
+    if (selected?.id === id) setSelected(prev => ({ ...prev, name }))
     setEditingId(null)
+    await queuedMutation({
+      id: 'playlist-rename:' + id,
+      table: 'playlists',
+      op: 'update',
+      payload: { name },
+      match: { id },
+    })
   }
 
   const playAll = () => {
@@ -76,9 +89,15 @@ export default function Playlists({ currentUser }) {
 
   const togglePublic = async (playlist) => {
     const updated = !playlist.is_public
-    await supabase.from('playlists').update({ is_public: updated }).eq('id', playlist.id)
-    setPlaylists(prev => prev.map(p => p.id === playlist.id ? { ...p, is_public: updated } : p))
+    setPlaylists(prev => prev.map(p => p.id === playlist.id ? { ...p, is_public: updated } : p)) // optimistic
     if (selected?.id === playlist.id) setSelected(prev => ({ ...prev, is_public: updated }))
+    await queuedMutation({
+      id: 'playlist-visibility:' + playlist.id,
+      table: 'playlists',
+      op: 'update',
+      payload: { is_public: updated },
+      match: { id: playlist.id },
+    })
   }
 
   if (loading) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', letterSpacing: 2 }}>LOADING...</div>

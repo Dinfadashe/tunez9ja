@@ -11,6 +11,7 @@ export function PlayerProvider({ children }) {
   const [duration,    setDuration]   = useState(0)
   const [volume,      setVolume]     = useState(1)
   const [muted,       setMuted]      = useState(false)
+  const [audioError,  setAudioError] = useState(null) // { trackId, message } | null — surfaced to UI for a friendly offline notice instead of a silent failure
   const audioRef = useRef(null)
 
   // ── Core: play a track ──────────────────────────────────────
@@ -26,6 +27,7 @@ export function PlayerProvider({ children }) {
     setNowPlaying(track)
     setIsPlaying(true)
     setCurrentTime(0)
+    setAudioError(null)
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.currentTime = 0
@@ -35,8 +37,15 @@ export function PlayerProvider({ children }) {
       const playPromise = audioRef.current.play()
       if (playPromise !== undefined) {
         playPromise.catch(err => {
-          // Autoplay blocked by browser - user needs to click play button
-          console.warn('Autoplay blocked:', err.message)
+          if (!navigator.onLine) {
+            // Offline and this track was never cached by the service
+            // worker — give the user a clear, friendly reason instead
+            // of a silently stuck play button.
+            setAudioError({ trackId: track.id, message: "This track isn't available offline yet." })
+          } else {
+            // Autoplay blocked by browser - user needs to click play button
+            console.warn('Autoplay blocked:', err.message)
+          }
           setIsPlaying(false) // Show play button so user can click manually
         })
       }
@@ -195,7 +204,7 @@ export function PlayerProvider({ children }) {
     <PlayerContext.Provider value={{
       nowPlaying, isPlaying, currentTime, duration,
       queue, queueIndex, volume, muted,
-      audioRef,
+      audioRef, audioError,
       playTrack, stopPlayer,
       skipNext, skipPrev,
       playNext: skipNext, playPrev: skipPrev,
@@ -209,8 +218,21 @@ export function PlayerProvider({ children }) {
       <audio
         ref={audioRef}
         preload="auto"
-        onPlay={()       => setIsPlaying(true)}
-        onError={(e)     => console.error('❌ Audio error:', e.target.error?.code, e.target.error?.message, audioRef.current?.src)}
+        onPlay={()       => { setIsPlaying(true); setAudioError(null) }}
+        onError={(e)     => {
+          const code = e.target.error?.code
+          console.error('❌ Audio error:', code, e.target.error?.message, audioRef.current?.src)
+          // MEDIA_ERR_NETWORK (2) / MEDIA_ERR_SRC_NOT_SUPPORTED (4) while
+          // offline almost always means "never cached" rather than a real
+          // corruption — surface a friendly, non-crashing message instead
+          // of leaving the player silently stuck.
+          if (!navigator.onLine) {
+            setAudioError({ trackId: nowPlaying?.id, message: "This track isn't available offline yet." })
+          } else {
+            setAudioError({ trackId: nowPlaying?.id, message: 'This track could not be played.' })
+          }
+          setIsPlaying(false)
+        }}
         onPause={()      => setIsPlaying(false)}
         onEnded={() => {}} // Handled by FloatingPlayer with repeat/shuffle logic
         onTimeUpdate={e  => { setCurrentTime(e.target.currentTime); setDuration(e.target.duration || 0) }}

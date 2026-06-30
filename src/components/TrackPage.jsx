@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
+import { queuedMutation } from '../lib/syncQueue.js'
 import CommentsSection, { ReactionBar } from './CommentsSection.jsx'
 import ShareButton from './ShareButton.jsx'
 import PremiumUnlockModal from './PremiumUnlockModal.jsx'
@@ -29,12 +30,26 @@ export default function TrackPage({ track, currentUser, onBack, onPlay, isPlayin
 
   function toggleSave() {
     if (!currentUser) return
-    if (saved) {
-      supabase.from('saved_tracks').delete().eq('user_id', currentUser.id).eq('track_id', track.id)
-        .then(() => setSaved(false))
+    // Optimistic: flip immediately so the UI never appears unresponsive
+    // offline — the actual write is durably queued and retried via
+    // Background Sync (5-minute cadence) if it can't go through now.
+    const next = !saved
+    setSaved(next)
+    if (next) {
+      queuedMutation({
+        id: 'save:' + currentUser.id + ':' + track.id,
+        table: 'saved_tracks',
+        op: 'insert',
+        payload: { user_id: currentUser.id, track_id: track.id, saved_at: new Date().toISOString() },
+      }).then(result => { if (!result.ok && !result.queued) setSaved(false) })
     } else {
-      supabase.from('saved_tracks').insert({ user_id: currentUser.id, track_id: track.id, saved_at: new Date().toISOString() })
-        .then(() => setSaved(true))
+      queuedMutation({
+        id: 'unsave:' + currentUser.id + ':' + track.id,
+        table: 'saved_tracks',
+        op: 'delete',
+        payload: { user_id: currentUser.id, track_id: track.id },
+        match: { user_id: currentUser.id, track_id: track.id },
+      }).then(result => { if (!result.ok && !result.queued) setSaved(true) })
     }
   }
 

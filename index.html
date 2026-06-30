@@ -36,14 +36,11 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      // Register service worker for PWA / background audio
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {})
-        })
-      }
-    </script>
+    <!-- Service worker registration now happens inside the React app
+         (src/lib/swRegister.js, invoked from App.jsx) rather than here.
+         This gives the app a single, safe, update-aware registration
+         path instead of two independent ones that could race each
+         other or double-register. -->
       <script src="https://js.paystack.co/v1/inline.js"></script>
   </body>
 </html>

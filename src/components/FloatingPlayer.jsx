@@ -47,7 +47,7 @@ export default function FloatingPlayer({ currentUser }) {
   const {
     nowPlaying, isPlaying, currentTime, duration,
     queue, queueIndex, volume, muted,
-    audioRef, skipNext, skipPrev,
+    audioRef, audioError, skipNext, skipPrev,
     togglePlay, seekTo, changeVolume, toggleMute, playTrack,
   } = usePlayer()
 
@@ -168,6 +168,28 @@ export default function FloatingPlayer({ currentUser }) {
   })
 
   return (
+    <>
+      {/* ── Friendly offline notice — never a silent failure, never a crash ── */}
+      {audioError && audioError.trackId === nowPlaying?.id && (
+        <div style={{
+          position: 'fixed',
+          bottom: minimised ? 64 : 92,
+          left: '50%', transform: 'translateX(-50%)',
+          zIndex: 301,
+          background: 'rgba(200,16,46,0.95)',
+          color: 'white',
+          fontSize: 12.5,
+          fontFamily: 'var(--font-mono, monospace)',
+          padding: '8px 16px',
+          borderRadius: 20,
+          display: 'flex', alignItems: 'center', gap: 8,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          maxWidth: 'calc(100vw - 2rem)',
+          textAlign: 'center',
+        }}>
+          {audioError.message}
+        </div>
+      )}
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 300,
       background: 'rgba(8,8,8,0.98)',
@@ -409,5 +431,6 @@ export default function FloatingPlayer({ currentUser }) {
         </div>
       )}
     </div>
+    </>
   )
 }

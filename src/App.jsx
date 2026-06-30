@@ -12,6 +12,9 @@ import FloatingPlayer from './components/FloatingPlayer.jsx'
 import FloatingVideoPlayer from './components/FloatingVideoPlayer.jsx'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
+import OfflineIndicator from './components/OfflineIndicator.jsx'
+import { registerServiceWorker, onUpdateAvailable, applyUpdate, postToServiceWorker } from './lib/swRegister.js'
+import { initSyncQueue, flushQueue } from './lib/syncQueue.js'
 const Home = React.lazy(() => import('./pages/Home.jsx'))
 const MusicPage = React.lazy(() => import('./pages/Music.jsx'))
 const VideosPage = React.lazy(() => import('./pages/Videos.jsx'))
@@ -34,7 +37,6 @@ function useOfflineAudioSync(currentUser) {
     async function syncAudio() {
       if (!navigator.onLine) return
       try {
-        const { supabase } = await import('./lib/supabase.js')
         const urls = []
 
         if (currentUser?.id) {
@@ -63,9 +65,9 @@ function useOfflineAudioSync(currentUser) {
           }
         }
 
-        // Latest 10 free tracks always cached
-        const { supabase: sb } = await import('./lib/supabase.js')
-        const { data: latest } = await sb
+        // Latest 10 free tracks always cached — gives every visitor,
+        // logged in or not, something playable offline.
+        const { data: latest } = await supabase
           .from('music_tracks')
           .select('audio_url')
           .eq('status', 'approved')
@@ -75,21 +77,18 @@ function useOfflineAudioSync(currentUser) {
         ;(latest || []).forEach(t => { if (t.audio_url) urls.push(t.audio_url) })
 
         if (urls.length > 0) {
-          const reg = await navigator.serviceWorker.ready
-          if (reg.active) {
-            reg.active.postMessage({ type: 'CACHE_AUDIO_URLS', urls: [...new Set(urls)] })
-          }
+          postToServiceWorker({ type: 'CACHE_AUDIO_URLS', urls: [...new Set(urls)] })
         }
-      } catch { /* silently fail */ }
+      } catch { /* silently fail — never block the UI for a background cache pass */ }
     }
 
-    // Listen for SW requesting urls
+    // SW asks the page to resend URLs (from its periodicsync handler)
     const handler = (e) => {
       if (e.data?.type === 'REQUEST_AUDIO_URLS') syncAudio()
     }
     navigator.serviceWorker.addEventListener('message', handler)
 
-    // Initial sync + every 5 minutes
+    // Initial sync + every 5 minutes, per spec
     syncAudio()
     interval = setInterval(syncAudio, 5 * 60 * 1000)
 
@@ -232,6 +231,18 @@ function AppInner() {
   const [activeRole, setActiveRole] = useState(null)
   const [authReady, setAuthReady]   = useState(false)
   const [deepLink, setDeepLink]     = useState(null)
+  const [swUpdateAvailable, setSwUpdateAvailable] = useState(false)
+
+  // ── Offline support: register SW once, init the sync queue, wire
+  //    the audio pre-cache loop. All three are no-ops in unsupported
+  //    browsers and never throw, so they can't affect existing flows. ──
+  useEffect(() => {
+    registerServiceWorker()
+    onUpdateAvailable(() => setSwUpdateAvailable(true))
+    initSyncQueue(supabase)
+  }, [])
+
+  useOfflineAudioSync(profile)
 
 
   // ── Deep link handler — reads URL params on load ──────────
@@ -409,6 +420,26 @@ function AppInner() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <OfflineIndicator />
+      {swUpdateAvailable && (
+        <div style={{
+          position: 'fixed', bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 2100, display: 'flex', alignItems: 'center', gap: 12,
+          background: 'rgba(20,20,20,0.96)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12,
+          padding: '10px 14px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+          fontSize: 13, color: 'white', fontFamily: 'var(--font-mono, monospace)',
+        }}>
+          <span>A new version of Tunez9ja is ready.</span>
+          <button onClick={applyUpdate} style={{
+            background: 'var(--red, #c8102e)', border: 'none', color: 'white',
+            borderRadius: 8, padding: '6px 14px', fontWeight: 700, fontSize: 12.5,
+            cursor: 'pointer', minHeight: 36,
+          }}>
+            Refresh
+          </button>
+        </div>
+      )}
       {!isDashboard && !isAuth && (
         <Navbar page={safePage} setPage={setPage} profile={profile} activeRole={activeRole} onDJOpen={() => setDjOpen(true)}
           onLogout={async () => { await supabase.auth.signOut() }} />
