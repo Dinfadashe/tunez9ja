@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { MusicArt } from './UI.jsx'
-import { UserPlus, UserMinus, Music2, Video, Newspaper, Users, Play } from 'lucide-react'
+import { UserPlus, UserMinus, UserCheck, Music2, Video, Newspaper, Users, Play } from 'lucide-react'
 
 // ── SQL needed in Supabase Dashboard ────────────────────────
 // CREATE TABLE IF NOT EXISTS follows (
@@ -26,7 +26,7 @@ function getYtId(url) {
 function Avatar({ profile, size = 56 }) {
   const initials = (profile?.name || profile?.username || '?').slice(0, 2).toUpperCase()
   if (profile?.avatar_url) {
-    return <img src={profile.avatar_url} alt={profile.name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-red)' }} />
+    return <img src={profile.avatar_url} alt={profile.name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-red)' }}  loading="lazy" decoding="async" />
   }
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.35, fontWeight: 700, color: 'white', border: '2px solid var(--border-red)', flexShrink: 0 }}>
@@ -168,6 +168,7 @@ export default function ProfilePage({ profileId, currentUser, setPage }) {
     role === 'artist' && { key: 'videos', label: 'Videos',  icon: Video,     count: videos.length },
     role === 'blogger' && { key: 'posts', label: 'Articles', icon: Newspaper, count: posts.length },
     { key: 'followers', label: 'Followers', icon: Users, count: followerCount },
+    { key: 'following', label: 'Following', icon: UserCheck, count: followingCount },
   ].filter(Boolean)
 
   const activeTab = TABS.find(t => t.key === tab) ? tab : (TABS[0] ? TABS[0].key : 'followers')
@@ -200,8 +201,12 @@ export default function ProfilePage({ profileId, currentUser, setPage }) {
             )}
             {/* Stats row */}
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 14 }}>
-              <StatPill value={followerCount} label="Followers" />
-              <StatPill value={followingCount} label="Following" />
+              <button onClick={() => setTab('followers')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <StatPill value={followerCount} label="Followers" />
+              </button>
+              <button onClick={() => setTab('following')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <StatPill value={followingCount} label="Following" />
+              </button>
               {role === 'artist' && <StatPill value={tracks.length} label="Tracks" />}
               {role === 'blogger' && <StatPill value={posts.length} label="Articles" />}
             </div>
@@ -269,6 +274,11 @@ export default function ProfilePage({ profileId, currentUser, setPage }) {
           {activeTab === 'followers' && (
             <FollowersList profileId={profileId} />
           )}
+
+          {/* ── Following tab ── */}
+          {activeTab === 'following' && (
+            <FollowingList profileId={profileId} />
+          )}
         </>
       )}
     </div>
@@ -284,7 +294,7 @@ function TrackCard({ track }) {
       <div style={{ position: 'relative', paddingBottom: '100%', background: '#111' }}>
         <div style={{ position: 'absolute', inset: 0 }}>
           {track.cover_url
-            ? <img src={track.cover_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ? <img src={track.cover_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" />
             : <MusicArt title={track.title} size={120} />
           }
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }}
@@ -318,7 +328,7 @@ function VideoCard({ video }) {
     >
       <div style={{ position: 'relative', paddingBottom: '56.25%', background: '#111' }}>
         <div style={{ position: 'absolute', inset: 0 }}>
-          {thumb ? <img src={thumb} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: '#1a0a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Video size={32} style={{ opacity: 0.3 }} /></div>}
+          {thumb ? <img src={thumb} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" /> : <div style={{ width: '100%', height: '100%', background: '#1a0a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Video size={32} style={{ opacity: 0.3 }} /></div>}
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Play size={16} fill="white" color="white" style={{ marginLeft: 2 }} />
@@ -341,7 +351,7 @@ function PostCard({ post, setPage }) {
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
     >
       {post.cover_url && (
-        <img src={post.cover_url} alt={post.title} style={{ width: 72, height: 72, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+        <img src={post.cover_url} alt={post.title} style={{ width: 72, height: 72, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}  loading="lazy" decoding="async" />
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 10, color: 'var(--red)', fontFamily: 'var(--font-mono)', marginBottom: 4, letterSpacing: 1, textTransform: 'uppercase' }}>{post.category}</div>
@@ -357,19 +367,69 @@ function PostCard({ post, setPage }) {
 
 function FollowersList({ profileId }) {
   const [followers, setFollowers] = useState([])
+  const [loading, setLoading] = useState(true)
   useEffect(() => {
+    setLoading(true)
     supabase.from('follows')
       .select('follower:follower_id(id,name,avatar_url,role,is_verified)')
       .eq('following_id', profileId)
       .limit(50)
-      .then(({ data }) => setFollowers((data || []).map(f => f.follower).filter(Boolean)))
+      .then(({ data }) => {
+        setFollowers((data || []).map(f => f.follower).filter(Boolean))
+        setLoading(false)
+      })
   }, [profileId])
 
+  if (loading) return <EmptyState icon={<Users size={36} />} text="Loading…" />
   if (followers.length === 0) return <EmptyState icon={<Users size={36} />} text="No followers yet" />
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
       {followers.map(f => (
-        <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
+        <div key={f.id}
+          onClick={() => window.dispatchEvent(new CustomEvent('openProfile', { detail: { profileId: f.id } }))}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', cursor: 'pointer', transition: 'border-color 0.15s' }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-red)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+        >
+          <Avatar profile={f} size={36} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {f.name || 'Unknown'} {f.is_verified ? '✅' : ''}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', textTransform: 'capitalize' }}>{f.role || 'user'}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function FollowingList({ profileId }) {
+  const [following, setFollowing] = useState([])
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    setLoading(true)
+    supabase.from('follows')
+      .select('followed:following_id(id,name,avatar_url,role,is_verified)')
+      .eq('follower_id', profileId)
+      .limit(50)
+      .then(({ data }) => {
+        setFollowing((data || []).map(f => f.followed).filter(Boolean))
+        setLoading(false)
+      })
+  }, [profileId])
+
+  if (loading) return <EmptyState icon={<UserCheck size={36} />} text="Loading…" />
+  if (following.length === 0) return <EmptyState icon={<UserCheck size={36} />} text="Not following anyone yet" />
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+      {following.map(f => (
+        <div key={f.id}
+          onClick={() => window.dispatchEvent(new CustomEvent('openProfile', { detail: { profileId: f.id } }))}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', cursor: 'pointer', transition: 'border-color 0.15s' }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-red)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+        >
           <Avatar profile={f} size={36} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

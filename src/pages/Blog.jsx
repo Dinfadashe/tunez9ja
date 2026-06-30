@@ -147,24 +147,24 @@ export default function BlogPage({ setPage, currentUser, deepLink }) {
           <>
             {/* Featured post */}
             {featured && (
-              <div onClick={() => setSelectedPost(featured)}
+              <div className="blog-featured" onClick={() => setSelectedPost(featured)}
                 style={{ cursor: 'pointer', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', marginBottom: 32, transition: 'border-color 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,180,220,0.4)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                <div style={{ background: 'linear-gradient(135deg,#0a0d1a,#1a1a2e)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280 }}>
+                <div style={{ background: 'linear-gradient(135deg,#0a0d1a,#1a1a2e)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'clamp(12rem, 10rem + 8vw, 17.5rem)' }}>
                   {featured.cover_url
-                    ? <img src={featured.cover_url} alt={featured.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ? <img src={featured.cover_url} alt={featured.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" />
                     : <Newspaper size={64} style={{ opacity: 0.12 }} />
                   }
                 </div>
-                <div style={{ padding: 36 }}>
+                <div style={{ padding: 'clamp(1.25rem, 1rem + 1.5vw, 2.25rem)' }}>
                   <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
                     <span className="badge badge-blog">{featured.category}</span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-500)', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Clock size={11} />{featured.published_at?.slice(0,10) || featured.created_at?.slice(0,10)}
                     </span>
                   </div>
-                  <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 34, letterSpacing: 0.5, marginBottom: 16, lineHeight: 1.15 }}>{featured.title}</h2>
+                  <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.5rem, 1.2rem + 1.8vw, 2.125rem)', letterSpacing: 0.5, marginBottom: 16, lineHeight: 1.15 }}>{featured.title}</h2>
                   <p style={{ color: 'var(--grey-300)', fontSize: 15, lineHeight: 1.7, marginBottom: 20 }}>{featured.excerpt}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--grey-500)' }}>
                     <User size={13} /> {featured.profiles?.name || 'Tunez9ja'}
@@ -190,7 +190,7 @@ export default function BlogPage({ setPage, currentUser, deepLink }) {
                 }} style={{ cursor: 'pointer' }}>
                     <div className="blog-card-img">
                       {post.cover_url
-                        ? <img src={post.cover_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ? <img src={post.cover_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" />
                         : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,var(--bg-surface),#0a0d1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Newspaper size={32} style={{ opacity: 0.2 }} />
                           </div>
@@ -308,7 +308,7 @@ function PostDetail({ post, onBack, currentUser }) {
         {/* Cover image */}
         {post.cover_url ? (
           <img src={post.cover_url} alt={post.title}
-            style={{ width: '100%', maxHeight: 420, objectFit: 'cover', borderRadius: 12, marginBottom: 36, display: 'block' }} />
+            style={{ width: '100%', maxHeight: 420, objectFit: 'cover', borderRadius: 12, marginBottom: 36, display: 'block' }}  loading="lazy" decoding="async" />
         ) : (
           <div style={{ height: 200, background: 'linear-gradient(135deg,#0a0d1a,#1a0a0d)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 36 }}>
             <Newspaper size={56} style={{ opacity: 0.08 }} />

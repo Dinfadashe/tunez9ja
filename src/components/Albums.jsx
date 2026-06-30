@@ -60,11 +60,11 @@ export default function Albums({ currentUser, setPage }) {
         <ChevronLeft size={18} /> Back to Albums
       </button>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 32, marginBottom: 32, alignItems: 'start' }}>
+      <div className="album-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'min(12.5rem, 35vw) 1fr', gap: 'clamp(1rem, 0.8rem + 1vw, 2rem)', marginBottom: 32, alignItems: 'start' }}>
         {/* Cover */}
         <div style={{ borderRadius: 12, overflow: 'hidden', aspectRatio: '1', background: 'linear-gradient(135deg,#1a0a0d,#0a0d1a)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
           {selected.cover_url
-            ? <img src={selected.cover_url} alt={selected.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ? <img src={selected.cover_url} alt={selected.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" />
             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Disc size={64} style={{ opacity: 0.2 }} /></div>
           }
         </div>
@@ -158,7 +158,7 @@ export default function Albums({ currentUser, setPage }) {
             >
               <div style={{ position: 'relative', paddingBottom: '100%', borderRadius: 10, overflow: 'hidden', background: 'linear-gradient(135deg,#1a0a0d,#0a0d1a)', marginBottom: 12 }}>
                 {album.cover_url
-                  ? <img src={album.cover_url} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ? <img src={album.cover_url} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" />
                   : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Disc size={48} style={{ opacity: 0.15 }} /></div>
                 }
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}

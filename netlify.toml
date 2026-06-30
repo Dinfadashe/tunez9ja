@@ -2,7 +2,59 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  NODE_VERSION = "18"
+
+# ── SPA fallback: all routes serve index.html, App.jsx handles routing ──
 [[redirects]]
   from = "/*"
-  to   = "/index.html"
+  to = "/index.html"
   status = 200
+
+# ── Netlify auto-applies Brotli/Gzip compression to all text assets ──
+# (no config needed — this is automatic on Netlify's CDN/Edge)
+
+# ── Long-term immutable caching for hashed assets ──
+# Every JS/CSS file has a content hash in its filename (see vite.config.js),
+# so it's safe to cache them "forever" — a new deploy produces new hashes,
+# the browser is forced to fetch them, and old hashed files are simply
+# never requested again.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ── Images: cache for 1 week, allow revalidation ──
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# ── Service worker: never cache — must always fetch fresh to pick up
+#    new offline-caching logic ──
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# ── index.html: never cache — must always check for new deploy ──
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# ── manifest.json: short cache, PWA metadata can change ──
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"

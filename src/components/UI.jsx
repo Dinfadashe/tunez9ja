@@ -106,9 +106,15 @@ export function Avatar({ name, size = 36 }) {
 export function MusicArt({ title, size = 120 }) {
   const colors = ['#c8102e33','#7b4fff33','#00b4dc33','#ff6b3533']
   const idx    = title?.charCodeAt(0) % colors.length || 0
+  // Accept either a numeric pixel size or a CSS unit string (e.g. '100%').
+  // When it's a string, the SVG glyph falls back to a fixed em-based size
+  // since percentage-of-percentage math isn't meaningful for the inner icon.
+  const isNumeric = typeof size === 'number'
+  const boxSize = isNumeric ? size : size
+  const iconSize = isNumeric ? size * 0.4 : '40%'
   return (
-    <div style={{ width: size, height: size, background: colors[idx], display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: 4 }}>
-      <svg width={size * 0.4} height={size * 0.4} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5">
+    <div style={{ width: boxSize, height: boxSize, background: colors[idx], display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: 4 }}>
+      <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5">
         <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
       </svg>
     </div>

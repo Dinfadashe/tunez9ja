@@ -94,8 +94,8 @@ export default function Home({ setPage }) {
     <div>
       {/* ── HERO ── */}
       <section className="hero">
-        <div className="container hero-content" style={{ paddingTop: 60, paddingBottom: 80 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
+        <div className="container hero-content" style={{ paddingTop: 'var(--space-2xl)', paddingBottom: 'var(--space-2xl)' }}>
+          <div className="hero-grid">
             <div>
               <div className="hero-eyebrow">Est. 2021 — Nigeria's Finest</div>
               <h1 className="hero-headline">
@@ -105,18 +105,18 @@ export default function Home({ setPage }) {
                 Afrobeats. Highlife. Street Pop. We cover every sound shaping Nigerian music culture — new drops, artist stories, and the gist you can't miss.
               </p>
               <div className="hero-actions">
-                <button className="btn btn-primary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => setPage('music')}>
+                <button className="btn btn-primary" onClick={() => setPage('music')}>
                   <Play size={16} fill="white" /> Stream Music
                 </button>
-                <button className="btn btn-secondary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => setPage('blog')}>
+                <button className="btn btn-secondary" onClick={() => setPage('blog')}>
                   Read the Blog
                 </button>
-                <button className="btn btn-secondary" style={{ padding: '14px 28px', fontSize: 15, borderColor: '#ff3333', color: '#ff3333' }} onClick={() => setPage('videos')}>
+                <button className="btn btn-secondary" style={{ borderColor: '#ff3333', color: '#ff3333' }} onClick={() => setPage('videos')}>
                   <Youtube size={16} /> Watch Videos
                 </button>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="hero-visual-wrap">
               <HeroVisual tracks={tracks} />
             </div>
           </div>
@@ -222,7 +222,7 @@ export default function Home({ setPage }) {
       {/* ── JOIN CTA ── */}
       <section className="section">
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div className="grid-2">
             <CTA icon={<Mic2 size={32} color="var(--red)" />} title="ARE YOU AN ARTIST?"
               desc="Upload your music for review. Get featured on Nigeria's hottest blog and reach thousands of new fans."
               action="Upload Your Music" onClick={() => setPage('register')} />
@@ -237,31 +237,34 @@ export default function Home({ setPage }) {
 }
 
 function HeroVisual({ tracks }) {
+  // All child positions/sizes are percentages of this wrapper, so the
+  // whole composition scales fluidly — the wrapper itself is sized with
+  // clamp() in CSS (.hero-visual-wrap), not a fixed pixel box.
   return (
-    <div style={{ position: 'relative', width: 320, height: 320 }}>
+    <div style={{ position: 'relative', width: '100%', maxWidth: '20rem', aspectRatio: '1 / 1' }}>
       {[
-        { top: 0,   left: 0,   size: 200, zIndex: 2 },
-        { top: 40,  left: 160, size: 160, zIndex: 1 },
-        { top: 170, left: 20,  size: 140, zIndex: 1 },
+        { top: '0%',     left: '0%',     size: '62.5%', zIndex: 2 },
+        { top: '12.5%',  left: '50%',    size: '50%',   zIndex: 1 },
+        { top: '53.1%',  left: '6.25%',  size: '43.75%',zIndex: 1 },
       ].map((pos, i) => (
         <div key={i} style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.size, height: pos.size, borderRadius: 12, overflow: 'hidden', border: i === 0 ? '2px solid var(--border-red)' : '2px solid var(--border)', boxShadow: i === 0 ? '0 0 40px rgba(200,16,46,0.3)' : 'none', zIndex: pos.zIndex }}>
           {tracks[i] && tracks[i].cover_url
-            ? <img src={tracks[i].cover_url} alt={tracks[i].title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <MusicArt title={tracks[i] ? tracks[i].title : String.fromCharCode(84 + i)} size={pos.size} />
+            ? <img src={tracks[i].cover_url} alt={tracks[i].title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading={i === 0 ? 'eager' : 'lazy'} decoding={i === 0 ? 'sync' : 'async'} fetchpriority={i === 0 ? 'high' : 'auto'} />
+            : <MusicArt title={tracks[i] ? tracks[i].title : String.fromCharCode(84 + i)} size="100%" />
           }
         </div>
       ))}
       {tracks[0] && (
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(15,15,15,0.92)', backdropFilter: 'blur(8px)', border: '1px solid var(--border-red)', borderRadius: 8, padding: 12, zIndex: 3 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(15,15,15,0.92)', backdropFilter: 'blur(8px)', border: '1px solid var(--border-red)', borderRadius: 8, padding: 'clamp(0.5rem, 0.4rem + 0.4vw, 0.75rem)', zIndex: 3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+            <div style={{ width: '2rem', height: '2rem', borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Play size={14} fill="white" color="white" />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tracks[0].title}</div>
-              <div style={{ fontSize: 11, color: 'var(--red)' }}>{tracks[0].profiles ? tracks[0].profiles.name : ''}</div>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tracks[0].title}</div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--red)' }}>{tracks[0].profiles ? tracks[0].profiles.name : ''}</div>
             </div>
-            <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-300)', flexShrink: 0 }}>{tracks[0].duration || '—'}</div>
+            <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--grey-300)', flexShrink: 0 }}>{tracks[0].duration || '—'}</div>
           </div>
         </div>
       )}
@@ -269,7 +272,7 @@ function HeroVisual({ tracks }) {
   )
 }
 
-function MusicCard({ track, setPage }) {
+const MusicCard = React.memo(function MusicCard({ track, setPage }) {
   return (
     <div onClick={() => {
       setPage('music')
@@ -310,7 +313,7 @@ function MusicCard({ track, setPage }) {
       </div>
     </div>
   )
-}
+})
 
 function getYtId(url) {
   if (!url) return null
@@ -321,7 +324,7 @@ function getYtId(url) {
   return null
 }
 
-function VideoCard({ video, setPage }) {
+const VideoCard = React.memo(function VideoCard({ video, setPage }) {
   const ytId = getYtId(video.youtube_url)
   const thumb = ytId ? 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg' : null
   return (
@@ -332,7 +335,7 @@ function VideoCard({ video, setPage }) {
       <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', background: '#000', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0 }}>
           {thumb
-            ? <img src={thumb} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ? <img src={thumb} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" />
             : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#1a0a0d,#0a0d1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Video size={40} style={{ opacity: 0.3 }} />
               </div>
@@ -359,14 +362,14 @@ function VideoCard({ video, setPage }) {
       </div>
     </div>
   )
-}
+})
 
-function BlogCard({ post, setPage }) {
+const BlogCard = React.memo(function BlogCard({ post, setPage }) {
   return (
     <div className="blog-card" onClick={() => setPage('blog')} style={{ cursor: 'pointer' }}>
       <div className="blog-card-img">
         {post.cover_url
-          ? <img src={post.cover_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img src={post.cover_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" />
           : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,var(--bg-surface),#0a0d1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Newspaper size={40} style={{ opacity: 0.2 }} />
             </div>
@@ -383,7 +386,7 @@ function BlogCard({ post, setPage }) {
       </div>
     </div>
   )
-}
+})
 
 function CTA({ icon, title, desc, action, onClick, accent }) {
   const color = accent || 'var(--red)'

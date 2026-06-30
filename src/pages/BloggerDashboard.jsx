@@ -14,7 +14,8 @@ import RichTextEditor from '../components/RichTextEditor.jsx'
 import CoverImagePicker from '../components/CoverImagePicker.jsx'
 import VideoUpload from '../components/VideoUpload.jsx'
 import MyVideos from '../components/MyVideos.jsx'
-import { LayoutDashboard, Newspaper, PenSquare, User, Trash2, Edit3, Eye, CheckCircle, Clock, XCircle, Video, Youtube, Coins, BookMarked , Shield, Pen } from 'lucide-react'
+import { LayoutDashboard, Newspaper, PenSquare, User, Trash2, Edit3, Eye, CheckCircle, Clock, XCircle, Video, Youtube, Coins, BookMarked, Shield, Pen, Link } from 'lucide-react'
+import ReferralTab from '../components/ReferralTab.jsx'
 
 const CATEGORIES = ['Music News','Album Review','Artist Spotlight','Entertainment','Culture','Events','Interviews','Opinion','Tutorials']
 
@@ -29,6 +30,7 @@ const NAV = [
   { key: 'my-videos',   label: 'My Videos',     icon: Video           },
   { key: 'video-upload',label: 'Upload Video',  icon: Youtube         },
   { key: 'wallet',      label: 'TUNEZ Wallet',  icon: Coins           },
+  { key: 'referral',    label: 'Referral',      icon: Link            },
   { key: 'library',     label: 'My Library',    icon: BookMarked      },
   { key: 'profile',     label: 'My Profile',    icon: User            },
   { key: 'editor',     label: 'Become Editor', icon: Pen             }, // label overridden dynamically
@@ -82,6 +84,7 @@ export default function BloggerDashboard({ setPage, currentUser: propUser, onRol
           {active === 'my-videos'    && <MyVideos currentUser={currentUser} />}
           {active === 'video-upload'  && <VideoUpload currentUser={currentUser} onSuccess={() => setActive('my-videos')} />}
           {active === 'wallet'        && <TunezWallet currentUser={currentUser} />}
+          {active === 'referral'      && <ReferralTab currentUser={currentUser} />}
           {active === 'library'       && <MyLibrary   currentUser={currentUser} />}
         </div>
       </main>

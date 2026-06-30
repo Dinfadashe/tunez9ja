@@ -13,6 +13,7 @@ import {
   Link, User, Music, Newspaper, Video
 } from 'lucide-react'
 import { useDashboard } from '../hooks/useDashboard.js'
+import ReferralTab from '../components/ReferralTab.jsx'
 
 const NAV = [
   { key: 'overview',  label: 'Overview',      icon: LayoutDashboard },
@@ -136,32 +137,6 @@ function UserOverview({ currentUser, setActive, setPage }) {
           <BookMarked size={15} /> My Library
         </button>
       </div>
-    </div>
-  )
-}
-
-// ── Referral ──────────────────────────────────────────────────
-function ReferralTab({ currentUser }) {
-  const [copied, setCopied] = useState(false)
-  const refCode = currentUser?.referral_code || currentUser?.id?.slice(0,8).toUpperCase()
-  const refLink = `${window.location.origin}/?ref=${refCode}&signup=1`
-
-  const copy = () => {
-    navigator.clipboard.writeText(refLink).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
-  }
-
-  return (
-    <div style={{ maxWidth:480 }}>
-      <h2 style={{ fontFamily:'var(--font-display)', fontSize:28, marginBottom:8 }}>REFER FRIENDS</h2>
-      <p style={{ color:'var(--grey-300)', fontSize:14, lineHeight:1.7, marginBottom:24 }}>
-        Share your link. You both earn <strong style={{ color:'#ffb400' }}>+15 TUNEZ</strong> when they sign up.
-      </p>
-      <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', fontFamily:'var(--font-mono)', fontSize:12, color:'var(--grey-300)', wordBreak:'break-all', marginBottom:16 }}>
-        {refLink}
-      </div>
-      <button onClick={copy} className="btn btn-primary" style={{ width:'100%', justifyContent:'center' }}>
-        {copied ? '✅ Copied!' : '📋 Copy Referral Link'}
-      </button>
     </div>
   )
 }

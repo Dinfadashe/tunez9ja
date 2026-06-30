@@ -1,9 +1,9 @@
-import WhitepaperWidget from './components/WhitepaperWidget.jsx'
-import AIDJPlayer from './components/AIDJPlayer.jsx'
-import ErrorBoundary from './components/ErrorBoundary.jsx'
-import ChartsPage from './pages/ChartsPage.jsx'
-import AlbumsPage from './components/Albums.jsx'
 import React, { useState, useEffect } from 'react'
+const WhitepaperWidget = React.lazy(() => import('./components/WhitepaperWidget.jsx'))
+const AIDJPlayer = React.lazy(() => import('./components/AIDJPlayer.jsx'))
+import ErrorBoundary from './components/ErrorBoundary.jsx'
+const ChartsPage = React.lazy(() => import('./pages/ChartsPage.jsx'))
+const AlbumsPage = React.lazy(() => import('./components/Albums.jsx'))
 import { AppProvider } from './context/AppContext.jsx'
 import { PlayerProvider } from './context/PlayerContext.jsx'
 import { supabase } from './lib/supabase.js'
@@ -12,16 +12,17 @@ import FloatingPlayer from './components/FloatingPlayer.jsx'
 import FloatingVideoPlayer from './components/FloatingVideoPlayer.jsx'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
-import Home from './pages/Home.jsx'
-import MusicPage from './pages/Music.jsx'
-import VideosPage from './pages/Videos.jsx'
-import BlogPage from './pages/Blog.jsx'
-import AboutPage from './pages/About.jsx'
-import TermsPage from './pages/Terms.jsx'
-import PrivacyPage from './pages/Privacy.jsx'
-import { LoginPage, RegisterPage } from './pages/Auth.jsx'
-import SearchPage       from './pages/SearchPage.jsx'
-import ProfilePage     from './components/ProfilePage.jsx'
+const Home = React.lazy(() => import('./pages/Home.jsx'))
+const MusicPage = React.lazy(() => import('./pages/Music.jsx'))
+const VideosPage = React.lazy(() => import('./pages/Videos.jsx'))
+const BlogPage = React.lazy(() => import('./pages/Blog.jsx'))
+const AboutPage = React.lazy(() => import('./pages/About.jsx'))
+const TermsPage = React.lazy(() => import('./pages/Terms.jsx'))
+const PrivacyPage = React.lazy(() => import('./pages/Privacy.jsx'))
+const LoginPage    = React.lazy(() => import('./pages/Auth.jsx').then(m => ({ default: m.LoginPage })))
+const RegisterPage = React.lazy(() => import('./pages/Auth.jsx').then(m => ({ default: m.RegisterPage })))
+const SearchPage = React.lazy(() => import('./pages/SearchPage.jsx'))
+const ProfilePage = React.lazy(() => import('./components/ProfilePage.jsx'))
 
 // ── Offline audio cache: sync saved + library tracks every 5min ──
 function useOfflineAudioSync(currentUser) {
@@ -142,12 +143,18 @@ function TelegramPopup() {
 
   return (
     <div style={{
-      position: 'fixed', bottom: 24, right: 24, zIndex: 1800,
+      position: 'fixed',
+      bottom: 'max(1.5rem, calc(1rem + env(safe-area-inset-bottom, 0px)))',
+      right: 'max(1rem, env(safe-area-inset-right, 0px))',
+      left: 'max(1rem, env(safe-area-inset-left, 0px))',
+      zIndex: 1800,
       background: 'var(--bg-card)',
       border: '1px solid rgba(0,136,204,0.5)',
       borderRadius: 14,
-      padding: '20px 22px',
-      maxWidth: 320,
+      padding: 'clamp(1rem, 0.9rem + 0.5vw, 1.375rem)',
+      maxWidth: '20rem',
+      width: 'auto',
+      marginLeft: 'auto', /* right-aligns within the left/right bounds on wide screens */
       boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,136,204,0.2)',
       animation: 'slideUpIn 0.4s ease',
     }}>
@@ -160,52 +167,54 @@ function TelegramPopup() {
 
       {/* Close */}
       <button onClick={() => dismiss(false)} style={{
-        position: 'absolute', top: 10, right: 12,
+        position: 'absolute', top: '0.625rem', right: '0.75rem',
         background: 'none', border: 'none', color: 'var(--grey-400)',
-        cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '4px 6px',
-        borderRadius: 6,
-      }} title="Close">✕</button>
+        cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1, padding: '0.25rem 0.375rem',
+        borderRadius: 6, minWidth: '2.75rem', minHeight: '2.75rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }} title="Close" aria-label="Dismiss">✕</button>
 
       {/* Telegram icon */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.875rem' }}>
         <div style={{
-          width: 48, height: 48, borderRadius: '50%',
+          width: '3rem', height: '3rem', borderRadius: '50%',
           background: 'linear-gradient(135deg, #0088cc, #00b4e6)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0, fontSize: 24,
+          flexShrink: 0, fontSize: '1.5rem',
         }}>
           ✈️
         </div>
-        <div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, lineHeight: 1.2 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.125rem', lineHeight: 1.2 }}>
             Join the Community
           </div>
-          <div style={{ fontSize: 12, color: 'var(--grey-400)', marginTop: 2 }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--grey-400)', marginTop: '0.125rem' }}>
             Tunez9ja on Telegram
           </div>
         </div>
       </div>
 
-      <p style={{ fontSize: 13, color: 'var(--grey-300)', lineHeight: 1.7, marginBottom: 16 }}>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--grey-300)', lineHeight: 1.7, marginBottom: '1rem' }}>
         Get exclusive drops, connect with artists, discuss music and earn bonus TUNEZ from community activities. 🎵
       </p>
 
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', gap: '0.625rem' }}>
         <a href="https://t.me/+BpaRRvm53U1kZGM0" target="_blank" rel="noopener noreferrer"
           onClick={() => dismiss(true)}
           style={{
-            flex: 1, padding: '10px 0', borderRadius: 8, textAlign: 'center',
+            flex: 1, padding: '0.625rem 0', borderRadius: 8, textAlign: 'center',
+            minHeight: '2.75rem',
             background: 'linear-gradient(135deg,#0088cc,#00b4e6)',
-            color: 'white', fontWeight: 700, fontSize: 13,
+            color: 'white', fontWeight: 700, fontSize: '0.8125rem',
             textDecoration: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem',
           }}>
           ✈️ Join Now
         </a>
         <button onClick={dismiss} style={{
-          padding: '10px 14px', borderRadius: 8,
+          padding: '0.625rem 0.875rem', borderRadius: 8, minHeight: '2.75rem',
           background: 'transparent', border: '1px solid var(--border)',
-          color: 'var(--grey-400)', cursor: 'pointer', fontSize: 13,
+          color: 'var(--grey-400)', cursor: 'pointer', fontSize: '0.8125rem',
         }}>
           Later
         </button>
@@ -428,8 +437,14 @@ function AppInner() {
       {!NO_FOOTER.includes(safePage) && <Footer setPage={setPage} />}
 
       {/* Floating player — renders on ALL pages, survives navigation */}
-      <WhitepaperWidget />
-      {djOpen && <AIDJPlayer currentUser={profile} onClose={() => setDjOpen(false)} />}
+      <React.Suspense fallback={null}>
+        <WhitepaperWidget />
+      </React.Suspense>
+      {djOpen && (
+        <React.Suspense fallback={null}>
+          <AIDJPlayer currentUser={profile} onClose={() => setDjOpen(false)} />
+        </React.Suspense>
+      )}
       <FloatingPlayer currentUser={profile} />
       <FloatingVideoPlayer />
       <TelegramPopup />

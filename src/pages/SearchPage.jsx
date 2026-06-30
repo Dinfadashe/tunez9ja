@@ -22,7 +22,7 @@ export default function SearchPage({ setPage, currentUser }) {
       supabase.from('music_tracks').select('id,title,genre,cover_url,duration,audio_url,artist_id,profiles:artist_id(name,is_verified)').eq('status','approved').ilike('title', like).limit(8),
       supabase.from('blog_posts').select('id,title,category,cover_url,excerpt,author_id,profiles:author_id(name)').eq('status','approved').ilike('title', like).limit(8),
       supabase.from('videos').select('id,title,youtube_url,video_url,uploader_id,profiles:uploader_id(name)').eq('status','approved').ilike('title', like).limit(8),
-      supabase.from('profiles').select('id,name,role,is_verified,bio').in('role',['artist','blogger']).ilike('name', like).limit(8),
+      supabase.from('profiles').select('id,name,role,is_verified,bio,avatar_url').ilike('name', like).limit(8),
       supabase.from('albums').select('id,title,genre,cover_url,artist_id,profiles:artist_id(name)').eq('status','approved').ilike('title', like).limit(6),
     ])
     setResults({
@@ -48,7 +48,7 @@ export default function SearchPage({ setPage, currentUser }) {
     { key:'albums',  label:'Albums',  count: results.albums.length  },
     { key:'posts',   label:'Blog',    count: results.posts.length   },
     { key:'videos',  label:'Videos',  count: results.videos.length  },
-    { key:'artists', label:'Artists', count: results.artists.length },
+    { key:'artists', label:'People', count: results.artists.length },
   ]
 
   const showTracks  = tab === 'all' || tab === 'tracks'
@@ -69,7 +69,7 @@ export default function SearchPage({ setPage, currentUser }) {
             <input
               value={query}
               onChange={handleChange}
-              placeholder="Search tracks, artists, posts, videos, albums..."
+              placeholder="Search tracks, people, posts, videos, albums..."
               autoFocus
               style={{ width:'100%', padding:'18px 18px 18px 52px', borderRadius:12, background:'var(--bg-card)', border:'1px solid var(--border)', color:'var(--white)', fontSize:16, outline:'none', boxSizing:'border-box', transition:'border-color 0.2s' }}
               onFocus={e => e.target.style.borderColor='var(--red)'}
@@ -158,25 +158,29 @@ export default function SearchPage({ setPage, currentUser }) {
               </section>
             )}
 
-            {/* Artists */}
+            {/* People */}
             {showArtists && results.artists.length > 0 && (
               <section>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
                   <User size={18} color="#00c864" />
-                  <h3 style={{ fontFamily:'var(--font-display)', fontSize:22 }}>ARTISTS & BLOGGERS</h3>
+                  <h3 style={{ fontFamily:'var(--font-display)', fontSize:22 }}>PEOPLE</h3>
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:12 }}>
                   {results.artists.map(artist => (
                     <div key={artist.id}
+                      onClick={() => window.dispatchEvent(new CustomEvent('openProfile', { detail: { profileId: artist.id } }))}
                       style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:10, cursor:'pointer', transition:'all 0.2s' }}
                       onMouseEnter={e => { e.currentTarget.style.borderColor='var(--border-red)'; e.currentTarget.style.transform='translateY(-2px)' }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.transform='none' }}>
-                      <div style={{ width:44, height:44, borderRadius:'50%', background: artist.role==='artist' ? '#7b4fff' : '#00b4dc', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontSize:20, flexShrink:0 }}>
-                        {artist.name?.[0]?.toUpperCase()}
-                      </div>
+                      {artist.avatar_url
+                        ? <img src={artist.avatar_url} alt={artist.name} style={{ width:44, height:44, borderRadius:'50%', objectFit:'cover', flexShrink:0 }} loading="lazy" decoding="async" />
+                        : <div style={{ width:44, height:44, borderRadius:'50%', background: artist.role==='artist' ? '#7b4fff' : artist.role==='blogger' ? '#00b4dc' : 'var(--red)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontSize:20, flexShrink:0, color:'white' }}>
+                            {artist.name?.[0]?.toUpperCase()}
+                          </div>
+                      }
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{artist.name}{artist.is_verified && ' ✅'}</div>
-                        <div style={{ fontSize:11, color: artist.role==='artist' ? '#7b4fff' : '#00b4dc', fontFamily:'var(--font-mono)', letterSpacing:1, textTransform:'uppercase' }}>{artist.role}</div>
+                        <div style={{ fontSize:11, color: artist.role==='artist' ? '#7b4fff' : artist.role==='blogger' ? '#00b4dc' : 'var(--grey-500)', fontFamily:'var(--font-mono)', letterSpacing:1, textTransform:'uppercase' }}>{artist.role || 'user'}</div>
                       </div>
                     </div>
                   ))}

@@ -13,7 +13,7 @@ import Albums from '../components/Albums.jsx'
 
 
 // ── Save track to library ─────────────────────────────────────
-function SaveButton({ track, currentUser }) {
+const SaveButton = React.memo(function SaveButton({ track, currentUser }) {
   const [saved,   setSaved]   = React.useState(false)
   const [loading, setLoading] = React.useState(false)
 
@@ -45,7 +45,7 @@ function SaveButton({ track, currentUser }) {
       <Heart size={15} fill={saved ? 'currentColor' : 'none'} />
     </button>
   )
-}
+})
 
 // ── Add to playlist dropdown ──────────────────────────────────
 function AddToPlaylist({ track, currentUser }) {

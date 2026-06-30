@@ -61,11 +61,12 @@ export default function FloatingVideoPlayer() {
 
   const style = {
     position:   'fixed',
-    right:      pos.x !== null ? 'auto' : 20,
-    bottom:     pos.y !== null ? 'auto' : 80,
+    right:      pos.x !== null ? 'auto' : 'max(1.25rem, env(safe-area-inset-right, 0px))',
+    bottom:     pos.y !== null ? 'auto' : 'calc(5rem + env(safe-area-inset-bottom, 0px))',
     left:       pos.x !== null ? pos.x  : 'auto',
     top:        pos.y !== null ? pos.y  : 'auto',
     width,
+    maxWidth:   'calc(100vw - 2rem)', /* never exceeds viewport even if width/pos would overflow */
     zIndex:     1500,
     background: '#000',
     borderRadius: 12,

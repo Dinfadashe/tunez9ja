@@ -6,7 +6,7 @@ import { Avatar } from './ProfileEditor.jsx'
 import { getPageLabel } from '../hooks/useNavigation.js'
 import {
   Search, Sun, Moon, Coins, Menu, X,
-  ChevronLeft, ChevronRight, Home, Music2, Radio,
+  Home, Music2, Radio,
   Video, Newspaper, Info, LayoutDashboard, TrendingUp,
   ChevronRight as Sep, Users, BarChart2,
   Upload, BadgeCheck, PenLine, BookMarked,
@@ -22,53 +22,36 @@ const NAV_LINKS = [
   { label: 'About',  page: 'about',  icon: Info },
 ]
 
-// Pages where breadcrumb parent is known
-const BREADCRUMB_PARENTS = {
-  'search':             'home',
-  'terms':              'home',
-  'privacy':            'home',
-  'login':              'home',
-  'register':           'home',
-  'admin-dashboard':    'home',
-  'artist-dashboard':   'home',
-  'blogger-dashboard':  'home',
-  'user-dashboard':     'home',
-  'editor-dashboard':   'home',
-}
-
 function Breadcrumb({ history, historyIndex, setPage }) {
-  // Build a clean crumb trail from actual navigation history (last 4 unique)
   const seen = new Set()
   const crumbs = []
   for (let i = 0; i <= historyIndex; i++) {
     const p = history[i]
     if (!seen.has(p)) { seen.add(p); crumbs.push(p) }
     else {
-      // Reset if we revisited — only show unique recent trail
       seen.clear(); crumbs.length = 0
       seen.add(p); crumbs.push(p)
     }
   }
-  // Keep last 4
   const trail = crumbs.slice(-4)
   if (trail.length <= 1) return null
 
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 4,
-      padding: '0 0 0 2px', overflow: 'hidden', flex: 1,
+      padding: '0 0 0 0.125rem', overflow: 'hidden', flex: 1, minWidth: 0,
     }}>
       {trail.map((p, i) => (
         <React.Fragment key={p + i}>
           {i > 0 && <Sep size={12} style={{ color: 'var(--grey-700)', flexShrink: 0 }} />}
           <button onClick={() => setPage(p)}
             style={{
-              background: 'none', border: 'none', padding: '2px 6px', borderRadius: 5,
-              fontSize: 12, cursor: i === trail.length - 1 ? 'default' : 'pointer',
+              background: 'none', border: 'none', padding: '0.125rem 0.375rem', borderRadius: 5,
+              fontSize: 'clamp(0.7rem, 0.65rem + 0.1vw, 0.8rem)', cursor: i === trail.length - 1 ? 'default' : 'pointer',
               color: i === trail.length - 1 ? 'var(--grey-200)' : 'var(--grey-500)',
               fontWeight: i === trail.length - 1 ? 600 : 400,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100,
-              transition: 'color 0.15s',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '6.25rem',
+              transition: 'color 0.15s', minHeight: '1.5rem',
             }}
             onMouseEnter={e => { if (i < trail.length - 1) e.currentTarget.style.color = 'var(--grey-200)' }}
             onMouseLeave={e => { if (i < trail.length - 1) e.currentTarget.style.color = 'var(--grey-500)' }}
@@ -81,7 +64,6 @@ function Breadcrumb({ history, historyIndex, setPage }) {
   )
 }
 
-// ── Dashboard nav items per role (shown in mobile menu when logged in) ──────
 const DASHBOARD_NAV = {
   admin: [
     { label: 'Overview',     page: 'admin-dashboard', tab: 'overview',  icon: LayoutDashboard },
@@ -123,7 +105,6 @@ const DASHBOARD_NAV = {
 
 export default function Navbar({
   page, setPage, profile, activeRole, onLogout,
-  goBack, goForward, canGoBack, canGoForward,
   history = [], historyIndex = 0, onDJOpen,
 }) {
   const [theme,    setTheme]    = useState(localStorage.getItem('t9_theme') || 'dark')
@@ -160,83 +141,52 @@ export default function Navbar({
         backdropFilter: 'blur(14px)',
         borderBottom: '1px solid var(--border)',
       }}>
-        {/* ── Main nav row ── */}
-        <div className="container" style={{ display: 'flex', alignItems: 'center', height: 56, gap: 6 }}>
+        <div className="container" style={{
+          display: 'flex', alignItems: 'center',
+          minHeight: 'clamp(3rem, 2.7rem + 1vw, 3.5rem)',
+          gap: 'clamp(0.25rem, 0.2rem + 0.3vw, 0.5rem)',
+          padding: '0 clamp(0.5rem, 0.4rem + 0.5vw, 1rem)',
+        }}>
 
-          {/* Back / Forward buttons */}
-          <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-            <button
-              onClick={goBack}
-              disabled={!canGoBack}
-              title="Go back (Alt + ←)"
-              style={{
-                background: 'none', border: 'none', borderRadius: 7, padding: '5px 7px',
-                color: canGoBack ? 'var(--grey-300)' : 'var(--grey-700)',
-                cursor: canGoBack ? 'pointer' : 'default', display: 'flex', alignItems: 'center',
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { if (canGoBack) { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--white)' } }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = canGoBack ? 'var(--grey-300)' : 'var(--grey-700)' }}
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={goForward}
-              disabled={!canGoForward}
-              title="Go forward (Alt + →)"
-              style={{
-                background: 'none', border: 'none', borderRadius: 7, padding: '5px 7px',
-                color: canGoForward ? 'var(--grey-300)' : 'var(--grey-700)',
-                cursor: canGoForward ? 'pointer' : 'default', display: 'flex', alignItems: 'center',
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { if (canGoForward) { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--white)' } }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = canGoForward ? 'var(--grey-300)' : 'var(--grey-700)' }}
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-
-          {/* Logo */}
           <div onClick={() => navigate('home')}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flexShrink: 0 }}>
-            <Logo size={30} />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, letterSpacing: 1 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flexShrink: 0, minWidth: 0 }}>
+            <Logo size={28} />
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1rem, 0.9rem + 0.4vw, 1.2rem)', letterSpacing: 1, whiteSpace: 'nowrap' }}>
               TUNEZ<span style={{ color: 'var(--red)' }}>9JA</span>
             </span>
           </div>
 
-          {/* Dashboard quick-access badge — replaces logo text when logged in on home */}
           {profile && page === 'home' && (
             <button onClick={() => navigate(getDashPage())}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '5px 11px', borderRadius: 20,
+                display: 'flex', alignItems: 'center', gap: '0.375rem',
+                padding: '0.3rem 0.7rem', borderRadius: 20,
                 background: 'rgba(200,16,46,0.12)',
                 border: '1px solid rgba(200,16,46,0.35)',
                 color: 'var(--red)', cursor: 'pointer',
-                fontSize: 12, fontWeight: 700, flexShrink: 0,
+                fontSize: '0.75rem', fontWeight: 700, flexShrink: 0,
+                minHeight: '2rem',
               }}
               className="hide-mobile">
               <LayoutDashboard size={13} /> Dashboard
             </button>
           )}
 
-          {/* Desktop nav links */}
-          <div className="navbar-links" style={{ display: 'flex', gap: 2, marginLeft: 16 }}>
+          <div className="navbar-links" style={{ display: 'flex', gap: 2, marginLeft: '0.5rem', flexShrink: 0 }}>
             {NAV_LINKS.map(l => {
               const active = page === l.page
               return (
                 <button key={l.page} onClick={() => navigate(l.page)}
                   style={{
-                    padding: '6px 11px', borderRadius: 7,
+                    padding: '0.4rem 0.7rem', borderRadius: 7,
                     background: active ? 'rgba(200,16,46,0.12)' : 'none',
                     border: 'none',
                     color: active ? 'var(--red)' : 'var(--grey-400)',
                     fontWeight: active ? 700 : 400,
-                    cursor: 'pointer', fontSize: 13.5,
+                    cursor: 'pointer', fontSize: 'clamp(0.8rem, 0.75rem + 0.15vw, 0.875rem)',
                     transition: 'all 0.15s',
                     display: 'flex', alignItems: 'center', gap: 5,
+                    minHeight: '2.25rem', whiteSpace: 'nowrap',
                   }}
                   onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--white)' } }}
                   onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--grey-400)' } }}
@@ -247,30 +197,44 @@ export default function Navbar({
             })}
           </div>
 
-          {/* Breadcrumb trail (desktop only, when navigated away from main pages) */}
-          <div className="hide-mobile" style={{ flex: 1, overflow: 'hidden', paddingLeft: 8 }}>
+          <div className="hide-mobile" style={{ flex: 1, overflow: 'hidden', paddingLeft: '0.5rem', minWidth: 0 }}>
             <Breadcrumb history={history} historyIndex={historyIndex} setPage={setPage} />
           </div>
 
-          {/* Right actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 'auto', flexShrink: 0 }}>
-            {/* AI DJ button */}
             {onDJOpen && (
               <button onClick={onDJOpen}
                 title="Launch AI DJ"
-                style={{ background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.3)', borderRadius: 8, color: 'var(--red)', cursor: 'pointer', padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: 0.5 }}>
+                className="hide-xs"
+                style={{
+                  background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.3)', borderRadius: 8,
+                  color: 'var(--red)', cursor: 'pointer', padding: '0.35rem 0.6rem',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  fontSize: '0.7rem', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: 0.5,
+                  minHeight: '2.25rem', whiteSpace: 'nowrap',
+                }}>
                 <Radio size={13} /> AI DJ
               </button>
             )}
 
             <button onClick={() => navigate('search')}
-              style={{ background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer', padding: 8, display: 'flex', borderRadius: 8 }}>
+              aria-label="Search"
+              style={{
+                background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer',
+                width: '2.75rem', height: '2.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: 8, flexShrink: 0,
+              }}>
               <Search size={18} />
             </button>
 
             <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+              aria-label="Toggle theme"
               className="hide-mobile"
-              style={{ background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer', padding: 8, display: 'flex', borderRadius: 8 }}>
+              style={{
+                background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer',
+                width: '2.75rem', height: '2.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: 8,
+              }}>
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
@@ -280,72 +244,80 @@ export default function Navbar({
               <button onClick={() => navigate(getDashPage())}
                 className="hide-mobile"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 20,
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '0.3rem 0.6rem', borderRadius: 20,
                   background: 'rgba(255,180,0,0.1)', border: '1px solid rgba(255,180,0,0.3)',
-                  color: '#ffb400', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                  color: '#ffb400', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', fontWeight: 700,
+                  minHeight: '2.25rem', whiteSpace: 'nowrap',
                 }}>
                 <Coins size={12} /> {balance}T
               </button>
             )}
 
             {profile ? (
-              <button onClick={() => navigate(getDashPage())}
+              <button onClick={() => window.dispatchEvent(new CustomEvent('openProfile', { detail: { profileId: profile.id } }))}
+                className="hide-xs"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px',
+                  display: 'flex', alignItems: 'center', gap: 7, padding: '0.3rem 0.6rem',
                   borderRadius: 8, background: 'var(--red)', border: 'none', color: 'white',
-                  cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '2.25rem',
+                  whiteSpace: 'nowrap',
                 }}>
                 <Avatar profile={profile} size={22} style={{ border: 'none' }} />
-                <span className="hide-mobile">Dashboard</span>
+                <span className="hide-mobile">Profile</span>
               </button>
             ) : (
               <button onClick={() => navigate('login')}
+                className="hide-xs"
                 style={{
-                  padding: '7px 14px', borderRadius: 8, background: 'var(--red)',
-                  border: 'none', color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                  padding: '0.45rem 0.9rem', borderRadius: 8, background: 'var(--red)',
+                  border: 'none', color: 'white', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700,
+                  minHeight: '2.25rem', whiteSpace: 'nowrap',
                 }}>
                 Sign In
               </button>
             )}
 
-            {/* Hamburger */}
             <button onClick={() => setMenuOpen(o => !o)}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
               className="navbar-hamburger"
-              style={{ background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer', padding: 8, display: 'none', borderRadius: 8 }}>
+              style={{
+                background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer',
+                width: '2.75rem', height: '2.75rem', alignItems: 'center', justifyContent: 'center',
+                borderRadius: 8, flexShrink: 0,
+              }}>
               {menuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
 
-        {/* ── Mobile dropdown menu ── */}
         {menuOpen && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, right: 0,
             background: 'rgba(10,10,10,0.99)', borderBottom: '1px solid var(--border)',
-            zIndex: 299, maxHeight: '80vh', overflowY: 'auto',
+            zIndex: 299, maxHeight: 'min(80vh, 100dvh - 3.5rem)', overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
           }}>
             {profile ? (
               <>
-                {/* ── Logged-in header ── */}
-                <div style={{ padding: '14px 20px 10px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ padding: '0.9rem 1.25rem 0.6rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {profile.avatar_url
-                    ? <img src={profile.avatar_url} alt={profile.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--red)' }} />
-                    : <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: 'white', flexShrink: 0 }}>
+                    ? <img src={profile.avatar_url} alt={profile.name} style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--red)', flexShrink: 0 }} loading="lazy" decoding="async" />
+                    : <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1rem', color: 'white', flexShrink: 0 }}>
                         {(profile.name || 'U').slice(0, 1).toUpperCase()}
                       </div>
                   }
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.name || 'My Account'}</div>
-                    <div style={{ fontSize: 11, color: 'var(--grey-500)', textTransform: 'capitalize', fontFamily: 'var(--font-mono)' }}>{activeRole || 'user'}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.name || 'My Account'}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--grey-500)', textTransform: 'capitalize', fontFamily: 'var(--font-mono)' }}>{activeRole || 'user'}</div>
                   </div>
                   {balance !== null && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 16, background: 'rgba(255,180,0,0.12)', border: '1px solid rgba(255,180,0,0.3)', color: '#ffb400', fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0.25rem 0.6rem', borderRadius: 16, background: 'rgba(255,180,0,0.12)', border: '1px solid rgba(255,180,0,0.3)', color: '#ffb400', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', fontWeight: 700, flexShrink: 0 }}>
                       <Coins size={11} /> {balance}T
                     </div>
                   )}
                 </div>
 
-                {/* ── Dashboard nav items for this role ── */}
                 <div style={{ paddingTop: 6 }}>
                   {(DASHBOARD_NAV[activeRole] || DASHBOARD_NAV.user).map(item => {
                     const Icon = item.icon
@@ -353,13 +325,13 @@ export default function Navbar({
                     return (
                       <button key={item.label} onClick={() => navigate(item.page)}
                         style={{
-                          width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                          padding: '13px 20px',
+                          width: '100%', display: 'flex', alignItems: 'center', gap: '0.875rem',
+                          padding: '0.8rem 1.25rem', minHeight: '2.75rem',
                           background: active ? 'rgba(200,16,46,0.1)' : 'none',
                           border: 'none',
                           borderLeft: active ? '3px solid var(--red)' : '3px solid transparent',
                           color: active ? 'var(--red)' : 'var(--grey-300)',
-                          cursor: 'pointer', fontSize: 14, fontWeight: active ? 700 : 400,
+                          cursor: 'pointer', fontSize: '0.875rem', fontWeight: active ? 700 : 400,
                           textAlign: 'left', transition: 'all 0.15s',
                         }}>
                         <Icon size={18} style={{ flexShrink: 0 }} />
@@ -369,20 +341,19 @@ export default function Navbar({
                   })}
                 </div>
 
-                {/* ── Divider + public pages ── */}
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
-                  <div style={{ padding: '6px 20px 4px', fontSize: 10, color: 'var(--grey-700)', fontFamily: 'var(--font-mono)', letterSpacing: 1, textTransform: 'uppercase' }}>Explore</div>
+                  <div style={{ padding: '0.375rem 1.25rem 0.25rem', fontSize: '0.625rem', color: 'var(--grey-700)', fontFamily: 'var(--font-mono)', letterSpacing: 1, textTransform: 'uppercase' }}>Explore</div>
                   {NAV_LINKS.filter(l => l.page !== 'home').map(l => {
                     const Icon = l.icon
                     const active = page === l.page
                     return (
                       <button key={l.page} onClick={() => navigate(l.page)}
                         style={{
-                          width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                          padding: '11px 20px', background: 'none',
+                          width: '100%', display: 'flex', alignItems: 'center', gap: '0.875rem',
+                          padding: '0.7rem 1.25rem', minHeight: '2.75rem', background: 'none',
                           border: 'none', borderLeft: '3px solid transparent',
                           color: active ? 'var(--red)' : 'var(--grey-500)',
-                          cursor: 'pointer', fontSize: 13, fontWeight: active ? 700 : 400,
+                          cursor: 'pointer', fontSize: '0.8rem', fontWeight: active ? 700 : 400,
                           textAlign: 'left',
                         }}>
                         <Icon size={16} style={{ flexShrink: 0 }} />
@@ -392,16 +363,15 @@ export default function Navbar({
                   })}
                 </div>
 
-                {/* ── Footer: theme + logout ── */}
-                <div style={{ padding: '12px 20px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
+                <div style={{ padding: '0.75rem 1.25rem 1rem', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
                   <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--grey-400)', cursor: 'pointer', padding: '7px 12px', display: 'flex', gap: 6, alignItems: 'center', fontSize: 12 }}>
+                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--grey-400)', cursor: 'pointer', padding: '0.45rem 0.75rem', display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.75rem', minHeight: '2.5rem' }}>
                     {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
                     {theme === 'dark' ? 'Light' : 'Dark'}
                   </button>
                   {onLogout && (
                     <button onClick={() => { onLogout(); setMenuOpen(false) }}
-                      style={{ background: 'none', border: '1px solid rgba(200,16,46,0.3)', borderRadius: 8, color: 'var(--red)', cursor: 'pointer', padding: '7px 12px', display: 'flex', gap: 6, alignItems: 'center', fontSize: 12 }}>
+                      style={{ background: 'none', border: '1px solid rgba(200,16,46,0.3)', borderRadius: 8, color: 'var(--red)', cursor: 'pointer', padding: '0.45rem 0.75rem', display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.75rem', minHeight: '2.5rem' }}>
                       <LogOut size={13} /> Sign out
                     </button>
                   )}
@@ -409,18 +379,17 @@ export default function Navbar({
               </>
             ) : (
               <>
-                {/* ── Guest: public nav + sign in prompt ── */}
                 {NAV_LINKS.map(l => {
                   const active = page === l.page
                   const Icon = l.icon
                   return (
                     <button key={l.page} onClick={() => navigate(l.page)}
                       style={{
-                        width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                        padding: '13px 20px', background: active ? 'rgba(200,16,46,0.1)' : 'none',
+                        width: '100%', display: 'flex', alignItems: 'center', gap: '0.875rem',
+                        padding: '0.8rem 1.25rem', minHeight: '2.75rem', background: active ? 'rgba(200,16,46,0.1)' : 'none',
                         border: 'none', borderLeft: active ? '3px solid var(--red)' : '3px solid transparent',
                         color: active ? 'var(--red)' : 'var(--grey-300)',
-                        cursor: 'pointer', fontSize: 15, fontWeight: active ? 700 : 400,
+                        cursor: 'pointer', fontSize: '0.9rem', fontWeight: active ? 700 : 400,
                         textAlign: 'left',
                       }}>
                       <Icon size={18} />
@@ -428,17 +397,17 @@ export default function Navbar({
                     </button>
                   )
                 })}
-                <div style={{ padding: '12px 20px 16px', borderTop: '1px solid var(--border)', marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ padding: '0.75rem 1.25rem 1rem', borderTop: '1px solid var(--border)', marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button onClick={() => navigate('login')}
-                    style={{ flex: 1, padding: '10px 16px', borderRadius: 8, background: 'none', border: '1px solid var(--border)', color: 'var(--grey-300)', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
+                    style={{ flex: 1, minWidth: '7rem', padding: '0.6rem 1rem', minHeight: '2.75rem', borderRadius: 8, background: 'none', border: '1px solid var(--border)', color: 'var(--grey-300)', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}>
                     Sign In
                   </button>
                   <button onClick={() => navigate('register')}
-                    style={{ flex: 1, padding: '10px 16px', borderRadius: 8, background: 'var(--red)', border: 'none', color: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>
+                    style={{ flex: 1, minWidth: '7rem', padding: '0.6rem 1rem', minHeight: '2.75rem', borderRadius: 8, background: 'var(--red)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 700 }}>
                     Register
                   </button>
                   <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--grey-400)', cursor: 'pointer', padding: '7px 12px', display: 'flex', gap: 6, alignItems: 'center', fontSize: 12 }}>
+                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--grey-400)', cursor: 'pointer', padding: '0.45rem 0.75rem', minHeight: '2.75rem', display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.75rem' }}>
                     {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
                     {theme === 'dark' ? 'Light' : 'Dark'}
                   </button>
@@ -448,59 +417,6 @@ export default function Navbar({
           </div>
         )}
       </nav>
-
-      {/* ── Mobile bottom tab bar ── */}
-      <div className="mobile-bottom-nav" style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 400,
-        background: 'rgba(10,10,10,0.98)', backdropFilter: 'blur(14px)',
-        borderTop: '1px solid var(--border)',
-        display: 'none', // shown via CSS media query
-        alignItems: 'center', justifyContent: 'space-around',
-        height: 58, paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}>
-        {/* Back */}
-        <button onClick={goBack} disabled={!canGoBack}
-          style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 10px', cursor: canGoBack ? 'pointer' : 'default', color: canGoBack ? 'var(--grey-300)' : 'var(--grey-700)' }}>
-          <ChevronLeft size={22} />
-          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: 0.5, textTransform: 'uppercase' }}>Back</span>
-        </button>
-
-        {/* Nav links */}
-        {NAV_LINKS.map(l => {
-          const active = page === l.page
-          const Icon = l.icon
-          return (
-            <button key={l.page} onClick={() => navigate(l.page)}
-              style={{
-                background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
-                alignItems: 'center', gap: 3, padding: '6px 8px', cursor: 'pointer',
-                color: active ? 'var(--red)' : 'var(--grey-500)',
-                transition: 'color 0.15s',
-              }}>
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
-              <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: 0.5, textTransform: 'uppercase', fontWeight: active ? 700 : 400 }}>{l.label}</span>
-            </button>
-          )
-        })}
-
-        {/* Dashboard / Sign in */}
-        {profile ? (
-          <button onClick={() => navigate(getDashPage())}
-            style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 8px', cursor: 'pointer', color: ['admin-dashboard','artist-dashboard','blogger-dashboard','user-dashboard','editor-dashboard'].includes(page) ? 'var(--red)' : 'var(--grey-500)' }}>
-            <LayoutDashboard size={20} />
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: 0.5, textTransform: 'uppercase' }}>Dash</span>
-          </button>
-        ) : (
-          <button onClick={() => navigate('login')}
-            style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 8px', cursor: 'pointer', color: 'var(--grey-500)' }}>
-            <LayoutDashboard size={20} />
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: 0.5, textTransform: 'uppercase' }}>Sign In</span>
-          </button>
-        )}
-      </div>
-
-      {/* Bottom nav spacer — prevents content hiding behind tab bar on mobile */}
-      <div className="mobile-bottom-spacer" style={{ display: 'none', height: 58 }} />
     </>
   )
 }

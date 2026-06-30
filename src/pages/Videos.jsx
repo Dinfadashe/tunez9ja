@@ -236,7 +236,7 @@ function FeaturedVideoCard({ video, onPlay }) {
       onMouseLeave={e => e.currentTarget.style.borderColor='var(--border)'}>
       <div style={{ position:'relative', minHeight:280, background:'#000', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
         {thumb
-          ? <img src={thumb} alt={video.title} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, opacity:0.8 }} />
+          ? <img src={thumb} alt={video.title} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, opacity:0.8 }}  loading="lazy" decoding="async" />
           : <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#1a0a0d,#0a0d1a)', position:'absolute', inset:0 }} />
         }
         <div style={{ position:'relative', zIndex:1, width:72, height:72, borderRadius:'50%', background:'rgba(200,16,46,0.9)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 40px rgba(200,16,46,0.5)' }}>
@@ -265,7 +265,7 @@ function FeaturedVideoCard({ video, onPlay }) {
   )
 }
 
-function VideoCard({ video, onPlay, isPlaying, currentUser }) {
+const VideoCard = React.memo(function VideoCard({ video, onPlay, isPlaying, currentUser }) {
   const thumb = video.youtube_url ? getYoutubeThumbnail(video.youtube_url) : video.thumbnail_url
   return (
     <div onClick={onPlay} style={{ background:'var(--bg-card)', border:`1px solid ${isPlaying ? 'var(--border-red)' : 'var(--border)'}`, borderRadius:10, overflow:'hidden', cursor:'pointer', transition:'all 0.3s' }}
@@ -274,7 +274,7 @@ function VideoCard({ video, onPlay, isPlaying, currentUser }) {
       {/* Thumbnail */}
       <div style={{ position:'relative', aspectRatio:'16/9', background:'#000', overflow:'hidden' }}>
         {thumb
-          ? <img src={thumb} alt={video.title} style={{ width:'100%', height:'100%', objectFit:'cover', opacity:0.85 }} />
+          ? <img src={thumb} alt={video.title} style={{ width:'100%', height:'100%', objectFit:'cover', opacity:0.85 }}  loading="lazy" decoding="async" />
           : <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#1a0a0d,#0a0d1a)', display:'flex', alignItems:'center', justifyContent:'center' }}><Video size={40} style={{ opacity:0.2 }} /></div>
         }
         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.3)', opacity:0, transition:'opacity 0.2s' }}
@@ -304,4 +304,4 @@ function VideoCard({ video, onPlay, isPlaying, currentUser }) {
       </div>
     </div>
   )
-}
+})

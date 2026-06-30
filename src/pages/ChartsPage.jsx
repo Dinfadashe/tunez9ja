@@ -50,7 +50,7 @@ function MovementIndicator({ movement }) {
   )
 }
 
-function ChartRow({ track, position, currentUser, isPlaying, isCurrentTrack, onPlay }) {
+const ChartRow = React.memo(function ChartRow({ track, position, currentUser, isPlaying, isCurrentTrack, onPlay }) {
   const isPodium = position <= 3
   const podiumColors = ['#FFD700', '#C0C0C0', '#CD7F32']
 
@@ -86,7 +86,7 @@ function ChartRow({ track, position, currentUser, isPlaying, isCurrentTrack, onP
       {/* Cover */}
       <div style={{ position: 'relative', width: 46, height: 46, borderRadius: 8, overflow: 'hidden', flexShrink: 0, border: isPodium ? '2px solid ' + podiumColors[position - 1] : '1px solid var(--border)' }}>
         {track.cover_url
-          ? <img src={track.cover_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img src={track.cover_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" />
           : <MusicArt title={track.title} size={46} />
         }
         {isCurrentTrack && (
@@ -135,7 +135,7 @@ function ChartRow({ track, position, currentUser, isPlaying, isCurrentTrack, onP
       </button>
     </div>
   )
-}
+})
 
 export default function ChartsPage({ currentUser }) {
   const [tab,          setTab]          = useState('top50')

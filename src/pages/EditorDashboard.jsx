@@ -3,13 +3,15 @@ import { supabase } from '../lib/supabase.js'
 import Sidebar from '../components/Sidebar.jsx'
 import TunezWallet from '../components/TunezWallet.jsx'
 import ProfileEditor from '../components/ProfileEditor.jsx'
-import { LayoutDashboard, Newspaper, Coins, User, Eye, CheckCircle, XCircle } from 'lucide-react'
+import { LayoutDashboard, Newspaper, Coins, User, Eye, CheckCircle, XCircle, Link } from 'lucide-react'
+import ReferralTab from '../components/ReferralTab.jsx'
 
 const NAV = [
   { key: 'overview', label: 'Overview',     icon: LayoutDashboard },
   { key: 'review',   label: 'Review Posts', icon: Newspaper },
   { key: 'activity', label: 'My Activity',  icon: Eye },
   { key: 'wallet',   label: 'TUNEZ Wallet', icon: Coins },
+  { key: 'referral', label: 'Referral',     icon: Link  },
   { key: 'profile',  label: 'My Profile',   icon: User },
 ]
 
@@ -85,6 +87,7 @@ export default function EditorDashboard({ setPage, currentUser: propUser, onRole
           {active === 'review'   && <ReviewPosts user={user} />}
           {active === 'activity' && <Activity user={user} />}
           {active === 'wallet'   && <TunezWallet currentUser={user} />}
+          {active === 'referral' && <ReferralTab currentUser={user} />}
           {active === 'profile'  && <ProfileEditor currentUser={user} onUpdated={function(u) { setFreshUser(function(p) { return Object.assign({}, p, u) }) }} />}
         </div>
       </main>

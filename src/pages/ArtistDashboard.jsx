@@ -14,7 +14,8 @@ import ArtistAnalytics from '../components/ArtistAnalytics.jsx'
 import MyLibrary   from '../components/MyLibrary.jsx'
 import VideoUpload from '../components/VideoUpload.jsx'
 import MyVideos from '../components/MyVideos.jsx'
-import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube, Coins, BookMarked, Disc, Shield, Newspaper, Pen, BarChart2 } from 'lucide-react'
+import { LayoutDashboard, Music, Upload, User, CheckCircle, Clock, XCircle, Trash2, TrendingUp, Video, Youtube, Coins, BookMarked, Disc, Shield, Newspaper, Pen, BarChart2, Link } from 'lucide-react'
+import ReferralTab from '../components/ReferralTab.jsx'
 
 const GENRES = ['Afrobeats','Afropop','Highlife','Fuji','Juju','Gospel','Hip-Hop','R&B','Pop','Rap','Reggae','Dancehall','Amapiano','Bongo Flava','Afro-Soul','Jazz','Electronic','Alternative']
 
@@ -28,6 +29,7 @@ const NAV = [
   { key: 'video-upload', label: 'Upload Video',icon: Youtube         },
   { key: 'albums',     label: 'My Albums',     icon: Disc            },
   { key: 'wallet',     label: 'TUNEZ Wallet',  icon: Coins           },
+  { key: 'referral',   label: 'Referral',      icon: Link            },
   { key: 'library',    label: 'My Library',    icon: BookMarked      },
   { key: 'profile',    label: 'My Profile',    icon: User            },
   { key: 'editor',     label: 'Become Editor', icon: Pen             }, // label overridden dynamically
@@ -91,6 +93,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
           {active === 'albums'       && <AlbumManager currentUser={currentUser} />}
         {active === 'analytics'     && <ArtistAnalytics currentUser={currentUser} />}
           {active === 'wallet'       && <TunezWallet currentUser={currentUser} />}
+          {active === 'referral'     && <ReferralTab currentUser={currentUser} />}
           {active === 'library'      && <MyLibrary   currentUser={currentUser} />}
         </div>
       </main>
