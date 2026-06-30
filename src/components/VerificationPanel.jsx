@@ -61,7 +61,9 @@ export default function VerificationPanel({ currentUser, onRoleSwitch }) {
     setError(null)
 
     try {
-      // Upload ID to kyc-docs bucket
+      // Upload ID to the kyc-docs bucket — this bucket MUST be private
+      // (not public) in Supabase Storage settings. See SQL migration:
+      // fix_kyc_storage_security.sql
       const ext  = idFile.name.split('.').pop()
       const path = `${currentUser.id}/id.${ext}`
       const { error: upErr } = await supabase.storage
@@ -69,13 +71,14 @@ export default function VerificationPanel({ currentUser, onRoleSwitch }) {
         .upload(path, idFile, { upsert: true, contentType: idFile.type })
       if (upErr) throw upErr
 
-      const { data: { publicUrl } } = supabase.storage.from('kyc-docs').getPublicUrl(path)
-
-      // Save KYC data to profile
+      // Store only the storage PATH, never a public URL. Signed URLs are
+      // generated on demand, valid for a short time, and only requested
+      // by the document owner or an authenticated admin — see
+      // getSignedKycUrl() below and its use in AdminDashboard.jsx.
       const { error: dbErr } = await supabase.from('profiles').update({
         kyc_status:       'pending',
         kyc_submitted_at: new Date().toISOString(),
-        kyc_id_url:       publicUrl,
+        kyc_id_path:      path,
         kyc_legal_name:   form.legalName.trim(),
         kyc_social_links: form.socialLinks.trim(),
         last_kyc_attempt: new Date().toISOString(),

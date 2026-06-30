@@ -923,7 +923,7 @@ function KYCReview() {
 
   const load = () => {
     supabase.from('profiles')
-      .select('id,name,email,role,kyc_status,kyc_submitted_at,kyc_legal_name,kyc_id_url,kyc_social_links,kyc_fee_paid')
+      .select('id,name,email,role,kyc_status,kyc_submitted_at,kyc_legal_name,kyc_id_path,kyc_social_links,kyc_fee_paid')
       .eq('kyc_status', 'pending')
       .order('kyc_submitted_at', { ascending: true })
       .then(({ data }) => { setApps(data || []); setLoading(false) })
@@ -943,6 +943,17 @@ function KYCReview() {
     await supabase.rpc('reject_verification', { p_user_id: userId, p_reason: reason })
     setMsg('❌ Application rejected.')
     load()
+  }
+
+  // Generates a fresh, 5-minute signed URL only at the moment an admin
+  // actually requests to view the document — never stored, never logged,
+  // never shareable beyond that brief window. See lib/kycAccess.js.
+  const viewDocument = async (path) => {
+    if (!path) return
+    const { getSignedKycUrl } = await import('../lib/kycAccess.js')
+    const url = await getSignedKycUrl(path)
+    if (url) window.open(url, '_blank', 'noopener,noreferrer')
+    else setMsg('⚠️ Could not load document — it may have been removed or the bucket permissions need checking.')
   }
 
   if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>LOADING KYC APPLICATIONS...</div>
@@ -973,11 +984,11 @@ function KYCReview() {
               </div>
             </div>
             <div style={{ display:'flex', gap:10, flexShrink:0, flexDirection:'column' }}>
-              {app.kyc_id_url && (
-                <a href={app.kyc_id_url} target="_blank" rel="noopener noreferrer"
+              {app.kyc_id_path && (
+                <button onClick={() => viewDocument(app.kyc_id_path)}
                   className="btn btn-secondary" style={{ fontSize:13, padding:'8px 14px' }}>
                   View ID Document
-                </a>
+                </button>
               )}
               <button onClick={() => approve(app.id)} className="btn btn-primary"
                 style={{ fontSize:13, padding:'8px 14px', background:'#1DA1F2', borderColor:'#1DA1F2' }}>
