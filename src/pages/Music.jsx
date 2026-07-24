@@ -398,7 +398,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
                           style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', color: 'var(--grey-400)', cursor: 'pointer', fontSize: 11 }}>
                           View
                         </button>
-                        <ShareButton url={window.location.origin + '/?track=' + track.id} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} compact />
+                        <ShareButton url={window.location.origin + '/?track=' + track.id} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} coverUrl={track.cover_url} compact />
                       </div>
                     </div>
                   )

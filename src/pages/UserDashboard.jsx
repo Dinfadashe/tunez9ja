@@ -27,7 +27,15 @@ const NAV = [
 
 export default function UserDashboard({ setPage, currentUser: propUser, onRoleSwitch }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [active, setActive] = useState('overview')
+  const [active, setActive] = useState(() => {
+    // Check for a tab pre-select signal from PremiumUnlockModal's "Buy TUNEZ" button
+    const pending = sessionStorage.getItem('t9_dashboard_tab')
+    if (pending) {
+      sessionStorage.removeItem('t9_dashboard_tab')
+      return pending
+    }
+    return 'overview'
+  })
   const { currentUser, setCurrentUser } = useDashboard(propUser)
 
   if (!currentUser) return (

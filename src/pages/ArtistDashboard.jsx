@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
 import HalvingBanner from '../components/HalvingBanner.jsx'
 import VerificationPanel from '../components/VerificationPanel.jsx'
+import ArtistKYC from '../components/ArtistKYC.jsx'
 import EditorApplication from '../components/EditorApplication.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import Sidebar from '../components/Sidebar.jsx'
@@ -32,6 +33,7 @@ const NAV = [
   { key: 'referral',   label: 'Referral',      icon: Link            },
   { key: 'library',    label: 'My Library',    icon: BookMarked      },
   { key: 'profile',    label: 'My Profile',    icon: User            },
+  { key: 'verify',     label: 'Verification',  icon: Shield          },
   { key: 'editor',     label: 'Become Editor', icon: Pen             }, // label overridden dynamically
 ]
 
@@ -85,11 +87,12 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
         <div className="dashboard-content">
           {active === 'overview' && <ArtistOverview setActive={setActive} currentUser={currentUser} />}
           {active === 'my-music' && <MyMusic currentUser={currentUser} />}
-          {active === 'upload'   && <UploadTrack currentUser={currentUser} onSuccess={() => setActive('my-music')} />}
+          {active === 'upload'   && <UploadTrack currentUser={currentUser} onSuccess={() => setActive('my-music')} onGoToKYC={() => setActive('verify')} />}
           {active === 'profile'    && <ArtistProfile currentUser={currentUser} setCurrentUser={setCurrentUser} />}
+          {active === 'verify'     && <ArtistKYCAndVerify currentUser={currentUser} setCurrentUser={setCurrentUser} />}
         {active === 'editor'    && <EditorApplication  currentUser={currentUser} onSwitchToEditor={() => { setPage('editor-dashboard') }} />}
           {active === 'my-videos'   && <MyVideos currentUser={currentUser} />}
-          {active === 'video-upload' && <VideoUpload currentUser={currentUser} onSuccess={() => setActive('my-videos')} />}
+          {active === 'video-upload' && <VideoUpload currentUser={currentUser} onSuccess={() => setActive('my-videos')} onGoToKYC={() => setActive('verify')} />}
           {active === 'albums'       && <AlbumManager currentUser={currentUser} />}
         {active === 'analytics'     && <ArtistAnalytics currentUser={currentUser} />}
           {active === 'wallet'       && <TunezWallet currentUser={currentUser} />}
@@ -224,7 +227,40 @@ const MAX_AUDIO_SIZE_MB = 50
 const MAX_COVER_SIZE_MB = 5
 const ALLOWED_IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp']
 
-function UploadTrack({ currentUser, onSuccess }) {
+// Wrapper: shows basic KYC first, then offers Blue Tick once KYC approved
+function ArtistKYCAndVerify({ currentUser, setCurrentUser }) {
+  const [tab, setTab] = React.useState('kyc')
+  const kycApproved = currentUser?.kyc_status === 'approved'
+  return (
+    <div>
+      {/* Tab selector */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
+        {[{ key: 'kyc', label: 'ID Verification (Upload Access)' }, { key: 'bluetick', label: 'Blue Tick 🔵 (Milestone)' }].map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)} style={{
+            padding: '10px 20px', background: 'none', border: 'none',
+            borderBottom: tab === t.key ? '2px solid var(--red)' : '2px solid transparent',
+            color: tab === t.key ? 'var(--red)' : 'var(--grey-400)',
+            fontWeight: tab === t.key ? 700 : 400,
+            cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap',
+          }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === 'kyc'      && <ArtistKYC currentUser={currentUser} setCurrentUser={setCurrentUser} />}
+      {tab === 'bluetick' && (
+        kycApproved
+          ? <VerificationPanel currentUser={currentUser} setCurrentUser={setCurrentUser} />
+          : <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--grey-500)' }}>
+              <Shield size={40} style={{ marginBottom: 16, opacity: 0.3, display: 'block', margin: '0 auto 16px' }} />
+              <p style={{ fontSize: 14 }}>Complete your ID verification first before applying for the Blue Tick.</p>
+            </div>
+      )}
+    </div>
+  )
+}
+
+function UploadTrack({ currentUser, onSuccess, onGoToKYC }) {
   const [form, setForm] = useState({ title: '', genre: '', duration: '', description: '', tags: '', is_premium: false, tunez_price: '' })
   const [audioFile, setAudioFile] = useState(null)
   const [coverFile, setCoverFile] = useState(null)
@@ -234,7 +270,44 @@ function UploadTrack({ currentUser, onSuccess }) {
   const [fileError, setFileError] = useState('')
   const [coverError, setCoverError] = useState('')
 
-  const handleAudioChange = (e) => {
+  // ── KYC gate: artists must complete identity verification before
+  //    uploading. This is SEPARATE from blue-tick (is_verified) which
+  //    is a milestone award. KYC is a baseline requirement for ALL
+  //    artists to protect the platform against impersonation/fraud.
+  const kycStatus = currentUser?.kyc_status
+  if (kycStatus !== 'approved') {
+    return (
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: '40px 24px', textAlign: 'center' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(200,16,46,0.1)', border: '2px solid var(--border-red)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: 32 }}>
+          🪪
+        </div>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, marginBottom: 12 }}>
+          Identity Verification Required
+        </h2>
+        <p style={{ color: 'var(--grey-300)', fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
+          All artists must complete a one-time identity (KYC) check before uploading music. This protects artists and listeners from impersonation.
+        </p>
+        <p style={{ color: 'var(--grey-400)', fontSize: 13, lineHeight: 1.6, marginBottom: 28 }}>
+          {kycStatus === 'pending'
+            ? '⏳ Your KYC is under review. You\'ll be notified once it\'s approved — usually within 24–48 hours.'
+            : kycStatus === 'rejected'
+              ? '❌ Your previous KYC submission was rejected. Please re-submit with a clearer document.'
+              : 'You haven\'t submitted your identity documents yet.'}
+        </p>
+        {kycStatus !== 'pending' && (
+          <button className="btn btn-primary" style={{ minWidth: 180, justifyContent: 'center' }}
+            onClick={onGoToKYC}>
+            Complete KYC Verification
+          </button>
+        )}
+        <p style={{ marginTop: 20, fontSize: 11, color: 'var(--grey-600)', fontStyle: 'italic' }}>
+          Note: KYC verification is separate from the Blue Tick milestone award. Completing KYC allows you to upload — the Blue Tick is earned through streams and activity milestones.
+        </p>
+      </div>
+    )
+  }
+
+const handleAudioChange = (e) => {
     setFileError('')
     const file = e.target.files?.[0]
     if (!file) return

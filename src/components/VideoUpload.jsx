@@ -16,8 +16,38 @@ function getYoutubeId(url) {
   return null
 }
 
-export default function VideoUpload({ currentUser, onSuccess }) {
+export default function VideoUpload({ currentUser, onSuccess, onGoToKYC }) {
   const [mode, setMode]           = useState('youtube') // 'youtube' | 'upload'
+
+  // ── KYC gate: same requirement as audio upload ──────────────
+  const kycStatus = currentUser?.kyc_status
+  if (kycStatus !== 'approved') {
+    return (
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: '40px 24px', textAlign: 'center' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(200,16,46,0.1)', border: '2px solid var(--border-red)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: 32 }}>
+          🪪
+        </div>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, marginBottom: 12 }}>Identity Verification Required</h2>
+        <p style={{ color: 'var(--grey-300)', fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
+          Complete your identity verification before uploading videos.
+        </p>
+        <p style={{ color: 'var(--grey-400)', fontSize: 13, lineHeight: 1.6, marginBottom: 28 }}>
+          {kycStatus === 'pending'
+            ? '⏳ Your KYC is under review — usually within 24–48 hours.'
+            : kycStatus === 'rejected'
+              ? '❌ Previous KYC rejected. Please re-submit with a clearer document.'
+              : 'You haven\'t submitted your identity documents yet.'}
+        </p>
+        {kycStatus !== 'pending' && (
+          <button className="btn btn-primary" style={{ minWidth: 180, justifyContent: 'center' }}
+            onClick={onGoToKYC}>
+            Complete KYC Verification
+          </button>
+        )}
+      </div>
+    )
+  }
+
   const [form, setForm]           = useState({ title: '', description: '', tags: '', youtubeUrl: '' })
   const [videoFile, setVideoFile] = useState(null)
   const [fileError, setFileError] = useState('')

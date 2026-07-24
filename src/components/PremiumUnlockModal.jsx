@@ -102,7 +102,12 @@ export default function PremiumUnlockModal({ content, contentType, currentUser, 
                   Cancel
                 </button>
                 <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}
-                  onClick={() => { onClose(); /* navigate to buy tab */ }}>
+                  onClick={() => {
+                    // Signal the UserDashboard to open on the wallet tab
+                    sessionStorage.setItem('t9_dashboard_tab', 'wallet')
+                    onClose()
+                    setPage('user-dashboard')
+                  }}>
                   <ShoppingCart size={15} /> Buy TUNEZ
                 </button>
               </div>

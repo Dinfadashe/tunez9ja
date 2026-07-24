@@ -282,7 +282,7 @@ function PostDetail({ post, onBack, currentUser }) {
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,5vw,44px)', letterSpacing: 0.5, lineHeight: 1.08, color: 'var(--white)' }}>
               {post.title}
             </h1>
-            <ShareButton url={window.location.origin + '/?post=' + post.id} text={'Read ' + post.title + ' on Tunez9ja!'} title={post.title} />
+            <ShareButton url={window.location.origin + '/?post=' + post.id} text={'Read ' + post.title + ' on Tunez9ja!'} title={post.title} coverUrl={post.cover_url} />
           </div>
 
           {/* Meta */}
