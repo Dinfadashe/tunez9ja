@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { useSEO } from '../lib/useSEO.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { MusicArt } from '../components/UI.jsx'
 import { Play, Pause, TrendingUp, Flame, Star, Clock, Music2, Award, ChevronUp, ChevronDown, Minus } from 'lucide-react'
@@ -137,7 +138,16 @@ const ChartRow = React.memo(function ChartRow({ track, position, currentUser, is
   )
 })
 
-export default function ChartsPage({ currentUser }) {
+export default function ChartsPage({
+  
+ currentUser }) {
+  useSEO({
+    title: "Global Music Charts — Top 50 Songs | Tunez9ja",
+    description: "Real-time global music charts. Top 50 most-streamed tracks, trending Afrobeats, new entries and genre charts — updated live on Tunez9ja.",
+    url: "https://tunez9ja.netlify.app/?page=charts",
+    type: "music.playlist",
+  })
+
   const [tab,          setTab]          = useState('top50')
   const [tracks,       setTracks]       = useState([])
   const [loading,      setLoading]      = useState(true)
@@ -232,7 +242,7 @@ export default function ChartsPage({ currentUser }) {
             </div>
             <div>
               <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,5vw,40px)', letterSpacing: 1, color: 'var(--white)' }}>
-                NAIJA CHARTS
+                T9J CHARTS
               </h1>
               <p style={{ fontSize: 12, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
                 Updated live · Powered by real streams

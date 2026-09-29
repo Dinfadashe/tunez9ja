@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import CommentsSection, { ReactionBar } from '../components/CommentsSection.jsx'
 import { supabase } from '../lib/supabase.js'
+import { useSEO } from '../lib/useSEO.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { earnStream, isUnlocked } from '../lib/tunez.js'
 import PremiumUnlockModal from '../components/PremiumUnlockModal.jsx'
@@ -130,6 +131,12 @@ function MusicSkeleton() {
 
 
 export default function MusicPage({ setPage, currentUser, deepLink }) {
+  useSEO({
+    title: "Stream Afrobeats, Hip-Hop, Highlife & More | Tunez9ja",
+    description: "Listen to Afrobeats, Amapiano, Hip-Hop, Highlife, Afrofusion and more. Stream from independent artists worldwide and earn TUNEZ tokens on every play.",
+    url: "https://tunez9ja.netlify.app/?page=music",
+    type: "music.playlist",
+  })
   const [tracks, setTracks]           = useState([])
   const [loading, setLoading]         = useState(true)
   const [search, setSearch]           = useState('')
@@ -258,9 +265,9 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
       <div style={{ background: 'linear-gradient(180deg,#1a0a0d 0%,var(--bg-deep) 100%)', padding: '60px 0 40px', borderBottom: '1px solid var(--border)' }}>
         <div className="container">
           <div className="section-label">Music Library</div>
-          <h1 className="page-title">STREAM NAIJA<br /><span style={{ color: 'var(--red)' }}>SOUNDS</span></h1>
+          <h1 className="page-title">STREAM THE<br /><span style={{ color: 'var(--red)' }}>CULTURE</span></h1>
           <p style={{ color: 'var(--grey-300)', marginTop: 12, fontSize: 15 }}>
-            {loading ? 'Loading...' : `${tracks.length} track${tracks.length !== 1 ? 's' : ''} from Nigeria's finest artists`}
+            {loading ? 'Loading...' : `${tracks.length} track${tracks.length !== 1 ? 's' : ''} from independent artists worldwide`}
           </p>
         </div>
       </div>

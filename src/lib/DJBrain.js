@@ -1,6 +1,7 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  TUNEZ9JA — Nigerian AI Party DJ Brain
-//  Understands Nigerian music culture, party timelines, crowd energy,
+//  TUNEZ9JA — AI Party DJ Brain
+//  Understands global music culture — Afrobeats, Hip-Hop, Highlife, Amapiano —
+//  party timelines, crowd energy,
 //  and transitions. Every song selection is intentional.
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -24,7 +25,7 @@ export const GENRES = {
   GOSPEL:       { id:'gospel',      label:'Gospel',         energy:[50,85], bpm:[70,110], vibe:'worship' },
   HAUSA:        { id:'hausa',       label:'Hausa Music',    energy:[40,75], bpm:[70,100], vibe:'traditional' },
   YORUBA:       { id:'yoruba',      label:'Yoruba Classics', energy:[45,80], bpm:[75,105], vibe:'classic' },
-  OLDSCHOOL:    { id:'oldschool',   label:'Old School Naija',energy:[50,85], bpm:[80,110], vibe:'nostalgia' },
+  OLDSCHOOL:    { id:'oldschool',   label:'Old School Classics',energy:[50,85], bpm:[80,110], vibe:'nostalgia' },
   CONTEMPORARY: { id:'contemporary',label:'Contemporary',   energy:[55,90], bpm:[85,120], vibe:'dance' },
   GHANAIAN:     { id:'ghanaian',    label:'Ghanaian',       energy:[50,85], bpm:[85,115], vibe:'dance' },
   SA_AMAPIANO:  { id:'sa_amapiano', label:'SA Amapiano',    energy:[55,85], bpm:[110,130],vibe:'groove' },

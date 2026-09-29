@@ -1,7 +1,16 @@
 import React from 'react'
+import { useSEO } from '../lib/useSEO.js'
 import { MapPin, Mail, Users } from 'lucide-react'
 
-export default function AboutPage({ setPage }) {
+export default function AboutPage({
+  
+ setPage }) {
+  useSEO({
+    title: "About Tunez9ja — The Music Platform Where Everyone Gets Paid",
+    description: "Tunez9ja is a global music streaming and entertainment platform where artists, fans, bloggers, and editors all earn for the value they create — built in Jos, Nigeria.",
+    url: "https://tunez9ja.netlify.app/?page=about",
+  })
+
   return (
     <div style={{ minHeight: '80vh' }}>
 
@@ -10,10 +19,10 @@ export default function AboutPage({ setPage }) {
         <div className="container">
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 12 }}>ABOUT US</div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px,7vw,64px)', lineHeight: 1.05, marginBottom: 16 }}>
-            BUILT IN JOS,<br /><span style={{ color: 'var(--red)' }}>FOR NIGERIA</span>
+            BUILT IN JOS,<br /><span style={{ color: 'var(--red)' }}>FOR EVERYONE</span>
           </h1>
           <p style={{ fontSize: 15, color: 'var(--grey-300)', maxWidth: 520, lineHeight: 1.8 }}>
-            Nigeria's premier music blog and streaming platform — connecting artists, bloggers, and fans through great content and a token economy that rewards genuine engagement.
+            A global music streaming and entertainment platform — connecting artists, bloggers, and fans through great content and a token economy that rewards genuine engagement.
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, color: 'var(--grey-500)', fontSize: 14 }}>
             <MapPin size={14} color="var(--red)" />

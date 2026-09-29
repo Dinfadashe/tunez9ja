@@ -5,6 +5,7 @@ import ShareButton from '../components/ShareButton.jsx'
 import { playFloatingVideo } from '../components/FloatingVideoPlayer.jsx'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { useSEO } from '../lib/useSEO.js'
 import { SearchBar, EmptyState } from '../components/UI.jsx'
 
 import { Play, Youtube, Video, Eye, Clock, Filter } from 'lucide-react'
@@ -48,6 +49,12 @@ function VideoSkeleton() {
 
 
 export default function VideosPage({ setPage, currentUser, deepLink }) {
+  useSEO({
+    title: "Music Videos — Watch Afrobeats, Hip-Hop & More | Tunez9ja",
+    description: "Watch the latest music videos, visual albums, and live performance clips from independent artists worldwide on Tunez9ja.",
+    url: "https://tunez9ja.netlify.app/?page=videos",
+    type: "video.other",
+  })
   const [videos, setVideos]       = useState([])
   const [loading, setLoading]     = useState(true)
   const [search, setSearch]       = useState('')
@@ -82,9 +89,9 @@ export default function VideosPage({ setPage, currentUser, deepLink }) {
       <div style={{ background: 'linear-gradient(180deg,#1a0a0d 0%,var(--bg-deep) 100%)', padding: '60px 0 40px', borderBottom: '1px solid var(--border)' }}>
         <div className="container">
           <div className="section-label"><Video size={12} style={{ display:'inline', marginRight:6 }} />Video</div>
-          <h1 className="page-title">WATCH <span style={{ color:'var(--red)' }}>NAIJA</span></h1>
+          <h1 className="page-title">WATCH THE<br /><span style={{ color:'var(--red)' }}>CULTURE</span></h1>
           <p style={{ color:'var(--grey-300)', marginTop:12, fontSize:15 }}>
-            {videos.length} videos from Nigerian artists and bloggers
+            {videos.length} videos from independent artists and creators
           </p>
         </div>
       </div>

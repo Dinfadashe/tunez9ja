@@ -107,7 +107,7 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
       <div className="auth-card">
         <div className="auth-logo"><Logo size={48} /><span className="auth-logo-text">TUNEZ<span>9JA</span></span></div>
         <h2 className="auth-title">Sign In</h2>
-        <p className="auth-sub">Welcome back to Nigeria's #1 music blog</p>
+        <p className="auth-sub">Welcome back to Tunez9ja</p>
 
         {error && (
           <div style={{ background: 'var(--red-glow)', border: '1px solid var(--border-red)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#ff6b6b' }}>

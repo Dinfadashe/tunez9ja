@@ -3,29 +3,86 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Tunez9ja — Nigeria's Premier Music Blog</title>
-    <meta name="description" content="Tunez9ja Entertainment - Latest Nigerian music, afrobeats, news, and gossip. Est. 2021." />
+
+    <!-- ══ Primary SEO ══════════════════════════════════════════ -->
+    <title>Tunez9ja — Stream Music. Earn Rewards. Anywhere.</title>
+    <meta name="description" content="Stream Afrobeats, Hip-Hop, Highlife, Amapiano and more. Earn TUNEZ tokens for every stream, comment, and reaction — the music platform where artists, fans, and creators all get paid." />
+    <meta name="keywords" content="Afrobeats, Hip-Hop, Highlife, Amapiano, music streaming, independent artists, TUNEZ token, music rewards, earn from music, Tunez9ja" />
+    <meta name="author" content="Tunez9ja Entertainment" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://tunez9ja.netlify.app/" />
+
+    <!-- ══ Open Graph (Facebook, WhatsApp, Telegram, LinkedIn) ══ -->
+    <meta property="og:type"         content="website" />
+    <meta property="og:site_name"    content="Tunez9ja" />
+    <meta property="og:title"        content="Tunez9ja — Stream Music. Earn Rewards. Anywhere." />
+    <meta property="og:description"  content="Stream Afrobeats, Hip-Hop, Highlife, Amapiano and more. Earn TUNEZ tokens for every stream. The platform where everyone gets paid." />
+    <meta property="og:url"          content="https://tunez9ja.netlify.app/" />
+    <meta property="og:image"        content="https://tunez9ja.netlify.app/og-default.jpg" />
+    <meta property="og:image:width"  content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt"    content="Tunez9ja — Stream Music, Earn Rewards" />
+    <meta property="og:locale"       content="en" />
+
+    <!-- ══ Twitter / X Card ════════════════════════════════════ -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:site"        content="@Tunez9ja" />
+    <meta name="twitter:title"       content="Tunez9ja — Stream Music. Earn Rewards. Anywhere." />
+    <meta name="twitter:description" content="Stream Afrobeats, Hip-Hop, Highlife and more. Earn TUNEZ tokens on every stream. The music platform where everyone gets paid." />
+    <meta name="twitter:image"       content="https://tunez9ja.netlify.app/og-default.jpg" />
+
+    <!-- ══ PWA ══════════════════════════════════════════════════ -->
     <meta name="theme-color" content="#c8102e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Tunez9ja" />
-
-    <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="Tunez9ja — Nigeria's Premier Music Blog" />
-    <meta property="og:description" content="Latest Nigerian music, afrobeats, news, and gossip. Est. 2021." />
-    <meta property="og:image" content="/logo.png" />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <!-- ══ Structured Data — baked in so Googlebot sees it
+         before JS runs. useSEO.js updates this dynamically
+         per-page after hydration. ═══════════════════════════════ -->
+    <script type="application/ld+json" data-tunez-jsonld="1">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "name": "Tunez9ja",
+          "url": "https://tunez9ja.netlify.app",
+          "description": "Stream Afrobeats, Hip-Hop, Highlife, Amapiano and more. Earn TUNEZ tokens for every stream, read, and reaction — the music platform where everyone gets paid.",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://tunez9ja.netlify.app/?page=search&q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "name": "Tunez9ja Entertainment",
+          "alternateName": "Tunez9ja",
+          "url": "https://tunez9ja.netlify.app",
+          "logo": "https://tunez9ja.netlify.app/logo.png",
+          "description": "Global music streaming and entertainment platform — built in Jos, Nigeria. Stream Afrobeats, Hip-Hop, Highlife and more. Earn TUNEZ tokens, discover new artists.",
+          "foundingDate": "2021",
+          "areaServed": { "@type": "Place", "name": "Worldwide" },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer service",
+            "email": "info@tunez9ja.com",
+            "availableLanguage": "English"
+          }
+        }
+      ]
+    }
+    </script>
 
-    <!-- Fonts: preconnect + preload the stylesheet itself so the browser
-         starts fetching font files in parallel with JS, instead of waiting
-         for CSS to be discovered after the main bundle parses. -->
+    <!-- ══ Fonts — non-blocking ══════════════════════════════════ -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preload" as="style"
@@ -36,11 +93,6 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <!-- Service worker registration now happens inside the React app
-         (src/lib/swRegister.js, invoked from App.jsx) rather than here.
-         This gives the app a single, safe, update-aware registration
-         path instead of two independent ones that could race each
-         other or double-register. -->
-      <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
   </body>
 </html>

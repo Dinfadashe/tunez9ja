@@ -4,6 +4,7 @@ import ShareButton from '../components/ShareButton.jsx'
 import { earnRead, isUnlocked } from '../lib/tunez.js'
 import PremiumUnlockModal from '../components/PremiumUnlockModal.jsx'
 import { supabase } from '../lib/supabase.js'
+import { useSEO, blogPostJsonLd } from '../lib/useSEO.js'
 
 import { SearchBar, EmptyState } from '../components/UI.jsx'
 import { Newspaper, Clock, User, ArrowLeft, Eye } from 'lucide-react'
@@ -27,10 +28,7 @@ function sanitizeHTML(html) {
   return s
 }
 
-
-
 const CATEGORIES = ['Music Review','News','Feature','Gossip','Playlist','Interview','Opinion','Events']
-
 
 function BlogSkeleton() {
   return (
@@ -58,8 +56,16 @@ function BlogSkeleton() {
   )
 }
 
+export default function BlogPage({
+  
+ setPage, currentUser, deepLink }) {
+  useSEO({
+    title: "Afrobeats & Global Music News, Reviews & Interviews | Tunez9ja",
+    description: "Read the latest Afrobeats news, global music reviews, artist interviews and culture coverage from Tunez9ja's music blog.",
+    url: "https://tunez9ja.netlify.app/?page=blog",
+    type: "blog",
+  })
 
-export default function BlogPage({ setPage, currentUser, deepLink }) {
   const [unlockTarget, setUnlockTarget] = useState(null)
   const [posts, setPosts]               = useState([])
   const [loading, setLoading]           = useState(true)
@@ -234,6 +240,18 @@ export default function BlogPage({ setPage, currentUser, deepLink }) {
 }
 
 function PostDetail({ post, onBack, currentUser }) {
+  // Dynamic SEO — updates og:title/og:image/canonical for this specific post
+  useSEO({
+    title: post?.title,
+    description: post?.excerpt
+      ? post.excerpt.slice(0, 155)
+      : `Read "${post?.title}"${post?.profiles?.name ? ' by ' + post.profiles.name : ''} on Tunez9ja Music Blog.`,
+    image: post?.cover_url,
+    url: `https://tunez9ja.netlify.app/?post=${post?.id}`,
+    type: 'article',
+    jsonLd: blogPostJsonLd(post),
+  })
+
   useEffect(() => {
     window.scrollTo(0, 0)
     supabase.rpc('increment_view_count', { p_post_id: post.id })

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { useSEO, websiteJsonLd, organizationJsonLd } from '../lib/useSEO.js'
 import { MusicArt } from '../components/UI.jsx'
 import { Play, TrendingUp, Mic2, Newspaper, ArrowRight, Music, Video, Youtube } from 'lucide-react'
 
@@ -48,7 +49,15 @@ function HomeSkeleton() {
   )
 }
 
-export default function Home({ setPage }) {
+export default function Home({
+  
+ setPage }) {
+  useSEO({
+    title: "Tunez9ja — Stream Music. Earn Rewards. Anywhere.",
+    description: "Stream music from Afrobeats to Hip-Hop, Highlife to Amapiano. Earn TUNEZ tokens for every stream, comment, and reaction — the music platform where everyone gets paid.",
+    jsonLd: [websiteJsonLd(), organizationJsonLd()],
+  })
+
   const [tracks, setTracks] = useState([])
   const [posts,  setPosts]  = useState([])
   const [videos, setVideos] = useState([])
@@ -97,12 +106,12 @@ export default function Home({ setPage }) {
         <div className="container hero-content" style={{ paddingTop: 'var(--space-2xl)', paddingBottom: 'var(--space-2xl)' }}>
           <div className="hero-grid">
             <div>
-              <div className="hero-eyebrow">Est. 2021 — Nigeria's Finest</div>
+              <div className="hero-eyebrow">Est. 2021 — Music For Everyone</div>
               <h1 className="hero-headline">
-                THE BEAT<br />OF <span className="accent">NAIJA</span><br />ONLINE
+                THE BEAT<br />OF <span className="accent">EVERY</span><br />CULTURE
               </h1>
               <p className="hero-sub">
-                Afrobeats. Highlife. Street Pop. We cover every sound shaping Nigerian music culture — new drops, artist stories, and the gist you can't miss.
+                Afrobeats. Highlife. Street Pop. We cover every sound shaping global music culture — new drops, artist stories, and the stories you can't miss.
               </p>
               <div className="hero-actions">
                 <button className="btn btn-primary" onClick={() => setPage('music')}>
@@ -224,7 +233,7 @@ export default function Home({ setPage }) {
         <div className="container">
           <div className="grid-2">
             <CTA icon={<Mic2 size={32} color="var(--red)" />} title="ARE YOU AN ARTIST?"
-              desc="Upload your music for review. Get featured on Nigeria's hottest blog and reach thousands of new fans."
+              desc="Upload your music for review. Get featured on Tunez9ja and reach fans around the world."
               action="Upload Your Music" onClick={() => setPage('register')} />
             <CTA icon={<Newspaper size={32} color="#00b4dc" />} title="ARE YOU A BLOGGER?"
               desc="Share music reviews, celebrity gossip, and industry news. Your voice belongs on Tunez9ja."

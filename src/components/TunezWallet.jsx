@@ -227,7 +227,7 @@ export default function TunezWallet({ currentUser, setPage }) {
             </div>
           )}
           <div style={{ background: 'rgba(255,180,0,0.06)', border: '1px solid rgba(255,180,0,0.2)', borderRadius: 10, padding: '12px 16px', marginBottom: 24, fontSize: 13, color: 'var(--grey-300)', lineHeight: 1.7 }}>
-            💳 Payments are processed securely via Paystack. TUNEZ will be credited to your wallet instantly after payment confirmation. Larger packages give better value per TUNEZ.
+            💳 Payments processed securely. TUNEZ will be credited to your wallet instantly after payment confirmation. Larger packages give better value per TUNEZ.
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
             {TUNEZ_PACKAGES.map(pkg => (
