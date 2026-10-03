@@ -17,15 +17,21 @@ const EMPTY_FORM = {
 
 // ─── Rich Text Editor ─────────────────────────────────────────────────────────
 // Inline toolbar with: Bold, Italic, Underline, Strikethrough,
-// H2, H3, Blockquote, UL, OL, Insert Link, Insert Image URL, Remove Format
-function RichEditor({ value, onChange }) {
+// H2, H3, Blockquote, UL, OL, Insert Link, Insert Image (URL or local file), Remove Format
+function RichEditor({ value, onChange, userId }) {
   const editorRef = useRef(null)
-  const [showLinkDialog, setShowLinkDialog]  = useState(false)
+  const imageFileRef = useRef(null)
+  const [showLinkDialog, setShowLinkDialog]   = useState(false)
   const [showImageDialog, setShowImageDialog] = useState(false)
-  const [linkLabel, setLinkLabel]  = useState('')
-  const [linkUrl, setLinkUrl]      = useState('')
-  const [imageUrl, setImageUrl]    = useState('')
-  const [imageAlt, setImageAlt]    = useState('')
+  const [linkLabel, setLinkLabel]   = useState('')
+  const [linkUrl, setLinkUrl]       = useState('')
+  const [imageUrl, setImageUrl]     = useState('')
+  const [imageAlt, setImageAlt]     = useState('')
+  const [imageTab, setImageTab]     = useState('upload') // 'upload' | 'url'
+  const [imageFile, setImageFile]   = useState(null)
+  const [imagePreview, setImagePreview] = useState('')
+  const [uploading, setUploading]   = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const savedRange = useRef(null)
 
   // Initialise editor content from value prop (only on first mount / external reset)
@@ -96,19 +102,77 @@ function RichEditor({ value, onChange }) {
     saveSelection()
     setImageUrl('')
     setImageAlt('')
+    setImageFile(null)
+    setImagePreview('')
+    setUploadError('')
+    setImageTab('upload')
     setShowImageDialog(true)
   }
 
-  const insertImage = () => {
-    if (!imageUrl.trim()) { setShowImageDialog(false); return }
+  const closeImageDialog = () => {
+    setShowImageDialog(false)
+    setImageFile(null)
+    setImagePreview('')
+    setImageUrl('')
+    setImageAlt('')
+    setUploadError('')
+  }
+
+  const handleImageFileChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please select an image file (JPG, PNG, GIF, WebP).')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Image must be under 5 MB.')
+      return
+    }
+    setUploadError('')
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const insertImageHtml = (src, alt) => {
     restoreSelection()
     editorRef.current?.focus()
     document.execCommand('insertHTML', false,
-      `<img src="${imageUrl.trim()}" alt="${imageAlt.trim() || 'image'}" style="max-width:100%;border-radius:6px;margin:8px 0;" />`)
+      `<img src="${src}" alt="${alt || 'image'}" style="max-width:100%;border-radius:6px;margin:8px 0;display:block;" />`)
     handleInput()
-    setShowImageDialog(false)
-    setImageUrl('')
-    setImageAlt('')
+  }
+
+  const insertImage = async () => {
+    setUploadError('')
+
+    // ── Local file upload ──
+    if (imageTab === 'upload') {
+      if (!imageFile) { setUploadError('Please choose an image file.'); return }
+      setUploading(true)
+      try {
+        const ext  = imageFile.name.split('.').pop()
+        const path = `blog_images/${userId || 'anon'}_${Date.now()}.${ext}`
+        const { error } = await supabase.storage
+          .from('covers')
+          .upload(path, imageFile, { upsert: true })
+        if (error) throw error
+        const { data: urlData } = supabase.storage.from('covers').getPublicUrl(path)
+        const publicUrl = urlData?.publicUrl
+        if (!publicUrl) throw new Error('Could not get public URL')
+        insertImageHtml(publicUrl, imageAlt.trim())
+        closeImageDialog()
+      } catch (err) {
+        setUploadError(`Upload failed: ${err.message || 'Please try again.'}`)
+      } finally {
+        setUploading(false)
+      }
+      return
+    }
+
+    // ── External URL ──
+    if (!imageUrl.trim()) { setUploadError('Please enter an image URL.'); return }
+    insertImageHtml(imageUrl.trim(), imageAlt.trim())
+    closeImageDialog()
   }
 
   const toolbarBtn = (onClick, title, content, active = false) => (
@@ -226,30 +290,84 @@ function RichEditor({ value, onChange }) {
       {/* ── Image dialog ── */}
       {showImageDialog && (
         <div style={S.overlay}>
-          <div style={S.dialog}>
+          <div style={{ ...S.dialog, maxWidth: 440 }}>
             <h4 style={{ margin: '0 0 14px', color: '#fff' }}>🖼 Insert Image</h4>
-            <label style={S.dlabel}>Image URL *</label>
-            <input
-              autoFocus
-              value={imageUrl}
-              onChange={e => setImageUrl(e.target.value)}
-              placeholder="https://example.com/photo.jpg"
-              style={S.dinput}
-            />
+
+            {/* Tab switcher */}
+            <div style={{ display: 'flex', gap: 0, marginBottom: 16, border: '1px solid #333', borderRadius: 6, overflow: 'hidden' }}>
+              {[['upload', '📁 Upload from device'], ['url', '🔗 From URL']].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => { setImageTab(id); setUploadError('') }}
+                  style={{
+                    flex: 1, padding: '8px 0', border: 'none', cursor: 'pointer', fontSize: 13,
+                    background: imageTab === id ? '#c8102e' : '#1a1a1a',
+                    color:      imageTab === id ? '#fff'    : '#888',
+                    fontWeight: imageTab === id ? 600 : 400,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Upload tab */}
+            {imageTab === 'upload' && (
+              <div>
+                <label style={S.dlabel}>Choose image (JPG, PNG, GIF, WebP — max 5 MB)</label>
+                <input
+                  ref={imageFileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                  style={{ color: '#aaa', fontSize: 13, width: '100%', marginTop: 4 }}
+                />
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 6, marginTop: 10 }}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* URL tab */}
+            {imageTab === 'url' && (
+              <div>
+                <label style={S.dlabel}>Image URL *</label>
+                <input
+                  autoFocus
+                  value={imageUrl}
+                  onChange={e => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/photo.jpg"
+                  style={S.dinput}
+                />
+              </div>
+            )}
+
+            {/* Alt text — shared */}
             <label style={S.dlabel}>Alt text (optional)</label>
             <input
               value={imageAlt}
               onChange={e => setImageAlt(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && insertImage()}
+              onKeyDown={e => e.key === 'Enter' && !uploading && insertImage()}
               placeholder="Describe the image…"
               style={S.dinput}
             />
+
+            {/* Error */}
+            {uploadError && (
+              <div style={{ marginTop: 10, fontSize: 13, color: '#ef4444' }}>{uploadError}</div>
+            )}
+
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button type="button" onClick={insertImage}
-                style={{ flex: 1, padding: '9px 0', background: '#c8102e', border: 'none', color: '#fff', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
-                Insert
+              <button type="button" onClick={insertImage} disabled={uploading}
+                style={{ flex: 1, padding: '9px 0', background: uploading ? '#555' : '#c8102e', border: 'none', color: '#fff', borderRadius: 6, cursor: uploading ? 'default' : 'pointer', fontWeight: 600 }}>
+                {uploading ? 'Uploading…' : 'Insert'}
               </button>
-              <button type="button" onClick={() => setShowImageDialog(false)}
+              <button type="button" onClick={closeImageDialog} disabled={uploading}
                 style={{ flex: 1, padding: '9px 0', background: '#2a2a2a', border: '1px solid #444', color: '#aaa', borderRadius: 6, cursor: 'pointer' }}>
                 Cancel
               </button>
@@ -548,6 +666,7 @@ export default function BloggerDashboard({ currentUser, setPage }) {
               <RichEditor
                 value={form.content}
                 onChange={val => handleChange('content', val)}
+                userId={userId}
               />
               <div style={{ fontSize: 12, color: '#444', marginTop: 6 }}>
                 Use the toolbar above to format text, insert links, and add images inline.
