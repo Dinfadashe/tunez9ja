@@ -153,10 +153,10 @@ function RichEditor({ value, onChange, userId }) {
         const ext  = imageFile.name.split('.').pop()
         const path = `blog_images/${userId || 'anon'}_${Date.now()}.${ext}`
         const { error } = await supabase.storage
-          .from('covers')
+          .from('post-images')
           .upload(path, imageFile, { upsert: true })
         if (error) throw error
-        const { data: urlData } = supabase.storage.from('covers').getPublicUrl(path)
+        const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(path)
         const publicUrl = urlData?.publicUrl
         if (!publicUrl) throw new Error('Could not get public URL')
         insertImageHtml(publicUrl, imageAlt.trim())
@@ -534,9 +534,9 @@ export default function BloggerDashboard({ currentUser, setPage }) {
     if (!coverFile) return form.cover_url
     const ext  = coverFile.name.split('.').pop()
     const path = `blog_covers/${userId}_${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('covers').upload(path, coverFile, { upsert: true })
+    const { error } = await supabase.storage.from('post-images').upload(path, coverFile, { upsert: true })
     if (error) return form.cover_url
-    const { data: url } = supabase.storage.from('covers').getPublicUrl(path)
+    const { data: url } = supabase.storage.from('post-images').getPublicUrl(path)
     return url?.publicUrl || form.cover_url
   }
 
