@@ -697,3 +697,8 @@ body {
 .card:hover .track-play-overlay {
   opacity: 1 !important;
 }
+
+/* Dashboard account menu: icon-only on very small phones */
+@media (max-width: 420px) {
+  .acct-menu-label { display: none; }
+}

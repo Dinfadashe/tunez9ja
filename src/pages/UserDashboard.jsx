@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { earnDailyLogin } from '../lib/tunez.js'
 import Sidebar from '../components/Sidebar.jsx'
-import RoleSwitcher from '../components/RoleSwitcher.jsx'
+import { AccountMenu } from '../components/RoleSwitcher.jsx'
 import TunezWallet from '../components/TunezWallet.jsx'
 import MyLibrary from '../components/MyLibrary.jsx'
 import Playlists from '../components/Playlists.jsx'
@@ -26,7 +26,7 @@ const NAV = [
   { key: 'editor',    label: 'Become Editor', icon: Newspaper       },
 ]
 
-export default function UserDashboard({ setPage, currentUser: propUser, onRoleSwitch, activeRole }) {
+export default function UserDashboard({ setPage, currentUser: propUser, onRoleSwitch, activeRole, onSignOut }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [active, setActive] = useState(() => {
     // Check for a tab pre-select signal from PremiumUnlockModal's "Buy TUNEZ" button
@@ -74,7 +74,7 @@ export default function UserDashboard({ setPage, currentUser: propUser, onRoleSw
             </div>
           </div>
           <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
-            <RoleSwitcher profile={currentUser} activeRole={activeRole} onRoleSwitch={onRoleSwitch} compact />
+            <AccountMenu profile={currentUser} activeRole={activeRole} onRoleSwitch={onRoleSwitch} onSignOut={onSignOut} />
           </div>
         </div>
         <div className="dashboard-content">

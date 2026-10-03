@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import Sidebar from '../components/Sidebar.jsx'
-import RoleSwitcher from '../components/RoleSwitcher.jsx'
+import { AccountMenu } from '../components/RoleSwitcher.jsx'
 import { Avatar, StatusBadge, Modal, ConfirmModal, EmptyState, SearchBar, MusicArt } from '../components/UI.jsx'
 import { RejectMusicModal, RejectPostModal } from '../components/RejectModal.jsx'
 import TunezWallet from '../components/TunezWallet.jsx'
@@ -24,7 +24,7 @@ const NAV = (pending) => [
   { key: 'wallet',        label: 'TUNEZ Earnings',  icon: Coins, badge: null },
 ]
 
-export default function AdminDashboard({ setPage, currentUser: propUser, setCurrentUser: propSetUser, onRoleSwitch, activeRole }) {
+export default function AdminDashboard({ setPage, currentUser: propUser, setCurrentUser: propSetUser, onRoleSwitch, activeRole, onSignOut }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [active, setActive]           = useState('overview')
   const [currentUser, setCurrentUser] = useState(null)
@@ -85,7 +85,7 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
             </div>
           )}
           <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
-            <RoleSwitcher profile={currentUser} activeRole={activeRole} onRoleSwitch={onRoleSwitch} compact />
+            <AccountMenu profile={currentUser} activeRole={activeRole} onRoleSwitch={onRoleSwitch} onSignOut={onSignOut} />
           </div>
         </div>
         <div className="dashboard-content">

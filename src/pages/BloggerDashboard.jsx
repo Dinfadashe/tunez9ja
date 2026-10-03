@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
-import RoleSwitcher from '../components/RoleSwitcher.jsx'
+import { AccountMenu } from '../components/RoleSwitcher.jsx'
 
 // ─── Draft auto-save key (per-user) ──────────────────────────────────────────
 const DRAFT_KEY = (userId) => `t9j_blog_draft_${userId}`
@@ -400,7 +400,7 @@ function RichEditor({ value, onChange, userId }) {
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
-export default function BloggerDashboard({ currentUser, setPage, onRoleSwitch, activeRole }) {
+export default function BloggerDashboard({ currentUser, setPage, onRoleSwitch, activeRole, onSignOut }) {
   const [tab, setTab]               = useState('write')
   const [posts, setPosts]           = useState([])
   const [drafts, setDrafts]         = useState([])
@@ -648,7 +648,7 @@ export default function BloggerDashboard({ currentUser, setPage, onRoleSwitch, a
           <p style={{ margin: 0, fontSize: 13, color: '#888', marginTop: 4 }}>Welcome, {currentUser?.name || 'Blogger'}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <RoleSwitcher profile={currentUser} activeRole={activeRole} onRoleSwitch={onRoleSwitch} compact />
+          <AccountMenu profile={currentUser} activeRole={activeRole} onRoleSwitch={onRoleSwitch} onSignOut={onSignOut} />
           <button onClick={() => setPage?.('home')} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
             ← Back to site
           </button>

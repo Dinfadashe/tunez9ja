@@ -414,7 +414,14 @@ function AppInner() {
 
   const isDashboard = DASHBOARD_PAGES.includes(safePage)
   const isAuth      = AUTH_PAGES.includes(safePage)
-  const dashboardProps = { setPage, currentUser: profile, setCurrentUser: setProfile, onRoleSwitch: handleRoleSwitch, activeRole }
+  const handleSignOut = async () => {
+    try { await supabase.auth.signOut() } catch (e) { console.error('Sign out error:', e) }
+    sessionStorage.removeItem('t9_profile')
+    setProfile(null)
+    setActiveRole(null)
+    setPage('home')
+  }
+  const dashboardProps = { setPage, currentUser: profile, setCurrentUser: setProfile, onRoleSwitch: handleRoleSwitch, activeRole, onSignOut: handleSignOut }
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

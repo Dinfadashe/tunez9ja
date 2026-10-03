@@ -7,7 +7,7 @@ import ArtistKYC from '../components/ArtistKYC.jsx'
 import EditorApplication from '../components/EditorApplication.jsx'
 import { useDashboard } from '../hooks/useDashboard.js'
 import Sidebar from '../components/Sidebar.jsx'
-import RoleSwitcher from '../components/RoleSwitcher.jsx'
+import { AccountMenu } from '../components/RoleSwitcher.jsx'
 import { MusicArt, StatusBadge, Modal, ConfirmModal, EmptyState } from '../components/UI.jsx'
 import { MusicCopyrightAgreement, DMCANotice } from '../components/CopyrightCheckbox.jsx'
 import TunezWallet from '../components/TunezWallet.jsx'
@@ -38,7 +38,7 @@ const NAV = [
   { key: 'editor',     label: 'Become Editor', icon: Pen             }, // label overridden dynamically
 ]
 
-export default function ArtistDashboard({ setPage, currentUser: propUser, onRoleSwitch, activeRole }) {
+export default function ArtistDashboard({ setPage, currentUser: propUser, onRoleSwitch, activeRole, onSignOut }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [active, setActive] = useState('overview')
   const { currentUser, setCurrentUser } = useDashboard(propUser)
@@ -85,7 +85,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>{NAV.find(n => n.key === active)?.label}</h1>
           </div>
           <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
-            <RoleSwitcher profile={currentUser} activeRole={activeRole} onRoleSwitch={onRoleSwitch} compact />
+            <AccountMenu profile={currentUser} activeRole={activeRole} onRoleSwitch={onRoleSwitch} onSignOut={onSignOut} />
           </div>
         </div>
         <div className="dashboard-content">
