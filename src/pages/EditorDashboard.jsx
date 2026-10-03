@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import Sidebar from '../components/Sidebar.jsx'
+import RoleSwitcher from '../components/RoleSwitcher.jsx'
 import TunezWallet from '../components/TunezWallet.jsx'
 import ProfileEditor from '../components/ProfileEditor.jsx'
 import { LayoutDashboard, Newspaper, Coins, User, Eye, CheckCircle, XCircle, Link } from 'lucide-react'
@@ -19,7 +20,7 @@ function calcEditorEarning(price) {
   return Math.round(price * 15) / 100
 }
 
-export default function EditorDashboard({ setPage, currentUser: propUser, onRoleSwitch }) {
+export default function EditorDashboard({ setPage, currentUser: propUser, onRoleSwitch, activeRole }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [active, setActive] = useState('overview')
   const [freshUser, setFreshUser] = useState(null)
@@ -80,6 +81,9 @@ export default function EditorDashboard({ setPage, currentUser: propUser, onRole
                 {NAV.find(function(n) { return n.key === active }) ? NAV.find(function(n) { return n.key === active }).label : ''}
               </h1>
             </div>
+          </div>
+          <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+            <RoleSwitcher profile={user} activeRole={activeRole} onRoleSwitch={onRoleSwitch} compact />
           </div>
         </div>
         <div className="dashboard-content">

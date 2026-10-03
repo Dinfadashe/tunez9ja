@@ -6,6 +6,7 @@ const ChartsPage = React.lazy(() => import('./pages/ChartsPage.jsx'))
 const AlbumsPage = React.lazy(() => import('./components/Albums.jsx'))
 import { AppProvider } from './context/AppContext.jsx'
 import { PlayerProvider } from './context/PlayerContext.jsx'
+import { dashboardPageForRole } from './components/RoleSwitcher.jsx'
 import { supabase } from './lib/supabase.js'
 import { ToastContainer } from './components/UI.jsx'
 import FloatingPlayer from './components/FloatingPlayer.jsx'
@@ -363,12 +364,9 @@ function AppInner() {
     const updated = { ...profile, active_role: newRole }
     sessionStorage.setItem('t9_profile', JSON.stringify(updated))
     supabase.from('profiles').update({ active_role: newRole }).eq('id', profile.id)
-      .then(() => {}).catch(() => {})
+      .then(({ error }) => { if (error) console.warn('active_role not saved:', error.message) })
     // Navigate to correct dashboard
-    if (newRole === 'admin')        setPage('admin-dashboard')
-    else if (newRole === 'artist')  setPage('artist-dashboard')
-    else if (newRole === 'blogger') setPage('blogger-dashboard')
-    else if (newRole === 'user')    setPage('user-dashboard')
+    setPage(dashboardPageForRole(newRole))
   }
 
 
@@ -416,7 +414,7 @@ function AppInner() {
 
   const isDashboard = DASHBOARD_PAGES.includes(safePage)
   const isAuth      = AUTH_PAGES.includes(safePage)
-  const dashboardProps = { setPage, currentUser: profile, setCurrentUser: setProfile, onRoleSwitch: handleRoleSwitch }
+  const dashboardProps = { setPage, currentUser: profile, setCurrentUser: setProfile, onRoleSwitch: handleRoleSwitch, activeRole }
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -441,7 +439,7 @@ function AppInner() {
         </div>
       )}
       {!isDashboard && !isAuth && (
-        <Navbar page={safePage} setPage={setPage} profile={profile} activeRole={activeRole} onDJOpen={() => setDjOpen(true)}
+        <Navbar page={safePage} setPage={setPage} profile={profile} activeRole={activeRole} onRoleSwitch={handleRoleSwitch} onDJOpen={() => setDjOpen(true)}
           onLogout={async () => { await supabase.auth.signOut() }} />
       )}
       <main style={{ flex: 1 }}>
@@ -463,6 +461,7 @@ function AppInner() {
         {safePage === 'artist-dashboard'  && <ArtistDashboard  {...dashboardProps} />}
         {safePage === 'blogger-dashboard' && <BloggerDashboard {...dashboardProps} />}
         {safePage === 'user-dashboard'    && <UserDashboard    {...dashboardProps} />}
+        {safePage === 'editor-dashboard'  && <EditorDashboard  {...dashboardProps} />}
         </React.Suspense>
       </main>
       {!NO_FOOTER.includes(safePage) && <Footer setPage={setPage} />}

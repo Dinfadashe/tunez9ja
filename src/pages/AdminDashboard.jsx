@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import Sidebar from '../components/Sidebar.jsx'
+import RoleSwitcher from '../components/RoleSwitcher.jsx'
 import { Avatar, StatusBadge, Modal, ConfirmModal, EmptyState, SearchBar, MusicArt } from '../components/UI.jsx'
 import { RejectMusicModal, RejectPostModal } from '../components/RejectModal.jsx'
 import TunezWallet from '../components/TunezWallet.jsx'
@@ -23,7 +24,7 @@ const NAV = (pending) => [
   { key: 'wallet',        label: 'TUNEZ Earnings',  icon: Coins, badge: null },
 ]
 
-export default function AdminDashboard({ setPage, currentUser: propUser, setCurrentUser: propSetUser, onRoleSwitch }) {
+export default function AdminDashboard({ setPage, currentUser: propUser, setCurrentUser: propSetUser, onRoleSwitch, activeRole }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [active, setActive]           = useState('overview')
   const [currentUser, setCurrentUser] = useState(null)
@@ -83,6 +84,9 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
               {pending.music + pending.posts} items awaiting review
             </div>
           )}
+          <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+            <RoleSwitcher profile={currentUser} activeRole={activeRole} onRoleSwitch={onRoleSwitch} compact />
+          </div>
         </div>
         <div className="dashboard-content">
           {active === 'overview'     && <AdminOverview setActive={setActive} fetchPending={fetchPending} />}
@@ -340,11 +344,30 @@ function PostsReview({ fetchPending }) {
   const [rejectModal, setRejectModal] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
 
+  const [loadError, setLoadError] = useState('')
+
   const fetchPosts = async () => {
+    setLoadError('')
     let q = supabase.from('v_admin_post_queue').select('*')
     if (filter !== 'all') q = q.eq('status', filter)
-    const { data } = await q
-    setPosts(data || [])
+    const { data, error } = await q.order('created_at', { ascending: false })
+    if (!error) { setPosts(data || []); return }
+
+    // The view failed (missing, renamed, or blocked by RLS). Fall back to the
+    // table directly so pending posts never silently disappear from review.
+    console.warn('v_admin_post_queue failed, falling back to blog_posts:', error.message)
+    let fq = supabase.from('blog_posts').select('*').neq('status', 'draft')
+    if (filter !== 'all') fq = fq.eq('status', filter)
+    const { data: rows, error: err2 } = await fq.order('created_at', { ascending: false })
+    if (err2) { setLoadError(err2.message); setPosts([]); return }
+    const ids = [...new Set((rows || []).map(r => r.author_id).filter(Boolean))]
+    let names = {}
+    if (ids.length) {
+      const { data: profs } = await supabase.from('profiles').select('id, name').in('id', ids)
+      names = Object.fromEntries((profs || []).map(p => [p.id, p.name]))
+    }
+    setPosts((rows || []).map(r => ({ ...r, author_name: names[r.author_id] || 'Unknown' })))
+    setLoadError(`Review view unavailable (${error.message}) — showing posts directly from the table.`)
   }
   useEffect(() => { fetchPosts() }, [filter])
 
@@ -386,6 +409,12 @@ function PostsReview({ fetchPending }) {
           ))}
         </div>
       </div>
+
+      {loadError && (
+        <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, fontSize: 13, background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.35)', color: '#facc15' }}>
+          {loadError}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <EmptyState icon={<Newspaper size={48} />} title="No posts here" message="Nothing matches the current filter." />

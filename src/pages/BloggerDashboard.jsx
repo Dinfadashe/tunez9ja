@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
+import RoleSwitcher from '../components/RoleSwitcher.jsx'
 
 // ─── Draft auto-save key (per-user) ──────────────────────────────────────────
 const DRAFT_KEY = (userId) => `t9j_blog_draft_${userId}`
@@ -10,10 +11,14 @@ const EMPTY_FORM = {
   content: '',
   excerpt: '',
   cover_url: '',
+  category: '',
   tags: '',
   is_premium: false,
-  premium_price: 0,
+  tunez_price: 0,
 }
+
+// Must match the categories the public Blog page filters on
+const CATEGORIES = ['Music Review','News','Feature','Gossip','Playlist','Interview','Opinion','Events']
 
 // ─── Rich Text Editor ─────────────────────────────────────────────────────────
 // Inline toolbar with: Bold, Italic, Underline, Strikethrough,
@@ -395,7 +400,7 @@ function RichEditor({ value, onChange, userId }) {
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
-export default function BloggerDashboard({ currentUser, setPage }) {
+export default function BloggerDashboard({ currentUser, setPage, onRoleSwitch, activeRole }) {
   const [tab, setTab]               = useState('write')
   const [posts, setPosts]           = useState([])
   const [drafts, setDrafts]         = useState([])
@@ -418,8 +423,9 @@ export default function BloggerDashboard({ currentUser, setPage }) {
       if (raw) {
         const saved = JSON.parse(raw)
         if (saved.title || saved.content) {
-          setForm({ ...EMPTY_FORM, ...saved })
-          setEditingId(saved._draftId || null)
+          const { premium_price, ...rest } = saved
+          setForm({ ...EMPTY_FORM, ...rest, tunez_price: rest.tunez_price ?? premium_price ?? 0 })
+          bindDraftId(saved._draftId || null)
           setSaveStatus('Restored from last session')
           setTimeout(() => setSaveStatus(''), 3000)
         }
@@ -433,11 +439,12 @@ export default function BloggerDashboard({ currentUser, setPage }) {
   async function fetchPosts() {
     if (!userId) return
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('blog_posts')
-      .select('id, title, status, created_at, views, is_premium, premium_price')
+      .select('id, title, category, status, created_at, view_count, is_premium, tunez_price')
       .eq('author_id', userId)
       .order('created_at', { ascending: false })
+    if (error) console.warn('Could not load your posts:', error.message)
     if (data) {
       setDrafts(data.filter(p => p.status === 'draft'))
       setPosts(data.filter(p => p.status !== 'draft'))
@@ -449,67 +456,94 @@ export default function BloggerDashboard({ currentUser, setPage }) {
     if (!userId) return
     const { data } = await supabase
       .from('blog_posts')
-      .select('status, views')
+      .select('status, view_count')
       .eq('author_id', userId)
     if (data) {
       setStats({
         total:    data.length,
         approved: data.filter(p => p.status === 'approved').length,
-        views:    data.reduce((s, p) => s + (p.views || 0), 0),
+        views:    data.reduce((s, p) => s + (p.view_count || 0), 0),
         drafts:   data.filter(p => p.status === 'draft').length,
       })
     }
   }
 
   // ── Auto-save draft ─────────────────────────────────────────────────────────
-  const saveDraft = useCallback(async (formData, draftId) => {
-    if (!userId) return
-    setSaveStatus('saving')
-    try {
-      localStorage.setItem(DRAFT_KEY(userId), JSON.stringify({
-        ...formData, _draftId: draftId, _savedAt: Date.now(),
-      }))
-    } catch { /* storage full */ }
+  // Refs (not state) so async callbacks always see the latest values:
+  //  - draftIdRef:   id of the draft row this editor is bound to
+  //  - submittingRef: true while a submit is running; autosave must stand down
+  //  - inflightRef:  the autosave request currently in progress (if any)
+  const draftIdRef    = useRef(null)
+  const submittingRef = useRef(false)
+  const inflightRef   = useRef(null)
 
-    if (!formData.title?.trim() && !formData.content?.trim()) {
-      setSaveStatus('')
-      return
-    }
-    const payload = buildPayload(formData, userId, 'draft')
-    try {
-      if (draftId) {
-        await supabase.from('blog_posts').update(payload).eq('id', draftId).eq('author_id', userId)
-        setSaveStatus('saved')
-      } else {
-        const { data, error } = await supabase
-          .from('blog_posts')
-          .insert({ ...payload, created_at: new Date().toISOString() })
-          .select('id').single()
-        if (!error && data?.id) {
-          setEditingId(data.id)
-          localStorage.setItem(DRAFT_KEY(userId), JSON.stringify({
-            ...formData, _draftId: data.id, _savedAt: Date.now(),
-          }))
-          setSaveStatus('saved')
-        }
+  const bindDraftId = (id) => { draftIdRef.current = id; setEditingId(id) }
+
+  const saveDraft = useCallback((formData) => {
+    if (!userId || submittingRef.current) return Promise.resolve()
+    const run = (async () => {
+      setSaveStatus('saving')
+      try {
+        localStorage.setItem(DRAFT_KEY(userId), JSON.stringify({
+          ...formData, _draftId: draftIdRef.current, _savedAt: Date.now(),
+        }))
+      } catch { /* storage full */ }
+
+      if (!formData.title?.trim() && !formData.content?.trim()) {
+        setSaveStatus('')
+        return
       }
-    } catch { setSaveStatus('error') }
-    setTimeout(() => setSaveStatus(''), 3000)
+      const payload = buildPayload(formData, userId, 'draft')
+      try {
+        let id = draftIdRef.current
+        if (id) {
+          // Only ever touch rows that are still drafts — an autosave must never
+          // pull a submitted (pending/approved) post back to 'draft'.
+          const { data, error } = await supabase.from('blog_posts')
+            .update(payload).eq('id', id).eq('author_id', userId).eq('status', 'draft')
+            .select('id')
+          if (error) throw error
+          if (!data?.length) id = null // row was submitted/deleted elsewhere — start a fresh draft
+        }
+        if (!id) {
+          if (submittingRef.current) return
+          const { data, error } = await supabase.from('blog_posts')
+            .insert({ ...payload, created_at: new Date().toISOString() })
+            .select('id').single()
+          if (error) throw error
+          bindDraftId(data.id)
+          try {
+            localStorage.setItem(DRAFT_KEY(userId), JSON.stringify({
+              ...formData, _draftId: data.id, _savedAt: Date.now(),
+            }))
+          } catch { /* storage full */ }
+        }
+        setSaveStatus('saved')
+      } catch (err) {
+        console.warn('Draft autosave failed:', err?.message || err)
+        setSaveStatus('error')
+      }
+      setTimeout(() => setSaveStatus(''), 3000)
+    })()
+    inflightRef.current = run
+    return run
   }, [userId])
 
-  function triggerAutoSave(formData, draftId) {
+  function triggerAutoSave(formData) {
     clearTimeout(saveTimerRef.current)
     setSaveStatus('saving')
-    saveTimerRef.current = setTimeout(() => saveDraft(formData, draftId), 1500)
+    saveTimerRef.current = setTimeout(() => saveDraft(formData), 1500)
   }
 
+  // Stop any pending autosave when leaving the dashboard
+  useEffect(() => () => clearTimeout(saveTimerRef.current), [])
+
   function handleChange(field, value) {
-    setForm(prev => {
-      const updated = { ...prev, [field]: value }
-      triggerAutoSave(updated, editingId)
-      return updated
-    })
+    setForm(prev => ({ ...prev, [field]: value }))
+    triggerAutoSave({ ...formRef.current, [field]: value })
   }
+  const formRef = useRef(form)
+  formRef.current = form
 
   // ── Load draft from Supabase ────────────────────────────────────────────────
   async function loadDraft(draft) {
@@ -522,9 +556,10 @@ export default function BloggerDashboard({ currentUser, setPage }) {
         cover_url:     data.cover_url || '',
         tags:          Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || ''),
         is_premium:    data.is_premium || false,
-        premium_price: data.premium_price || 0,
+        category:      data.category || '',
+        tunez_price:   data.tunez_price || 0,
       })
-      setEditingId(data.id)
+      bindDraftId(data.id)
       setTab('write')
     }
   }
@@ -543,31 +578,47 @@ export default function BloggerDashboard({ currentUser, setPage }) {
   // ── Submit for review ───────────────────────────────────────────────────────
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.title?.trim() || !form.content?.trim()) {
-      setSubmitMsg('Please add a title and content before submitting.')
+    if (!form.title?.trim() || !form.content?.trim() || !form.category) {
+      setSubmitMsg('Please add a title, category and content before submitting.')
       return
     }
+    // Cancel any queued autosave and wait for one already in flight, so it
+    // can't overwrite this submission with status 'draft' afterwards.
+    clearTimeout(saveTimerRef.current)
+    submittingRef.current = true
     setSaving(true)
     setSubmitMsg('')
     try {
+      await inflightRef.current?.catch?.(() => {})
       const coverUrl = await uploadCover()
       const payload  = buildPayload({ ...form, cover_url: coverUrl || form.cover_url }, userId, 'pending')
-      if (editingId) {
-        await supabase.from('blog_posts').update(payload).eq('id', editingId).eq('author_id', userId)
-      } else {
-        await supabase.from('blog_posts').insert({ ...payload, created_at: new Date().toISOString() })
+      let id = draftIdRef.current
+      if (id) {
+        const { data, error } = await supabase.from('blog_posts')
+          .update(payload).eq('id', id).eq('author_id', userId)
+          .select('id, status')
+        if (error) throw error
+        if (!data?.length) id = null // draft row is gone — create the post fresh
+      }
+      if (!id) {
+        const { error } = await supabase.from('blog_posts')
+          .insert({ ...payload, created_at: new Date().toISOString() })
+        if (error) throw error
       }
       localStorage.removeItem(DRAFT_KEY(userId))
       setForm(EMPTY_FORM)
-      setEditingId(null)
+      bindDraftId(null)
       setCoverFile(null)
+      setSaveStatus('')
       setSubmitMsg('✅ Post submitted for review!')
       fetchPosts()
       fetchStats()
       setTimeout(() => setTab('posts'), 1500)
-    } catch {
-      setSubmitMsg('❌ Submission failed. Please try again.')
+    } catch (err) {
+      console.error('Blog submit failed:', err)
+      setSubmitMsg(`❌ Submission failed: ${err?.message || 'please try again.'}`)
     } finally {
+      submittingRef.current = false
       setSaving(false)
     }
   }
@@ -575,10 +626,11 @@ export default function BloggerDashboard({ currentUser, setPage }) {
   // ── Discard draft ───────────────────────────────────────────────────────────
   async function discardDraft() {
     if (!window.confirm('Discard this draft?')) return
-    if (editingId) await supabase.from('blog_posts').delete().eq('id', editingId).eq('author_id', userId)
+    clearTimeout(saveTimerRef.current)
+    if (draftIdRef.current) await supabase.from('blog_posts').delete().eq('id', draftIdRef.current).eq('author_id', userId).eq('status', 'draft')
     localStorage.removeItem(DRAFT_KEY(userId))
     setForm(EMPTY_FORM)
-    setEditingId(null)
+    bindDraftId(null)
     setCoverFile(null)
     fetchPosts()
     fetchStats()
@@ -590,14 +642,17 @@ export default function BloggerDashboard({ currentUser, setPage }) {
     <div style={{ minHeight: '100vh', background: '#0f0f0f', color: '#fff', fontFamily: 'Inter, sans-serif' }}>
 
       {/* Header */}
-      <div style={{ background: '#1a1a1a', borderBottom: '1px solid #333', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ background: '#1a1a1a', borderBottom: '1px solid #333', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Blogger Dashboard</h1>
           <p style={{ margin: 0, fontSize: 13, color: '#888', marginTop: 4 }}>Welcome, {currentUser?.name || 'Blogger'}</p>
         </div>
-        <button onClick={() => setPage?.('home')} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
-          ← Back to site
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <RoleSwitcher profile={currentUser} activeRole={activeRole} onRoleSwitch={onRoleSwitch} compact />
+          <button onClick={() => setPage?.('home')} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
+            ← Back to site
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -658,6 +713,15 @@ export default function BloggerDashboard({ currentUser, setPage }) {
               <input value={form.title} onChange={e => handleChange('title', e.target.value)}
                 placeholder="Enter your post title…"
                 style={{ ...S.input, fontSize: 18, fontWeight: 600 }} />
+            </div>
+
+            {/* Category */}
+            <div style={S.group}>
+              <label style={S.label}>Category *</label>
+              <select value={form.category} onChange={e => handleChange('category', e.target.value)} style={S.input}>
+                <option value="">Select category</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
 
             {/* ── Rich Text Editor ── */}
@@ -721,8 +785,8 @@ export default function BloggerDashboard({ currentUser, setPage }) {
               {form.is_premium && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <label style={{ color: '#888', fontSize: 13 }}>Price (TUNEZ):</label>
-                  <input type="number" min="1" max="9999" value={form.premium_price}
-                    onChange={e => handleChange('premium_price', Number(e.target.value))}
+                  <input type="number" min="1" max="9999" value={form.tunez_price}
+                    onChange={e => handleChange('tunez_price', Number(e.target.value))}
                     style={{ ...S.input, width: 80 }} />
                 </div>
               )}
@@ -740,7 +804,7 @@ export default function BloggerDashboard({ currentUser, setPage }) {
             )}
 
             <div style={{ display: 'flex', gap: 12 }}>
-              <button type="button" onClick={() => saveDraft(form, editingId)}
+              <button type="button" onClick={() => { clearTimeout(saveTimerRef.current); saveDraft(form) }}
                 style={{ flex: 1, padding: '12px 0', background: '#1a1a1a', border: '1px solid #444', color: '#aaa', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>
                 💾 Save Draft
               </button>
@@ -777,7 +841,7 @@ export default function BloggerDashboard({ currentUser, setPage }) {
                   <button onClick={async () => {
                     if (!window.confirm('Delete this draft?')) return
                     await supabase.from('blog_posts').delete().eq('id', d.id).eq('author_id', userId)
-                    if (editingId === d.id) { setForm(EMPTY_FORM); setEditingId(null); localStorage.removeItem(DRAFT_KEY(userId)) }
+                    if (editingId === d.id) { clearTimeout(saveTimerRef.current); setForm(EMPTY_FORM); bindDraftId(null); localStorage.removeItem(DRAFT_KEY(userId)) }
                     fetchPosts(); fetchStats()
                   }} style={{ background: '#2a2a2a', border: '1px solid #444', color: '#888', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
                     Delete
@@ -815,8 +879,8 @@ export default function BloggerDashboard({ currentUser, setPage }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>{p.title}</div>
                   <div style={{ fontSize: 12, color: '#666' }}>
-                    {new Date(p.created_at).toLocaleDateString()} · {(p.views || 0).toLocaleString()} views
-                    {p.is_premium && <span style={{ marginLeft: 8, color: '#facc15' }}>⭐ {p.premium_price}T</span>}
+                    {new Date(p.created_at).toLocaleDateString()} · {(p.view_count || 0).toLocaleString()} views
+                    {p.is_premium && <span style={{ marginLeft: 8, color: '#facc15' }}>⭐ {p.tunez_price}T</span>}
                   </div>
                 </div>
                 <span style={{
@@ -842,10 +906,12 @@ function buildPayload(formData, userId, status) {
     title:         formData.title?.trim() || '(Untitled draft)',
     content:       formData.content || '',
     excerpt:       formData.excerpt?.trim() || '',
-    cover_url:     formData.cover_url || null,
+    // blob: URLs are local previews only — never persist them
+    cover_url:     formData.cover_url && !formData.cover_url.startsWith('blob:') ? formData.cover_url : null,
+    category:      formData.category || null,
     tags:          formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
     is_premium:    formData.is_premium || false,
-    premium_price: formData.is_premium ? (Number(formData.premium_price) || 0) : 0,
+    tunez_price:   formData.is_premium ? (Number(formData.tunez_price) || null) : null,
     status,
     updated_at:    new Date().toISOString(),
   }

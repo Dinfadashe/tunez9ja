@@ -1,17 +1,10 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Logo } from './UI.jsx'
-import { LogOut, Home, ChevronDown, Shield, Mic2, Newspaper, User as UserIcon } from 'lucide-react'
-
-const ROLES = [
-  { key: 'admin',   label: 'Admin',   icon: Shield,    color: 'var(--red)'  },
-  { key: 'artist',  label: 'Artist',  icon: Mic2,      color: '#7b4fff'     },
-  { key: 'blogger', label: 'Blogger', icon: Newspaper, color: '#00b4dc'     },
-  { key: 'user',    label: 'User',    icon: UserIcon,  color: '#00c864'     },
-]
+import { LogOut, Home } from 'lucide-react'
+import { ROLES } from './RoleSwitcher.jsx'
 
 export default function Sidebar({ items, activePage, setActivePage, setPage, currentUser, onRoleSwitch, isOpen, onClose }) {
-  const [showRolePicker, setShowRolePicker] = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
 
   const handleLogout = async () => {
@@ -27,11 +20,7 @@ export default function Sidebar({ items, activePage, setActivePage, setPage, cur
     }
   }
 
-  const availableRoles = ROLES.filter(r =>
-    currentUser?.available_roles?.includes(r.key)
-  )
-
-  const activeRole = ROLES.find(r => r.key === currentUser?.active_role) || ROLES[3]
+  const activeRole = ROLES.find(r => r.key === currentUser?.active_role) || ROLES[ROLES.length - 1]
 
   return (
     <>
@@ -79,37 +68,7 @@ export default function Sidebar({ items, activePage, setActivePage, setPage, cur
               </div>
             </div>
 
-            {/* Role switcher — only show if more than 1 role */}
-            {onRoleSwitch && availableRoles.length > 1 && (
-              <div style={{ position: 'relative', marginBottom: 10 }}>
-                <button
-                  onClick={() => setShowRolePicker(p => !p)}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--grey-300)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: 1 }}
-                >
-                  <activeRole.icon size={13} style={{ color: activeRole.color }} />
-                  SWITCH ROLE
-                  <ChevronDown size={13} style={{ marginLeft: 'auto', transition: 'transform 0.2s', transform: showRolePicker ? 'rotate(180deg)' : 'none' }} />
-                </button>
-
-                {showRolePicker && (
-                  <div style={{ position: 'absolute', bottom: '110%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', boxShadow: 'var(--shadow)', zIndex: 200 }}>
-                    {availableRoles.map(role => (
-                      <button
-                        key={role.key}
-                        onClick={() => { onRoleSwitch(role.key); setShowRolePicker(false) }}
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: currentUser.active_role === role.key ? 'var(--bg-hover)' : 'transparent', border: 'none', color: currentUser.active_role === role.key ? 'var(--white)' : 'var(--grey-300)', fontSize: 13, cursor: 'pointer', textAlign: 'left', borderLeft: currentUser.active_role === role.key ? `3px solid ${role.color}` : '3px solid transparent' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                        onMouseLeave={e => e.currentTarget.style.background = currentUser.active_role === role.key ? 'var(--bg-hover)' : 'transparent'}
-                      >
-                        <role.icon size={15} style={{ color: role.color }} />
-                        {role.label}
-                        {currentUser.active_role === role.key && <span style={{ marginLeft: 'auto', fontSize: 10, color: role.color }}>● ACTIVE</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Role switching lives in each dashboard header (RoleSwitcher), visible on mobile and desktop */}
           </>
         )}
 

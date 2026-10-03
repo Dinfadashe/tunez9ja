@@ -4,6 +4,7 @@ import { Logo } from './UI.jsx'
 import NotificationsPanel from './NotificationsPanel.jsx'
 import { Avatar } from './ProfileEditor.jsx'
 import { getPageLabel } from '../hooks/useNavigation.js'
+import RoleSwitcher, { dashboardPageForRole, getAvailableRoles } from './RoleSwitcher.jsx'
 import {
   Search, Sun, Moon, Coins, Menu, X,
   Home, Music2, Radio,
@@ -104,7 +105,7 @@ const DASHBOARD_NAV = {
 }
 
 export default function Navbar({
-  page, setPage, profile, activeRole, onLogout,
+  page, setPage, profile, activeRole, onRoleSwitch, onLogout,
   history = [], historyIndex = 0, onDJOpen,
 }) {
   const [theme,    setTheme]    = useState(localStorage.getItem('t9_theme') || 'dark')
@@ -124,12 +125,7 @@ export default function Navbar({
 
   useEffect(() => { setMenuOpen(false) }, [page])
 
-  const getDashPage = () => {
-    if (activeRole === 'admin')   return 'admin-dashboard'
-    if (activeRole === 'artist')  return 'artist-dashboard'
-    if (activeRole === 'blogger') return 'blogger-dashboard'
-    return 'user-dashboard'
-  }
+  const getDashPage = () => dashboardPageForRole(activeRole)
 
   const navigate = (p) => { setPage(p); setMenuOpen(false) }
 
@@ -253,6 +249,12 @@ export default function Navbar({
               </button>
             )}
 
+            {profile && (
+              <div className="hide-mobile" style={{ marginRight: 4 }}>
+                <RoleSwitcher profile={profile} activeRole={activeRole} onRoleSwitch={onRoleSwitch} compact />
+              </div>
+            )}
+
             {profile ? (
               <button onClick={() => window.dispatchEvent(new CustomEvent('openProfile', { detail: { profileId: profile.id } }))}
                 className="hide-xs"
@@ -340,6 +342,13 @@ export default function Navbar({
                     )
                   })}
                 </div>
+
+                {onRoleSwitch && getAvailableRoles(profile).length > 1 && (
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
+                    <RoleSwitcher profile={profile} activeRole={activeRole} onRoleSwitch={onRoleSwitch}
+                      variant="list" onDone={() => setMenuOpen(false)} />
+                  </div>
+                )}
 
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
                   <div style={{ padding: '0.375rem 1.25rem 0.25rem', fontSize: '0.625rem', color: 'var(--grey-700)', fontFamily: 'var(--font-mono)', letterSpacing: 1, textTransform: 'uppercase' }}>Explore</div>
