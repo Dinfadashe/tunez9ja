@@ -258,6 +258,15 @@ function AppInner() {
   useOfflineAudioSync(profile)
 
 
+  // ── Referral code saved at signup (email-confirmation flow) ──
+  useEffect(() => {
+    if (!profile?.id) return
+    const code = localStorage.getItem('t9_ref_pending')
+    if (!code) return
+    import('./lib/tunez.js').then(({ claimReferralBonus }) => claimReferralBonus(code))
+      .finally(() => localStorage.removeItem('t9_ref_pending'))
+  }, [profile?.id])
+
   // ── Keep page / open item in sync with the address bar ──────
   // Fires on in-app navigation and on browser back/forward.
   useEffect(() => onUrlChange(() => {

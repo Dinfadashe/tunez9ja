@@ -19,11 +19,11 @@ export default function PremiumUnlockModal({ content, contentType, currentUser, 
     setLoading(true)
     const res = await unlockPremium(currentUser.id, content, contentType)
     setLoading(false)
-    if (res.success) {
+    if (res?.success) {
       setResult('success')
       setTimeout(() => { onUnlocked(); onClose() }, 1800)
     } else {
-      setResult(res.reason)
+      setResult(res?.reason || 'unlock_failed')
     }
   }
 
