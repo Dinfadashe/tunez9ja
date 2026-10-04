@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { fetchMyProfile, forgetMyProfile } from '../lib/myProfile.js'
 import { claimReferralBonus } from '../lib/tunez.js'
 import { Logo } from '../components/UI.jsx'
 import { Eye, EyeOff, Mic2, Newspaper, Shield, User as User2, Headphones } from 'lucide-react'
@@ -57,7 +58,7 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
           : m || 'Login failed.')
         setLoading(false); return
       }
-      const { data: profile } = await supabase.rpc('my_profile').maybeSingle()
+      const { data: profile } = (forgetMyProfile(), await fetchMyProfile())
       setLoading(false)
       if (!profile) { setError('Profile not found. Contact support.'); return }
       const availableRoles = profile.available_roles || [profile.role]

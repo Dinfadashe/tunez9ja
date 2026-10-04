@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { loadPaystack } from '../lib/paystack.js'
 import { TUNEZ_PACKAGES } from '../lib/tunez.js'
 import { Coins, TrendingUp, ShoppingCart, History, Trophy, AlertTriangle, ExternalLink, Check } from 'lucide-react'
 
@@ -126,12 +127,18 @@ export default function TunezWallet({ currentUser, setPage }) {
     retryPending(true)
   }, [PENDING_KEY])
 
-  const initPaystack = (pkg) => {
-    if (!window.PaystackPop) {
-      alert('Paystack not loaded. Please refresh and try again.')
+  // Start fetching Paystack as soon as the wallet opens, so Buy is instant
+  useEffect(() => { loadPaystack().catch(() => {}) }, [])
+
+  const initPaystack = async (pkg) => {
+    setBuying(pkg)
+    try {
+      await loadPaystack()
+    } catch {
+      setBuying(null)
+      setBuyError('Could not reach Paystack. Check your connection and try again.')
       return
     }
-    setBuying(pkg)
 
     // Callback must be a plain function — no async/await
     function onSuccess(response) {

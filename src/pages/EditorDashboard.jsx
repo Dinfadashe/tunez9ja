@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { fetchMyProfile } from '../lib/myProfile.js'
 import { sanitizeHTML } from '../lib/sanitize.js'
 import Sidebar from '../components/Sidebar.jsx'
 import { AccountMenu } from '../components/RoleSwitcher.jsx'
@@ -28,7 +29,7 @@ export default function EditorDashboard({ setPage, currentUser: propUser, onRole
 
   useEffect(function() {
     if (!propUser || !propUser.id) return
-    supabase.rpc('my_profile').maybeSingle()
+    fetchMyProfile()
       .then(function(res) { if (res.data) setFreshUser(res.data) })
   }, [propUser && propUser.id])
 

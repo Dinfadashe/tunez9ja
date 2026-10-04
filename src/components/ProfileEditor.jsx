@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { compressImage, extFor } from '../lib/imageCompress.js'
 import { Camera, Save, User } from 'lucide-react'
 
 // Avatar shown everywhere — falls back to initial
@@ -72,12 +73,13 @@ export default function ProfileEditor({ currentUser, onUpdated }) {
     setMsg(null)
 
     try {
-      const ext  = file.name.split('.').pop().toLowerCase()
+      const upFile = await compressImage(file, { maxDim: 512 })
+      const ext  = extFor(upFile)
       const path = `${currentUser.id}/avatar.${ext}`
 
       const { error: upErr } = await supabase.storage
         .from('avatars')
-        .upload(path, file, { upsert: true, cacheControl: '3600', contentType: file.type })
+        .upload(path, upFile, { upsert: true, cacheControl: '3600', contentType: upFile.type })
 
       if (upErr) throw upErr
 

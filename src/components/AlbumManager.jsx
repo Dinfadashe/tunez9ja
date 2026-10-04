@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { compressImage, extFor } from '../lib/imageCompress.js'
 import { Plus, Disc, Trash2, Music, Check, Upload } from 'lucide-react'
 
 export default function AlbumManager({ currentUser }) {
@@ -70,10 +71,11 @@ export default function AlbumManager({ currentUser }) {
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(coverFile.type) || coverFile.size > 5 * 1024 * 1024) {
         setError('❌ Cover must be a JPG, PNG or WebP image under 5MB.'); setSaving(false); return
       }
-      const ext  = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[coverFile.type]
+      const upCover = await compressImage(coverFile, { maxDim: 1200 })
+      const ext  = extFor(upCover)
       const path = `album-covers/${currentUser.id}_${Date.now()}.${ext}`
       const { error: upErr } = await supabase.storage.from('music-covers')
-        .upload(path, coverFile, { upsert: true, contentType: coverFile.type })
+        .upload(path, upCover, { upsert: true, contentType: upCover.type })
       if (upErr) { setError('❌ Cover upload failed: ' + upErr.message); setSaving(false); return }
       const { data: urlData } = supabase.storage.from('music-covers').getPublicUrl(path)
       cover_url = urlData.publicUrl
@@ -101,10 +103,28 @@ export default function AlbumManager({ currentUser }) {
     setSaving(false)
   }
 
+  // Album membership goes through set_track_album: approved tracks can't be
+  // edited directly (so their audio can't be swapped), but can join albums.
+  const ALBUM_ERRORS = {
+    not_your_track: "You can only add your own tracks.",
+    not_your_album: "You can only change your own albums.",
+    not_logged_in:  'Please sign in again.',
+    not_found:      'This album no longer exists.',
+  }
+  const setTrackAlbum = async (trackId, albumId, position) => {
+    const { data, error: rpcErr } = await supabase.rpc('set_track_album', {
+      p_track_id: trackId, p_album_id: albumId, p_track_number: position ?? null,
+    })
+    if (rpcErr || !data?.success) {
+      setError('❌ ' + (ALBUM_ERRORS[data?.reason] || rpcErr?.message || 'Could not update the album. Please try again.'))
+      return false
+    }
+    setError('')
+    return true
+  }
+
   const assignTrack = async (trackId, albumId, position) => {
-    await supabase.from('music_tracks')
-      .update({ album_id: albumId, track_number: position })
-      .eq('id', trackId)
+    if (!(await setTrackAlbum(trackId, albumId, position))) return
     setTracks(prev => {
       const exists = prev.find(t => t.id === trackId)
       if (exists) return prev
@@ -115,15 +135,21 @@ export default function AlbumManager({ currentUser }) {
   }
 
   const removeFromAlbum = async (trackId) => {
-    await supabase.from('music_tracks').update({ album_id: null, track_number: null }).eq('id', trackId)
+    if (!(await setTrackAlbum(trackId, null, null))) return
     setTracks(prev => prev.filter(t => t.id !== trackId))
     setAllTracks(prev => prev.map(t => t.id === trackId ? { ...t, album_id: null } : t))
   }
 
   const deleteAlbum = async (id) => {
     if (!confirm('Delete this album? Tracks will not be deleted.')) return
-    await supabase.from('music_tracks').update({ album_id: null }).eq('album_id', id)
-    await supabase.from('albums').delete().eq('id', id)
+    const { data, error: rpcErr } = await supabase.rpc('delete_album', { p_album_id: id })
+    if (rpcErr || !data?.success) {
+      setError(data?.reason === 'approved_album'
+        ? '❌ Approved albums can only be removed by an admin. Contact support if you need it taken down.'
+        : '❌ ' + (ALBUM_ERRORS[data?.reason] || rpcErr?.message || 'Could not delete the album.'))
+      return
+    }
+    setError('')
     setAlbums(prev => prev.filter(a => a.id !== id))
     if (selected?.id === id) { setSelected(null); setTracks([]) }
   }
@@ -134,6 +160,12 @@ export default function AlbumManager({ currentUser }) {
 
   if (selected) return (
     <div>
+      {error && (
+        <div role="alert" style={{ background: 'rgba(200,16,46,0.08)', border: '1px solid var(--border-red)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#ff6b81', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <span>{error}</span>
+          <button onClick={() => setError('')} aria-label="Dismiss" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>×</button>
+        </div>
+      )}
       <button onClick={() => { setSelected(null); setTracks([]) }}
         style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--grey-300)', padding: '8px 14px', cursor: 'pointer', fontSize: 13, marginBottom: 24 }}>
         ← Back to Albums
@@ -191,6 +223,12 @@ export default function AlbumManager({ currentUser }) {
 
   return (
     <div>
+      {error && !creating && (
+        <div role="alert" style={{ background: 'rgba(200,16,46,0.08)', border: '1px solid var(--border-red)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#ff6b81', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <span>{error}</span>
+          <button onClick={() => setError('')} aria-label="Dismiss" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>×</button>
+        </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 4 }}>DISCOGRAPHY</div>

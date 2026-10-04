@@ -8,6 +8,7 @@ import { AppProvider } from './context/AppContext.jsx'
 import { PlayerProvider } from './context/PlayerContext.jsx'
 import { dashboardPageForRole, getAvailableRoles } from './components/RoleSwitcher.jsx'
 import { supabase } from './lib/supabase.js'
+import { fetchMyProfile, forgetMyProfile } from './lib/myProfile.js'
 import { parseLocation, navigateToPage, openItem, onUrlChange } from './lib/urlState.js'
 import { ToastContainer } from './components/UI.jsx'
 import FloatingPlayer from './components/FloatingPlayer.jsx'
@@ -30,6 +31,17 @@ const ResetPasswordPage = React.lazy(() => import('./pages/Auth.jsx').then(m => 
 const SearchPage = React.lazy(() => import('./pages/SearchPage.jsx'))
 const ProfilePage = React.lazy(() => import('./components/ProfilePage.jsx'))
 
+// Offline audio downloads cost the listener mobile data, so be careful:
+//  'chosen' — tracks the user saved/unlocked: OK unless Data Saver / 2G
+//  'auto'   — latest tracks nobody asked for: only on Wi-Fi/Ethernet
+//             (unknown connection, e.g. iPhone Safari, counts as "no")
+function canPrecache(kind) {
+  const c = typeof navigator !== 'undefined' ? navigator.connection : null
+  if (c?.saveData) return false
+  if (kind === 'auto') return !!c?.type && (c.type === 'wifi' || c.type === 'ethernet')
+  return !/(^|-)2g$/.test(c?.effectiveType || '')
+}
+
 // ── Offline audio cache: sync saved + library tracks every 5min ──
 function useOfflineAudioSync(currentUser) {
   React.useEffect(() => {
@@ -42,7 +54,7 @@ function useOfflineAudioSync(currentUser) {
       try {
         const urls = []
 
-        if (currentUser?.id) {
+        if (currentUser?.id && canPrecache('chosen')) {
           // Saved tracks
           const { data: saved } = await supabase
             .from('saved_tracks')
@@ -68,9 +80,9 @@ function useOfflineAudioSync(currentUser) {
           }
         }
 
-        // Latest 10 free tracks always cached — gives every visitor,
-        // logged in or not, something playable offline.
-        const { data: latest } = await supabase
+        // Latest 10 free tracks — something playable offline — but only on
+        // Wi-Fi, never on mobile data the visitor didn't agree to spend.
+        const { data: latest } = !canPrecache('auto') ? { data: [] } : await supabase
           .from('music_tracks')
           .select('audio_url')
           .eq('status', 'approved')
@@ -91,11 +103,14 @@ function useOfflineAudioSync(currentUser) {
     }
     navigator.serviceWorker.addEventListener('message', handler)
 
-    // Initial sync + every 5 minutes, per spec
-    syncAudio()
+    // First sync 10s after load (the first screen gets the bandwidth, and a
+    // login that completes meanwhile cancels this run instead of doubling it),
+    // then every 5 minutes.
+    const first = setTimeout(syncAudio, 10000)
     interval = setInterval(syncAudio, 5 * 60 * 1000)
 
     return () => {
+      clearTimeout(first)
       clearInterval(interval)
       navigator.serviceWorker.removeEventListener('message', handler)
     }
@@ -315,6 +330,8 @@ function AppInner() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       // Only act on explicit signout — ignore TOKEN_REFRESHED, INITIAL_SESSION etc
+      // A different account may be signing in — never reuse a cached profile
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') forgetMyProfile()
       if (event === 'PASSWORD_RECOVERY') { navigateToPage('reset-password', { replace: true }); return }
       if (event === 'SIGNED_OUT') {
         // Verify session is truly gone (ignore spurious SIGNED_OUT events)
@@ -355,7 +372,7 @@ function AppInner() {
           setActiveRole(p.active_role || p.role || 'user')
           setAuthReady(true)
           // Refresh in background silently
-          supabase.rpc('my_profile').maybeSingle()
+          fetchMyProfile()
             .then(({ data }) => {
               if (data) {
                 const updated = { ...data, active_role: data.active_role || data.role || 'user' }
@@ -368,7 +385,7 @@ function AppInner() {
         }
       }
       // No cache — fetch fresh
-      const { data } = await supabase.rpc('my_profile').maybeSingle()
+      const { data } = await fetchMyProfile()
       if (data) {
         const role = data.active_role || data.role || 'user'
         const p = { ...data, active_role: role }
@@ -432,6 +449,7 @@ function AppInner() {
   const isDashboard = DASHBOARD_PAGES.includes(safePage)
   const isAuth      = AUTH_PAGES.includes(safePage)
   const handleSignOut = async () => {
+    forgetMyProfile()
     try { await supabase.auth.signOut() } catch (e) { console.error('Sign out error:', e) }
     sessionStorage.removeItem('t9_profile')
     setProfile(null)

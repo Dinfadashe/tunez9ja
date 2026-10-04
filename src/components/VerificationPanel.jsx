@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { loadPaystack } from '../lib/paystack.js'
 import { Shield, Upload, CheckCircle, Clock, XCircle, ChevronRight, AlertCircle } from 'lucide-react'
 
 const MILESTONE_LABELS = {
@@ -29,8 +30,11 @@ export default function VerificationPanel({ currentUser, onRoleSwitch }) {
   }, [currentUser?.id])
 
   // ── Paystack fee payment ───────────────────────────────────
-  const payVerificationFee = () => {
-    if (!window.PaystackPop) { setError('Payment system unavailable. Please try again.'); return }
+  useEffect(() => { loadPaystack().catch(() => {}) }, [])
+
+  const payVerificationFee = async () => {
+    try { await loadPaystack() }
+    catch { setError('Could not reach Paystack. Check your connection and try again.'); return }
     const handler = window.PaystackPop.setup({
       key:    import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
       email:  currentUser.email,

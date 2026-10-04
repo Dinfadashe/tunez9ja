@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { compressImage, extFor } from '../lib/imageCompress.js'
 import ProfileEditor, { Avatar } from '../components/ProfileEditor.jsx'
 import HalvingBanner from '../components/HalvingBanner.jsx'
 import VerificationPanel from '../components/VerificationPanel.jsx'
@@ -409,11 +410,12 @@ const handleAudioChange = (e) => {
     // Upload cover art to Supabase Storage
     if (coverFile) {
       setMessage('⏳ Uploading cover art...')
-      const coverExt  = coverFile.name.split('.').pop()
+      const upCover   = await compressImage(coverFile, { maxDim: 1200 })
+      const coverExt  = extFor(upCover)
       const coverPath = `${currentUser.id}/${Date.now()}.${coverExt}`
       const { data: coverData, error: coverErr } = await supabase.storage
         .from('music-covers')
-        .upload(coverPath, coverFile, { upsert: false })
+        .upload(coverPath, upCover, { upsert: false, contentType: upCover.type })
       if (coverErr) { setMessage('❌ Cover upload failed: ' + coverErr.message); setLoading(false); return }
       // Get public URL for cover
       const { data: coverUrlData } = supabase.storage.from('music-covers').getPublicUrl(coverData.path)

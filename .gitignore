@@ -10,3 +10,5 @@ Thumbs.db
 .vite/
 .netlify/
 vite.config.js.timestamp-*
+
+supabase/.temp/

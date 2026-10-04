@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { compressImage, extFor } from '../lib/imageCompress.js'
 import { sanitizeHTML } from '../lib/sanitize.js'
 import { AccountMenu } from '../components/RoleSwitcher.jsx'
 
@@ -156,11 +157,12 @@ function RichEditor({ value, onChange, userId }) {
       if (!imageFile) { setUploadError('Please choose an image file.'); return }
       setUploading(true)
       try {
-        const ext  = imageFile.name.split('.').pop()
+        const upImage = await compressImage(imageFile, { maxDim: 1600 })
+        const ext  = extFor(upImage)
         const path = `blog_images/${userId || 'anon'}_${Date.now()}.${ext}`
         const { error } = await supabase.storage
           .from('post-images')
-          .upload(path, imageFile, { upsert: true })
+          .upload(path, upImage, { upsert: true, contentType: upImage.type })
         if (error) throw error
         const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(path)
         const publicUrl = urlData?.publicUrl
@@ -568,9 +570,10 @@ export default function BloggerDashboard({ currentUser, setPage, onRoleSwitch, a
   // ── Upload cover image ──────────────────────────────────────────────────────
   async function uploadCover() {
     if (!coverFile) return form.cover_url
-    const ext  = coverFile.name.split('.').pop()
+    const upCover = await compressImage(coverFile, { maxDim: 1200 })
+    const ext  = extFor(upCover)
     const path = `blog_covers/${userId}_${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('post-images').upload(path, coverFile, { upsert: true })
+    const { error } = await supabase.storage.from('post-images').upload(path, upCover, { upsert: true, contentType: upCover.type })
     if (error) return form.cover_url
     const { data: url } = supabase.storage.from('post-images').getPublicUrl(path)
     return url?.publicUrl || form.cover_url

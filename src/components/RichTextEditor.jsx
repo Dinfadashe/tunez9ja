@@ -1,4 +1,5 @@
 import { sanitizeHTML } from '../lib/sanitize.js'
+import { compressImage, extFor } from '../lib/imageCompress.js'
 import React, { useRef, useEffect, useCallback, useState } from 'react'
 import {
   Bold, Italic, Underline, Strikethrough,
@@ -92,9 +93,10 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
     if (file.size > 5 * 1024 * 1024) { alert('Image must be under 5MB'); return }
     setImgUploading(true)
     const { supabase } = await import('../lib/supabase.js')
-    const ext  = file.name.split('.').pop()
+    const upFile = await compressImage(file, { maxDim: 1600 })
+    const ext  = extFor(upFile)
     const path = 'blog/' + Date.now() + '.' + ext
-    const { data, error } = await supabase.storage.from('post-images').upload(path, file)
+    const { data, error } = await supabase.storage.from('post-images').upload(path, upFile, { contentType: upFile.type })
     if (error) { alert('Upload failed: ' + error.message); setImgUploading(false); return }
     const { data: { publicUrl } } = supabase.storage.from('post-images').getPublicUrl(data.path)
     setImgUrl(publicUrl)

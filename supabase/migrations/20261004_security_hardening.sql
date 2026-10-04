@@ -1122,3 +1122,64 @@ create or replace view public.v_admin_music_queue with (security_barrier = true)
 
 revoke all on public.v_admin_post_queue, public.v_admin_music_queue from anon, public;
 grant select on public.v_admin_post_queue, public.v_admin_music_queue to authenticated, service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 13. Album track assignment
+-- Artists may only edit their own PENDING/REJECTED tracks (so approved audio
+-- can't be swapped), which also silently blocked adding approved tracks to
+-- albums. This function changes ONLY album_id / track_number, and only when
+-- the caller owns the track and (if given) the album.
+-- ═══════════════════════════════════════════════════════════════════════════
+create or replace function public.set_track_album(p_track_id uuid, p_album_id uuid, p_track_number int default null)
+returns jsonb
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then return jsonb_build_object('success', false, 'reason', 'not_logged_in'); end if;
+  if not exists (select 1 from public.music_tracks where id = p_track_id
+                 and (artist_id = v_uid or public.is_admin(v_uid))) then
+    return jsonb_build_object('success', false, 'reason', 'not_your_track');
+  end if;
+  if p_album_id is not null and not exists (select 1 from public.albums where id = p_album_id
+                 and (artist_id = v_uid or public.is_admin(v_uid))) then
+    return jsonb_build_object('success', false, 'reason', 'not_your_album');
+  end if;
+  update public.music_tracks
+     set album_id = p_album_id,
+         track_number = case when p_album_id is null then null else p_track_number end
+   where id = p_track_id;
+  return jsonb_build_object('success', true);
+end;
+$$;
+
+-- Delete an album and detach its tracks in one step. Same rule as the
+-- albums delete policy: owners may delete non-approved albums, admins any.
+create or replace function public.delete_album(p_album_id uuid)
+returns jsonb
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_uid    uuid := auth.uid();
+  v_owner  uuid;
+  v_status text;
+begin
+  if v_uid is null then return jsonb_build_object('success', false, 'reason', 'not_logged_in'); end if;
+  select artist_id, status::text into v_owner, v_status from public.albums where id = p_album_id for update;
+  if not found then return jsonb_build_object('success', false, 'reason', 'not_found'); end if;
+  if not public.is_admin(v_uid) then
+    if v_owner is distinct from v_uid then return jsonb_build_object('success', false, 'reason', 'not_your_album'); end if;
+    if v_status = 'approved' then return jsonb_build_object('success', false, 'reason', 'approved_album'); end if;
+  end if;
+  update public.music_tracks set album_id = null, track_number = null where album_id = p_album_id;
+  delete from public.albums where id = p_album_id;
+  return jsonb_build_object('success', true);
+end;
+$$;
+
+revoke execute on function public.set_track_album(uuid, uuid, int) from public, anon;
+grant  execute on function public.set_track_album(uuid, uuid, int) to authenticated, service_role;
+revoke execute on function public.delete_album(uuid) from public, anon;
+grant  execute on function public.delete_album(uuid) to authenticated, service_role;

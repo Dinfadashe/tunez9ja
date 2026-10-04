@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { fetchMyProfile } from '../lib/myProfile.js'
 import { safeUrl } from '../lib/sanitize.js'
 
 import Sidebar from '../components/Sidebar.jsx'
@@ -57,7 +58,7 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const { data: profile } = await supabase.rpc('my_profile').maybeSingle()
+        const { data: profile } = await fetchMyProfile()
         setCurrentUser(profile)
       }
     })
