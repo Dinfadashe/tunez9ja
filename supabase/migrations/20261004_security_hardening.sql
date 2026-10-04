@@ -1025,3 +1025,20 @@ begin
                    b || ': owner delete', b, owner_expr);
   end loop;
 end $$;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 11. Blog drafts
+-- The blog editor auto-saves with status 'draft', but content_status had no
+-- such value and the author update policy excluded drafts — so every
+-- auto-save failed. (Already applied to production on 2026-10-04.)
+--
+-- NOTE: on a fresh database, run the ALTER TYPE line on its own first — a new
+-- enum value must be committed before other statements in the same run.
+-- ═══════════════════════════════════════════════════════════════════════════
+alter type public.content_status add value if not exists 'draft';
+
+drop policy if exists "posts: blogger updates own pending" on public.blog_posts;
+create policy "posts: blogger updates own pending" on public.blog_posts for update
+  using (author_id = auth.uid() and status::text in ('draft', 'pending', 'rejected'))
+  with check (author_id = auth.uid());
