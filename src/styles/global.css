@@ -708,3 +708,80 @@ body {
 @media (max-width: 400px) {
   .hide-xs { display: none !important; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   DASHBOARDS ON PHONES (admin + shared dashboard components)
+   Inline styles in the components need !important to override.
+════════════════════════════════════════════════════════════ */
+
+/* Long emails, URLs and titles wrap instead of running off cards */
+.dashboard-content { overflow-wrap: break-word; }
+/* Inside tables keep short labels (badges, dates) intact */
+.dashboard-content td .badge, .dashboard-content td [class*="badge"] { white-space: nowrap; }
+
+/* Review tables become stacked cards on phones and tablets (incl. landscape
+   iPads), so the Approve / Reject / Delete actions are never off-screen */
+@media (max-width: 1279px) {
+  /* Tables → stacked cards: item on top, details inline, actions below */
+  .admin-table { overflow: visible !important; }
+  .admin-table table, .admin-table tbody { display: block; width: 100% !important; min-width: 0 !important; }
+  .admin-table thead { display: none; }
+  .admin-table tr {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+  }
+  .admin-table tr:last-child { border-bottom: none; }
+  .admin-table td {
+    display: block; padding: 0 !important; border: 0 !important;
+    font-size: 12.5px !important; color: var(--grey-300);
+  }
+  .admin-table td:first-child { flex: 1 1 100%; min-width: 0; max-width: 100% !important; color: var(--white); font-size: 14px !important; }
+  .admin-table td { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  .adm-row, .adm-row * { overflow-wrap: anywhere; }
+  .admin-table td:first-child * { max-width: 100% !important; white-space: normal !important; }
+  .admin-table td:last-child { flex: 1 1 100%; margin-top: 4px; }
+  .admin-table td:last-child > div { flex-wrap: wrap; gap: 8px !important; }
+  .admin-table td:last-child button,
+  .admin-table td:last-child select,
+  .admin-table td:last-child a { min-height: 40px; min-width: 44px; justify-content: center; }
+
+}
+
+@media (max-width: 640px) {
+  /* Header: title + account menu on one tidy row */
+  .dashboard-header { gap: 10px !important; flex-wrap: nowrap !important; }
+  .dashboard-header h1 { font-size: 20px !important; line-height: 1.15; margin: 2px 0 0; }
+  .dashboard-header > div:first-child { min-width: 0; }
+
+  /* Side-by-side panels → one column */
+  .adm-2col { grid-template-columns: 1fr !important; gap: 16px !important; }
+  .adm-stats { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .adm-stats > * { padding: 14px !important; min-width: 0; }
+  .stat-grid { gap: 10px !important; }
+
+  /* List rows (albums, editors): text full width, actions underneath */
+  .adm-row { flex-wrap: wrap !important; align-items: flex-start !important; gap: 10px !important; padding: 14px 16px !important; }
+  .adm-row > div:not(.adm-row-actions) { flex: 1 1 calc(100% - 60px); min-width: 0; }
+  .adm-row-actions { flex: 1 1 100% !important; flex-wrap: wrap; justify-content: flex-start !important; flex-direction: row !important; }
+  .adm-row-actions > a, .adm-row-actions > button { min-height: 40px; display: inline-flex; align-items: center; }
+  .adm-tabs { flex-wrap: wrap; }
+  .adm-tabs > button { min-height: 40px; }
+
+  /* Filter tabs scroll sideways instead of squashing */
+  .dashboard-content .tabs { overflow-x: auto; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .dashboard-content .tabs::-webkit-scrollbar { display: none; }
+  .dashboard-content .tab-btn { white-space: nowrap; min-height: 40px; }
+
+  /* Search fields and buttons: comfortable touch size */
+  .dashboard-content input:not([type=checkbox]):not([type=radio]),
+  .dashboard-content select { min-height: 44px; font-size: 16px; /* 16px stops iOS zoom-on-focus */ }
+
+  /* Modals fit the screen */
+  .modal, .modal-content { max-width: calc(100vw - 24px) !important; max-height: calc(100dvh - 24px); overflow-y: auto; }
+
+  /* Wallet (shared by every dashboard) */
+  .wallet-rates { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  .wallet-rates > * { padding: 12px !important; min-width: 0; }
+  .wallet-tabs > button { flex: 1 1 0; min-width: 0; justify-content: center; gap: 4px !important;
+                          padding: 12px 4px !important; font-size: 12px !important; white-space: nowrap; }
+}

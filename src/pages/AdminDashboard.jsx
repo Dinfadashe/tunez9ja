@@ -14,6 +14,13 @@ import { StatusBadge as _SB } from '../components/UI.jsx'
 import { LayoutDashboard, Music, Newspaper, Users, CheckCircle, XCircle, Clock, Trash2, Eye, TrendingUp, Mic2, AlertCircle, Video, Youtube, Coins, Disc, BarChart2, Shield } from 'lucide-react'
 
 // CVs are stored as private storage paths; old rows may hold full URLs.
+// 215 → "3:35"; leaves non-numeric values (e.g. "3:35") as they are
+function fmtDuration(v) {
+  const n = Number(v)
+  if (!v || !Number.isFinite(n)) return v || ''
+  return Math.floor(n / 60) + ':' + String(Math.round(n % 60)).padStart(2, '0')
+}
+
 async function openCv(ev, value) {
   if (!value) return
   // Legacy rows store the old public URL — convert to the storage path
@@ -183,7 +190,7 @@ function AdminOverview({ setActive, fetchPending }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="adm-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
         <div className="card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>RECENT MUSIC</h3>
@@ -276,7 +283,7 @@ function MusicReview({ fetchPending }) {
         <EmptyState icon={<Music size={48} />} title="No tracks here" message="Nothing matches the current filter." />
       ) : (
         <div className="card">
-          <div className="table-wrap">
+          <div className="table-wrap admin-table">
             <table>
               <thead><tr><th>Track</th><th>Artist</th><th>Genre</th><th>Uploaded</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
@@ -287,7 +294,7 @@ function MusicReview({ fetchPending }) {
                         <MusicArt title={m.title} size={40} />
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>{m.title}</div>
-                          <div style={{ fontSize: 12, color: 'var(--grey-500)' }}>{m.duration}</div>
+                          <div style={{ fontSize: 12, color: 'var(--grey-500)' }}>{fmtDuration(m.duration)}</div>
                         </div>
                       </div>
                     </td>
@@ -436,7 +443,7 @@ function PostsReview({ fetchPending }) {
         <EmptyState icon={<Newspaper size={48} />} title="No posts here" message="Nothing matches the current filter." />
       ) : (
         <div className="card">
-          <div className="table-wrap">
+          <div className="table-wrap admin-table">
             <table>
               <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
@@ -655,7 +662,7 @@ function UsersPanel() {
         </div>
       </div>
       <div className="card">
-        <div className="table-wrap">
+        <div className="table-wrap admin-table">
           <table>
             <thead><tr><th>User</th><th>Role</th><th>Joined</th><th>Verified</th><th>Action</th></tr></thead>
             <tbody>
@@ -758,7 +765,7 @@ function VideoReview({ fetchPending }) {
         <EmptyState icon={<Video size={48} />} title="No videos here" message="Nothing matches the current filter." />
       ) : (
         <div className="card">
-          <div className="table-wrap">
+          <div className="table-wrap admin-table">
             <table>
               <thead><tr><th>Video</th><th>By</th><th>Type</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
@@ -935,7 +942,7 @@ function AlbumReview() {
       {albums.length === 0 ? <div style={{ color: 'var(--grey-500)', padding: 40, textAlign: 'center' }}>No albums submitted yet</div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {albums.map(album => (
-            <div key={album.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8 }}>
+            <div key={album.id} className="adm-row" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8 }}>
               {album.cover_url && <img src={album.cover_url} alt={album.title} style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />}
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700 }}>{album.title}</div>
@@ -944,7 +951,7 @@ function AlbumReview() {
               <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', padding: '3px 10px', borderRadius: 20, background: album.status === 'approved' ? 'rgba(0,200,100,0.1)' : album.status === 'rejected' ? 'var(--red-glow)' : 'rgba(255,180,0,0.1)', color: album.status === 'approved' ? '#00c864' : album.status === 'rejected' ? 'var(--red)' : '#ffb400' }}>
                 {album.status.toUpperCase()}
               </span>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <div className="adm-row-actions" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 <button onClick={() => updateStatus(album.id, 'approved')} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: 12, gap: 4 }}>
                   <CheckCircle size={12} /> Approve
                 </button>
@@ -1279,7 +1286,7 @@ function EditorReview() {
     <div>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24, flexWrap:'wrap', gap:12 }}>
         <h2 style={{ fontFamily:'var(--font-display)', fontSize:28 }}>EDITOR MANAGEMENT</h2>
-        <div style={{ display:'flex', gap:8 }}>
+        <div className="adm-tabs" style={{ display:'flex', gap:8 }}>
           {['pending','active','all'].map(t => (
             <button key={t} onClick={() => { setTab(t); load(t) }}
               style={{ padding:'7px 14px', borderRadius:8, fontSize:13, cursor:'pointer',
@@ -1304,7 +1311,7 @@ function EditorReview() {
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {editors.map(e => (
-            <div key={e.id} className="card" style={{ padding:'16px 20px', display:'flex', alignItems:'center', gap:16, cursor:'pointer' }}
+            <div key={e.id} className="card adm-row" style={{ padding:'16px 20px', display:'flex', alignItems:'center', gap:16, cursor:'pointer' }}
               onClick={() => openEditor(e)}>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontWeight:700, fontSize:15 }}>{e.name}</div>
@@ -1313,10 +1320,10 @@ function EditorReview() {
                   {e.editor_posts_reviewed > 0 && ` · ${e.editor_posts_reviewed} posts reviewed`}
                 </div>
               </div>
-              <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+              <div className="adm-row-actions" style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
                 {e.editor_cv_url && (
-                  <a href={safeUrl(e.editor_cv_url) || '#'} onClick={ev => openCv(ev, e.editor_cv_url)} target="_blank" rel="noopener noreferrer"
-                    onClick={ev => ev.stopPropagation()}
+                  <a href={safeUrl(e.editor_cv_url) || '#'} target="_blank" rel="noopener noreferrer"
+                    onClick={ev => { ev.stopPropagation(); openCv(ev, e.editor_cv_url) }}
                     style={{ fontSize:12, color:'var(--grey-400)', textDecoration:'none', padding:'4px 10px', border:'1px solid var(--border)', borderRadius:6 }}>
                     📄 CV
                   </a>

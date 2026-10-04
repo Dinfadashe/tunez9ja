@@ -1042,3 +1042,83 @@ drop policy if exists "posts: blogger updates own pending" on public.blog_posts;
 create policy "posts: blogger updates own pending" on public.blog_posts for update
   using (author_id = auth.uid() and status::text in ('draft', 'pending', 'rejected'))
   with check (author_id = auth.uid());
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 12. Admin review views: admins only
+-- v_admin_post_queue / v_admin_music_queue run with their owner's rights, so
+-- they bypassed RLS and the private-column protection: ANYONE (even logged
+-- out) could read every draft/pending/rejected post, every unreleased track's
+-- audio URL, and every author's / artist's email.
+-- Same columns as before (the admin dashboard is unchanged), but rows are
+-- returned only to admins. security_barrier stops crafted filters from
+-- probing rows past the admin check.
+-- ═══════════════════════════════════════════════════════════════════════════
+create or replace view public.v_admin_post_queue with (security_barrier = true) as
+ SELECT bp.id,
+    bp.author_id,
+    bp.title,
+    bp.slug,
+    bp.category,
+    bp.excerpt,
+    bp.content,
+    bp.cover_url,
+    bp.tags,
+    bp.status,
+    bp.review_note,
+    bp.reviewed_by,
+    bp.reviewed_at,
+    bp.view_count,
+    bp.is_featured,
+    bp.published_at,
+    bp.created_at,
+    bp.updated_at,
+    p.name AS author_name,
+    p.email AS author_email,
+    rev.name AS reviewed_by_name
+   FROM blog_posts bp
+     JOIN profiles p ON p.id = bp.author_id
+     LEFT JOIN profiles rev ON rev.id = bp.reviewed_by
+  WHERE public.is_admin(auth.uid())
+  ORDER BY (
+        CASE bp.status
+            WHEN 'pending'::content_status THEN 0
+            WHEN 'approved'::content_status THEN 1
+            ELSE 2
+        END), bp.created_at DESC;
+
+create or replace view public.v_admin_music_queue with (security_barrier = true) as
+ SELECT mt.id,
+    mt.artist_id,
+    mt.title,
+    mt.genre,
+    mt.duration,
+    mt.description,
+    mt.tags,
+    mt.audio_url,
+    mt.cover_url,
+    mt.status,
+    mt.review_note,
+    mt.reviewed_by,
+    mt.reviewed_at,
+    mt.play_count,
+    mt.is_featured,
+    mt.created_at,
+    mt.updated_at,
+    p.name AS artist_name,
+    p.email AS artist_email,
+    p.is_verified AS artist_verified,
+    rev.name AS reviewed_by_name
+   FROM music_tracks mt
+     JOIN profiles p ON p.id = mt.artist_id
+     LEFT JOIN profiles rev ON rev.id = mt.reviewed_by
+  WHERE public.is_admin(auth.uid())
+  ORDER BY (
+        CASE mt.status
+            WHEN 'pending'::content_status THEN 0
+            WHEN 'approved'::content_status THEN 1
+            ELSE 2
+        END), mt.created_at DESC;
+
+revoke all on public.v_admin_post_queue, public.v_admin_music_queue from anon, public;
+grant select on public.v_admin_post_queue, public.v_admin_music_queue to authenticated, service_role;

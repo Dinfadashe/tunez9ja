@@ -492,9 +492,11 @@ function AppInner() {
       {!NO_FOOTER.includes(safePage) && <Footer setPage={setPage} />}
 
       {/* Floating player — renders on ALL pages, survives navigation */}
-      <React.Suspense fallback={null}>
-        <WhitepaperWidget />
-      </React.Suspense>
+      {!isDashboard && (
+        <React.Suspense fallback={null}>
+          <WhitepaperWidget />
+        </React.Suspense>
+      )}
       {djOpen && (
         <React.Suspense fallback={null}>
           <AIDJPlayer currentUser={profile} onClose={() => setDjOpen(false)} />
@@ -502,7 +504,7 @@ function AppInner() {
       )}
       <FloatingPlayer currentUser={profile} />
       <FloatingVideoPlayer />
-      <TelegramPopup />
+      {!isDashboard && <TelegramPopup />}
       <ToastContainer />
     </div>
   )

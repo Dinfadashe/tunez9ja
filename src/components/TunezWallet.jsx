@@ -56,6 +56,76 @@ export default function TunezWallet({ currentUser, setPage }) {
       .then(({ data }) => { setLeaderboard(data || []); setLoading(false) })
   }, [currentUser])
 
+  // ── Unconfirmed payments (kept on this device until the server confirms) ──
+  const PENDING_KEY = currentUser?.id ? `t9_pending_payments_${currentUser.id}` : null
+  const readPending = () => {
+    try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]') } catch { return [] }
+  }
+  const [pendingPayments, setPendingPayments] = useState(() => (PENDING_KEY ? readPending() : []))
+  const [retrying, setRetrying] = useState(false)
+  const savePending = (list) => {
+    try { localStorage.setItem(PENDING_KEY, JSON.stringify(list)) } catch { /* storage full */ }
+    setPendingPayments(list)
+  }
+  const addPending = (reference, packageId) => {
+    const list = readPending().filter(p => p.reference !== reference)
+    savePending([...list, { reference, packageId, at: Date.now() }])
+  }
+  const removePending = (reference) => savePending(readPending().filter(p => p.reference !== reference))
+
+  const refreshBalance = () => supabase.from('tunez_balances')
+    .select('balance, total_earned, total_spent, total_purchased')
+    .eq('user_id', currentUser.id).maybeSingle()
+    .then(({ data: bal }) => { if (bal) setBalance(bal) })
+
+  // Asks the server to verify with Paystack and credit. Safe to repeat:
+  // a reference is only ever credited once.
+  const confirmPayment = async (reference, packageId, { quiet = false } = {}) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-tunez-payment', {
+        body: { reference, package_id: packageId, purpose: 'tunez' },
+      })
+      if (data?.success) {
+        removePending(reference)
+        refreshBalance()
+        if (!quiet) { setBuyError(''); setBuySuccess(true); setTimeout(() => setBuySuccess(false), 4000) }
+        return true
+      }
+      let reason = data?.reason
+      try { reason = reason || (await error?.context?.json())?.reason } catch { /* not JSON */ }
+      // A definite "this payment is not valid" from the server — stop retrying it
+      if (reason && /not verified|amount mismatch|another account|already used|invalid/i.test(reason)) {
+        removePending(reference)
+        if (!quiet) setBuyError(`${reason}. Reference: ${reference}`)
+        return false
+      }
+      if (!quiet) setBuyError(`Your payment went through, but we couldn't confirm it with our server yet. `
+        + `It's saved and will be credited automatically — tap "Retry confirmation" or come back later. Reference: ${reference}`)
+      return false
+    } catch {
+      if (!quiet) setBuyError(`Network problem while confirming your payment. It's saved and will be retried. Reference: ${reference}`)
+      return false
+    }
+  }
+
+  const retryPending = async (quiet = false) => {
+    const list = readPending()
+    if (!list.length) return
+    setRetrying(true)
+    let anyOk = false
+    for (const p of list) anyOk = (await confirmPayment(p.reference, p.packageId, { quiet: true })) || anyOk
+    setRetrying(false)
+    if (anyOk) { setBuyError(''); setBuySuccess(true); setTimeout(() => setBuySuccess(false), 4000) }
+    else if (!quiet) setBuyError('Still waiting for confirmation. Please try again in a few minutes — your payment is saved.')
+  }
+
+  // Retry any unconfirmed payments whenever the wallet opens
+  useEffect(() => {
+    if (!PENDING_KEY) return
+    setPendingPayments(readPending())
+    retryPending(true)
+  }, [PENDING_KEY])
+
   const initPaystack = (pkg) => {
     if (!window.PaystackPop) {
       alert('Paystack not loaded. Please refresh and try again.')
@@ -65,34 +135,11 @@ export default function TunezWallet({ currentUser, setPage }) {
 
     // Callback must be a plain function — no async/await
     function onSuccess(response) {
-      // Verify payment via edge function
+      // Remember the payment BEFORE confirming, so it can never be lost:
+      // if confirmation fails it is retried until the server credits it.
+      addPending(response.reference, pkg.id)
       setBuyError('')
-      supabase.functions.invoke('verify-tunez-payment', {
-        body: { reference: response.reference, package_id: pkg.id, purpose: 'tunez' }
-      }).then(async ({ data, error }) => {
-        if (!data?.success) {
-          // Edge function errors arrive in error.context (a Response)
-          let reason = data?.reason
-          try { reason = reason || (await error?.context?.json())?.reason } catch { /* ignore */ }
-          setBuyError(`${reason || 'We could not confirm your payment yet.'} Your Paystack reference is ${response.reference} — keep it for support.`)
-        }
-        if (data?.success) {
-          // Refresh balance
-          supabase.from('tunez_balances')
-            .select('balance, total_earned, total_spent, total_purchased')
-            .eq('user_id', currentUser.id)
-            .single()
-            .then(({ data: bal }) => {
-              if (bal) setBalance(bal)
-            })
-          setBuySuccess(true)
-          setTimeout(() => setBuySuccess(false), 4000)
-        }
-        setBuying(null)
-      }).catch(() => {
-        setBuyError(`Network error while confirming payment. Your reference is ${response.reference} — refresh in a minute or contact support.`)
-        setBuying(null)
-      })
+      confirmPayment(response.reference, pkg.id).finally(() => setBuying(null))
     }
 
     function onClose() {
@@ -132,7 +179,7 @@ export default function TunezWallet({ currentUser, setPage }) {
         <div>
           <span style={{ fontSize: 12, color: 'var(--grey-300)', lineHeight: 1.6 }}>
             TUNEZ is a virtual in-app token only — not a cryptocurrency or investment.{' '}
-            <button onClick={() => setShowDisclaimer(true)} style={{ background: 'none', border: 'none', color: '#ffb400', cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0 }}>
+            <button onClick={() => setShowDisclaimer(true)} style={{ background: 'none', border: 'none', color: '#ffb400', cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: '8px 0', margin: '-8px 0' }}>
               Read full disclaimer
             </button>
           </span>
@@ -144,9 +191,9 @@ export default function TunezWallet({ currentUser, setPage }) {
         <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(200,16,46,0.08)', border: '1px solid rgba(200,16,46,0.15)' }} />
         <div style={{ position: 'absolute', top: 10, right: 10, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--grey-500)', letterSpacing: 1 }}>IN-APP TOKEN</div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 8 }}>YOUR TUNEZ BALANCE</div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 56, letterSpacing: 1, color: 'var(--white)', lineHeight: 1 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(34px, 10vw, 56px)', letterSpacing: 1, color: 'var(--white)', lineHeight: 1.05, overflowWrap: 'anywhere' }}>
           {balance?.balance?.toFixed(2) || '0.00'}
-          <span style={{ fontSize: 20, color: 'var(--grey-500)', marginLeft: 8 }}>TUNEZ</span>
+          <span style={{ fontSize: 'clamp(14px, 4vw, 20px)', color: 'var(--grey-500)', marginLeft: 8, whiteSpace: 'nowrap' }}>TUNEZ</span>
         </div>
         <div style={{ display: 'flex', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
           {[
@@ -163,7 +210,7 @@ export default function TunezWallet({ currentUser, setPage }) {
       </div>
 
       {/* How to earn quick tips */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 28 }}>
+      <div className="wallet-rates" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 28 }}>
         {[
           { icon: '🎵', action: 'Stream a track',    earn: '+5 TUNEZ' },
           { icon: '📰', action: 'Read a post',        earn: '+3 TUNEZ' },
@@ -183,7 +230,7 @@ export default function TunezWallet({ currentUser, setPage }) {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
+      <div className="wallet-tabs" style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
         {[
           { key: 'wallet',      label: 'Transactions', icon: <History size={14} />    },
           { key: 'buy',         label: 'Buy TUNEZ',    icon: <ShoppingCart size={14} /> },
@@ -232,6 +279,19 @@ export default function TunezWallet({ currentUser, setPage }) {
       {/* Buy TUNEZ */}
       {tab === 'buy' && (
         <div>
+          {pendingPayments.length > 0 && (
+            <div role="status" style={{ background: 'rgba(255,180,0,0.08)', border: '1px solid rgba(255,180,0,0.35)', borderRadius: 10, padding: '14px 16px', marginBottom: 16, fontSize: 13, color: '#ffcf66', lineHeight: 1.5 }}>
+              <strong>{pendingPayments.length === 1 ? '1 payment' : pendingPayments.length + ' payments'} awaiting confirmation.</strong>{' '}
+              Your money is safe — TUNEZ will be credited as soon as our server confirms with Paystack.
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, opacity: 0.85, margin: '6px 0 10px', overflowWrap: 'anywhere' }}>
+                {pendingPayments.map(p => p.reference).join(', ')}
+              </div>
+              <button onClick={() => retryPending(false)} disabled={retrying}
+                style={{ minHeight: 40, padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,180,0,0.5)', background: 'rgba(255,180,0,0.15)', color: '#ffcf66', fontWeight: 700, cursor: 'pointer' }}>
+                {retrying ? 'Checking…' : 'Retry confirmation'}
+              </button>
+            </div>
+          )}
           {buyError && (
             <div role="alert" style={{ background: 'rgba(200,16,46,0.1)', border: '1px solid rgba(200,16,46,0.35)', borderRadius: 10, padding: '14px 20px', marginBottom: 20, fontSize: 14, color: '#ff6b81' }}>
               {buyError}

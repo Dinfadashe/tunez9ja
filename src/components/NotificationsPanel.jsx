@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase.js'
 import { Bell, X, Check } from 'lucide-react'
 
@@ -123,37 +124,47 @@ export default function NotificationsPanel({ userId }) {
   const [open, setOpen] = useState(false)
   const { notifs, unread, markAllRead } = useNotifications(userId)
   const panelRef = useRef(null)
-  const isMobile = () => window.innerWidth < 640
+  const sheetRef = useRef(null)
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+  const [dropTop, setDropTop] = useState(64)
 
-  // Close on outside click (desktop)
   useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 640)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  // Close on outside tap/click. The mobile panel is rendered in a portal
+  // (outside panelRef in the DOM), so taps inside it must count as inside.
+  useEffect(() => {
+    if (!open) return
     const handler = (e) => {
-      if (open && panelRef.current && !panelRef.current.contains(e.target)) setOpen(false)
+      if (panelRef.current?.contains(e.target) || sheetRef.current?.contains(e.target)) return
+      setOpen(false)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('pointerdown', handler)
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('pointerdown', handler); document.removeEventListener('keydown', onKey) }
   }, [open])
 
-  // Lock body scroll on mobile when open
+  // Mobile: stop the page scrolling behind the panel (overflow only —
+  // position:fixed on <body> made iPhones jump back to the top)
   useEffect(() => {
-    if (open && isMobile()) {
-      document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.width = '100%'
-    } else {
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.width = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.width = ''
-    }
-  }, [open])
+    if (!(open && isMobile)) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [open, isMobile])
 
   const handleToggle = () => {
     const willOpen = !open
+    if (willOpen) {
+      // Drop down from just below the navbar, wherever it currently is
+      const nav = panelRef.current?.closest('nav, header, .navbar')
+      const bottom = (nav || panelRef.current)?.getBoundingClientRect().bottom
+      setDropTop(Math.max(8, Math.round(bottom || 64)))
+    }
     setOpen(willOpen)
     if (willOpen && unread > 0) setTimeout(markAllRead, 2000)
   }
@@ -189,9 +200,9 @@ export default function NotificationsPanel({ userId }) {
         )}
         <button onClick={() => setOpen(false)} style={{
           background: 'none', border: 'none', color: 'var(--grey-500)',
-          cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex',
-        }}>
-          <X size={16} />
+          cursor: 'pointer', padding: 10, margin: -6, borderRadius: 6, display: 'flex',
+        }} aria-label="Close notifications">
+          <X size={18} />
         </button>
       </div>
     </div>
@@ -238,39 +249,35 @@ export default function NotificationsPanel({ userId }) {
         )}
       </button>
 
-      {/* ── MOBILE: bottom sheet ── */}
-      {open && (
+      {/* ── MOBILE: drop-down panel, rendered at <body> level ──
+           The navbar uses backdrop-filter, which traps position:fixed
+           children inside it — that is why the old sheet never appeared. */}
+      {open && isMobile && createPortal(
         <div
-          className="notif-mobile-only"
           onClick={e => { if (e.target === e.currentTarget) setOpen(false) }}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.65)',
-          }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)' }}
         >
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
+          <div ref={sheetRef} role="dialog" aria-label="Notifications" style={{
+            position: 'absolute', top: dropTop, left: 8, right: 8,
+            maxHeight: `calc(100dvh - ${dropTop + 16}px)`,
             background: 'var(--bg-card)',
-            borderRadius: '16px 16px 0 0',
+            borderRadius: 14,
             border: '1px solid var(--border)',
-            borderBottom: 'none',
-            maxHeight: '82vh',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden',
+            animation: 't9NotifDrop 0.18s ease-out',
           }}>
-            {/* Drag handle */}
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 4, flexShrink: 0 }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
-            </div>
             <PanelHeader />
             <PanelBody />
-            <div style={{ height: 'env(safe-area-inset-bottom, 12px)', minHeight: 12, flexShrink: 0 }} />
           </div>
-        </div>
+          <style>{`@keyframes t9NotifDrop { from { opacity: 0; transform: translateY(-8px) } to { opacity: 1; transform: none } }`}</style>
+        </div>,
+        document.body
       )}
 
       {/* ── DESKTOP: dropdown ── */}
-      {open && (
+      {open && !isMobile && (
         <div
           className="notif-desktop-only"
           style={{
@@ -295,14 +302,6 @@ export default function NotificationsPanel({ userId }) {
         </div>
       )}
 
-      <style>{`
-        @media (max-width: 639px) {
-          .notif-desktop-only { display: none !important; }
-        }
-        @media (min-width: 640px) {
-          .notif-mobile-only { display: none !important; }
-        }
-      `}</style>
     </div>
   )
 }

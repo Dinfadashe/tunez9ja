@@ -72,7 +72,7 @@ export default function AdminAnalytics() {
       </div>
 
       {/* Stats grid */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:16, marginBottom:36 }}>
+      <div className="adm-stats" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:16, marginBottom:36 }}>
         {STAT_CARDS.map(s => (
           <div key={s.label} style={{ background:'var(--bg-card)', border:`1px solid ${s.accent}33`, borderRadius:10, padding:'20px 18px', position:'relative', overflow:'hidden' }}>
             <div style={{ position:'absolute', top:14, right:14, color:s.accent, opacity:0.3 }}>{s.icon}</div>
@@ -82,7 +82,7 @@ export default function AdminAnalytics() {
         ))}
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
+      <div className="adm-2col" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
         {/* Top earners */}
         <div className="card" style={{ padding:24 }}>
           <h3 style={{ fontFamily:'var(--font-display)', fontSize:22, marginBottom:16 }}>TOP EARNERS</h3>
