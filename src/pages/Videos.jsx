@@ -3,6 +3,7 @@ import CommentsSection, { ReactionBar } from '../components/CommentsSection.jsx'
 import { earnWatch } from '../lib/tunez.js'
 import ShareButton from '../components/ShareButton.jsx'
 import { playFloatingVideo } from '../components/FloatingVideoPlayer.jsx'
+import { openItem, closeItem, takeCachedItem, shareLinkFor } from '../lib/urlState.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { useSEO } from '../lib/useSEO.js'
@@ -72,6 +73,25 @@ export default function VideosPage({ setPage, currentUser, deepLink }) {
     .then(({ data }) => { setVideos(data || []); setLoading(false) })
   }, [])
 
+  // The address bar decides which video is playing (/?video=<id>)
+  const videoId = deepLink?.type === 'video' ? deepLink.id : null
+  useEffect(() => {
+    if (!videoId) { setPlaying(null); return }
+    if (playing?.id === videoId) return
+    let cancelled = false
+    const cached = takeCachedItem('video', videoId) || videos.find(v => v.id === videoId)
+    if (cached) { setPlaying(cached); window.scrollTo(0, 0); return }
+    supabase.from('videos').select('*, profiles:uploader_id ( name, is_verified, role )')
+      .eq('id', videoId).eq('status', 'approved').single()
+      .then(({ data }) => {
+        if (cancelled) return
+        if (data) { setPlaying(data); window.scrollTo(0, 0) }
+        else closeItem('videos')
+      })
+    return () => { cancelled = true }
+  }, [videoId])
+  const playVideo = (v) => openItem('video', v.id, v)
+
   const filtered = videos.filter(v => {
     const matchSearch = v.title?.toLowerCase().includes(search.toLowerCase()) ||
       v.profiles?.name?.toLowerCase().includes(search.toLowerCase())
@@ -126,14 +146,14 @@ export default function VideosPage({ setPage, currentUser, deepLink }) {
             {featured && !playing && (
               <div style={{ marginBottom:40 }}>
                 <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red)', letterSpacing:3, textTransform:'uppercase', marginBottom:16 }}>Featured</div>
-                <FeaturedVideoCard video={featured} onPlay={() => setPlaying(featured)} />
+                <FeaturedVideoCard video={featured} onPlay={() => playVideo(featured)} />
               </div>
             )}
 
             {/* Playing video */}
             {playing && (
               <div style={{ marginBottom:40 }}>
-                <button className="btn btn-ghost" onClick={() => setPlaying(null)} style={{ marginBottom:16, gap:6, fontSize:13 }}>
+                <button className="btn btn-ghost" onClick={() => closeItem('videos')} style={{ marginBottom:16, gap:6, fontSize:13 }}>
                   ← Back to videos
                 </button>
                 <VideoPlayer video={playing} currentUser={currentUser} />
@@ -143,7 +163,7 @@ export default function VideosPage({ setPage, currentUser, deepLink }) {
             {/* Grid */}
             <div className="grid-3">
               {(playing ? filtered : rest).map(v => (
-                <VideoCard key={v.id} video={v} onPlay={() => setPlaying(v)} isPlaying={playing?.id === v.id} currentUser={currentUser} />
+                <VideoCard key={v.id} video={v} onPlay={() => playVideo(v)} isPlaying={playing?.id === v.id} currentUser={currentUser} />
               ))}
             </div>
           </>
@@ -207,7 +227,7 @@ function VideoPlayer({ video, currentUser }) {
       <div style={{ padding:20 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:8 }}>
           <h2 style={{ fontFamily:'var(--font-display)', fontSize:28, margin:0 }}>{video.title}</h2>
-          <ShareButton url={window.location.origin + '/?video=' + video.id} text={'Watch ' + video.title + ' on Tunez9ja!'} title={video.title} />
+          <ShareButton url={shareLinkFor('video', video.id)} text={'Watch ' + video.title + ' on Tunez9ja!'} title={video.title} />
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:16, fontSize:13, color:'var(--grey-300)', marginBottom:12 }}>
           <span>{video.profiles?.name}</span>

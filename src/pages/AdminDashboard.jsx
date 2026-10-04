@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { safeUrl } from '../lib/sanitize.js'
+
 import Sidebar from '../components/Sidebar.jsx'
 import { AccountMenu } from '../components/RoleSwitcher.jsx'
 import { Avatar, StatusBadge, Modal, ConfirmModal, EmptyState, SearchBar, MusicArt } from '../components/UI.jsx'
@@ -10,6 +12,21 @@ import AdminAnalytics from '../components/AdminAnalytics.jsx'
 import RichTextEditor from '../components/RichTextEditor.jsx'
 import { StatusBadge as _SB } from '../components/UI.jsx'
 import { LayoutDashboard, Music, Newspaper, Users, CheckCircle, XCircle, Clock, Trash2, Eye, TrendingUp, Mic2, AlertCircle, Video, Youtube, Coins, Disc, BarChart2, Shield } from 'lucide-react'
+
+// CVs are stored as private storage paths; old rows may hold full URLs.
+async function openCv(ev, value) {
+  if (!value) return
+  // Legacy rows store the old public URL — convert to the storage path
+  const legacy = String(value).match(/\/storage\/v1\/object\/(?:public|sign)\/editor-cvs\/([^?]+)/)
+  const path = legacy ? decodeURIComponent(legacy[1]) : value
+  if (/^https?:\/\//i.test(path)) return   // some other external link — open normally
+  ev.preventDefault()
+  const win = window.open('', '_blank')
+  const { data, error } = await supabase.storage.from('editor-cvs').createSignedUrl(path, 300)
+  if (error || !data?.signedUrl) { win?.close(); alert('Could not open CV: ' + (error?.message || 'not found')); return }
+  if (win) win.location.href = data.signedUrl
+  else window.location.href = data.signedUrl
+}
 
 const NAV = (pending) => [
   { key: 'overview',      label: 'Overview',       icon: LayoutDashboard },
@@ -1047,7 +1064,7 @@ function EditorReview() {
   const load = (tabName = tab) => {
     setLoading(true)
     const query = supabase.from('profiles')
-      .select('id,name,email,role,editor_status,editor_applied_at,editor_approved_at,editor_cv_url,editor_posts_reviewed,editor_total_earned,editor_reject_reason')
+      .select('*')
       .not('editor_status', 'is', null)
       .order('editor_applied_at', { ascending: false })
 
@@ -1159,7 +1176,7 @@ function EditorReview() {
           <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
             {/* CV Button */}
             {selected.editor_cv_url && (
-              <a href={selected.editor_cv_url} target="_blank" rel="noopener noreferrer"
+              <a href={safeUrl(selected.editor_cv_url) || '#'} onClick={ev => openCv(ev, selected.editor_cv_url)} target="_blank" rel="noopener noreferrer"
                 className="btn btn-secondary" style={{ fontSize:13, textAlign:'center' }}>
                 📄 View CV / Resume
               </a>
@@ -1202,6 +1219,21 @@ function EditorReview() {
                 <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--grey-500)', letterSpacing:1, marginTop:4 }}>{s.label}</div>
               </div>
             ))}
+          </div>
+        )}
+
+        {(selected.editor_motivation || selected.editor_experience) && (
+          <div style={{ marginTop:16, display:'grid', gap:12 }}>
+            {selected.editor_motivation && (
+              <div style={{ padding:'12px 14px', background:'var(--bg-surface)', borderRadius:8, fontSize:13, color:'var(--grey-300)', whiteSpace:'pre-wrap', overflowWrap:'anywhere' }}>
+                <strong style={{ color:'var(--white)' }}>Why they want to be an editor:</strong>{'\n'}{selected.editor_motivation}
+              </div>
+            )}
+            {selected.editor_experience && (
+              <div style={{ padding:'12px 14px', background:'var(--bg-surface)', borderRadius:8, fontSize:13, color:'var(--grey-300)', whiteSpace:'pre-wrap', overflowWrap:'anywhere' }}>
+                <strong style={{ color:'var(--white)' }}>Experience:</strong>{'\n'}{selected.editor_experience}
+              </div>
+            )}
           </div>
         )}
 
@@ -1285,7 +1317,7 @@ function EditorReview() {
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
                 {e.editor_cv_url && (
-                  <a href={e.editor_cv_url} target="_blank" rel="noopener noreferrer"
+                  <a href={safeUrl(e.editor_cv_url) || '#'} onClick={ev => openCv(ev, e.editor_cv_url)} target="_blank" rel="noopener noreferrer"
                     onClick={ev => ev.stopPropagation()}
                     style={{ fontSize:12, color:'var(--grey-400)', textDecoration:'none', padding:'4px 10px', border:'1px solid var(--border)', borderRadius:6 }}>
                     📄 CV

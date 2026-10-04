@@ -10,6 +10,7 @@ import { MusicArt, SearchBar, EmptyState } from '../components/UI.jsx'
 import { Play, Pause, Music, Heart, Plus, ListMusic, Disc, Headphones } from 'lucide-react'
 import ShareButton from '../components/ShareButton.jsx'
 import TrackPage   from '../components/TrackPage.jsx'
+import { openItem, closeItem, takeCachedItem, shareLinkFor } from '../lib/urlState.js'
 import Albums from '../components/Albums.jsx'
 
 
@@ -147,12 +148,26 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
   const [unlocksLoaded, setUnlocksLoaded] = React.useState(false)
   const [trackPage, setTrackPage] = React.useState(null)
 
-  // Listen for FloatingPlayer click to open track page
+  // The address bar decides which track page is open (/?track=<id>).
+  // Player-bar and card clicks call openItem(); this effect renders it.
+  const trackId = deepLink?.type === 'track' ? deepLink.id : null
   React.useEffect(() => {
-    const handler = (e) => setTrackPage(e.detail)
-    window.addEventListener('openTrackPage', handler)
-    return () => window.removeEventListener('openTrackPage', handler)
-  }, [])
+    if (!trackId) { setTrackPage(null); return }
+    if (trackPage?.id === trackId) return
+    let cancelled = false
+    const cached = takeCachedItem('track', trackId) || tracks.find(t => t.id === trackId)
+    if (cached) { setTrackPage(cached); window.scrollTo(0, 0); return }
+    supabase.from('music_tracks')
+      .select('*, profiles:artist_id(name, is_verified, avatar_url)')
+      .eq('id', trackId).eq('status', 'approved').single()
+      .then(({ data }) => {
+        if (cancelled) return
+        if (data) { setTrackPage(data); window.scrollTo(0, 0) }
+        else closeItem('music')
+      })
+    return () => { cancelled = true }
+  }, [trackId])
+  const openTrack = (t) => openItem('track', t.id, t)
   const [view, setView] = React.useState('tracks')
   const earnedRef = React.useRef({})
 
@@ -200,11 +215,6 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
         setUnlocksLoaded(true)
       }
       if (!currentUser?.id) setUnlocksLoaded(true)
-      // Auto-play track from deep link
-      if (deepLink?.type === 'track') {
-        const t = tracks.find(t => t.id === deepLink.id)
-        if (t) setTimeout(() => playTrack(t, tracks), 300)
-      }
     })
   }, [])
 
@@ -221,7 +231,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
     <TrackPage
       track={trackPage}
       currentUser={currentUser}
-      onBack={() => setTrackPage(null)}
+      onBack={() => closeItem('music')}
       onPlay={(t) => { playTrack(t, filtered) }}
       isPlaying={isPlaying}
       nowPlaying={nowPlaying}
@@ -378,7 +388,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div
-                              onClick={() => setTrackPage(track)}
+                              onClick={() => openTrack(track)}
                               style={{ fontWeight: 700, fontSize: 14, color: playing ? 'var(--red)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
                               title={track.title}>
                               {track.title}
@@ -401,11 +411,11 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
                         <ReactionBar targetType="track" targetId={track.id} currentUser={currentUser} compact />
                         <SaveButton track={track} currentUser={currentUser} />
                         <AddToPlaylist track={track} currentUser={currentUser} />
-                        <button onClick={() => setTrackPage(track)}
+                        <button onClick={() => openTrack(track)}
                           style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', color: 'var(--grey-400)', cursor: 'pointer', fontSize: 11 }}>
                           View
                         </button>
-                        <ShareButton url={window.location.origin + '/?track=' + track.id} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} coverUrl={track.cover_url} compact />
+                        <ShareButton url={shareLinkFor('track', track.id)} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} coverUrl={track.cover_url} compact />
                       </div>
                     </div>
                   )

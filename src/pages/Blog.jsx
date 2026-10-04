@@ -2,31 +2,14 @@ import React, { useState, useEffect } from 'react'
 import CommentsSection, { ReactionBar } from '../components/CommentsSection.jsx'
 import ShareButton from '../components/ShareButton.jsx'
 import { earnRead, isUnlocked } from '../lib/tunez.js'
+import { openItem, closeItem, takeCachedItem, shareLinkFor } from '../lib/urlState.js'
 import PremiumUnlockModal from '../components/PremiumUnlockModal.jsx'
 import { supabase } from '../lib/supabase.js'
+import { sanitizeHTML } from '../lib/sanitize.js'
 import { useSEO, blogPostJsonLd } from '../lib/useSEO.js'
 
 import { SearchBar, EmptyState } from '../components/UI.jsx'
 import { Newspaper, Clock, User, ArrowLeft, Eye } from 'lucide-react'
-
-// Simple HTML sanitizer — strips dangerous tags/attrs before render
-function sanitizeHTML(html) {
-  if (!html) return ''
-  var s = String(html)
-  var tags = ['script','iframe','object','embed']
-  tags.forEach(function(t) {
-    while (s.toLowerCase().indexOf('<' + t) >= 0) {
-      var start = s.toLowerCase().indexOf('<' + t)
-      var end = s.toLowerCase().indexOf('</' + t + '>')
-      if (end >= 0) { s = s.slice(0, start) + s.slice(end + t.length + 3) }
-      else { s = s.slice(0, start) + s.slice(start + t.length + 1) }
-    }
-  })
-  while (s.toLowerCase().indexOf('javascript:') >= 0) {
-    s = s.slice(0, s.toLowerCase().indexOf('javascript:')) + s.slice(s.toLowerCase().indexOf('javascript:') + 11)
-  }
-  return s
-}
 
 const CATEGORIES = ['Music Review','News','Feature','Gossip','Playlist','Interview','Opinion','Events']
 
@@ -73,13 +56,35 @@ export default function BlogPage({
   const [activeCategory, setActiveCategory] = useState('All')
   const [selectedPost, setSelectedPost] = useState(null)
 
-  // Open post from deep link
+  // The address bar decides which post is open: /?post=<id> shows it in
+  // full read mode, /?page=blog shows the list. Clicking a post just changes
+  // the URL (openItem) and this effect does the rest — so links, refreshes
+  // and the browser back button all behave the same way.
+  const postId = deepLink?.type === 'post' ? deepLink.id : null
   useEffect(() => {
-    if (deepLink?.type !== 'post' || !deepLink?.id) return
-    supabase.from('blog_posts').select('*,profiles:author_id(name,is_verified,verified_type)')
-      .eq('id', deepLink.id).single()
-      .then(({ data }) => { if (data) setSelectedPost(data) })
-  }, [deepLink])
+    if (!postId) { setSelectedPost(null); setUnlockTarget(null); return }
+    if (selectedPost?.id === postId) return
+    let cancelled = false
+    ;(async () => {
+      const cached = takeCachedItem('post', postId) || posts.find(p => p.id === postId)
+      // Show free posts instantly from what we already have, then refresh
+      if (cached && !cached.is_premium && cached.content) setSelectedPost(cached)
+      const { data } = await supabase.from('blog_posts')
+        .select('*, profiles:author_id(name, avatar_url, is_verified, verified_type)')
+        .eq('id', postId).eq('status', 'approved').single()
+      const post = data || cached
+      if (cancelled) return
+      if (!post) { closeItem('blog'); return }
+      if (post.is_premium && !(await isUnlocked(currentUser?.id, post.id))) {
+        if (!cancelled) setUnlockTarget(post)
+        return
+      }
+      if (!cancelled) setSelectedPost(post)
+    })()
+    return () => { cancelled = true }
+  }, [postId, currentUser?.id])
+
+  const openPost = (post) => openItem('post', post.id, post)
 
   useEffect(() => {
     supabase
@@ -107,7 +112,7 @@ export default function BlogPage({
 
   const [featured, ...rest] = filtered
 
-  if (selectedPost) return <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} currentUser={currentUser} />
+  if (selectedPost) return <PostDetail post={selectedPost} onBack={() => closeItem('blog')} currentUser={currentUser} />
 
   return (
     <div style={{ minHeight: '80vh' }}>
@@ -153,7 +158,7 @@ export default function BlogPage({
           <>
             {/* Featured post */}
             {featured && (
-              <div className="blog-featured" onClick={() => setSelectedPost(featured)}
+              <div className="blog-featured" onClick={() => openPost(featured)}
                 style={{ cursor: 'pointer', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', marginBottom: 32, transition: 'border-color 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,180,220,0.4)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
@@ -183,17 +188,7 @@ export default function BlogPage({
             {rest.length > 0 && (
               <div className="grid-3">
                 {rest.map(post => (
-                  <div key={post.id} className="blog-card" onClick={async () => {
-                  if (post.is_premium) {
-                    const unlocked = await isUnlocked(currentUser?.id, post.id)
-                    if (!unlocked) { setUnlockTarget(post); return }
-                  }
-                  // Fetch full post to ensure content field is loaded
-                  supabase.from('blog_posts')
-                    .select('*, profiles:author_id(name, avatar_url, is_verified)')
-                    .eq('id', post.id).single()
-                    .then(({ data }) => setSelectedPost(data || post))
-                }} style={{ cursor: 'pointer' }}>
+                  <div key={post.id} className="blog-card" onClick={() => openPost(post)} style={{ cursor: 'pointer' }}>
                     <div className="blog-card-img">
                       {post.cover_url
                         ? <img src={post.cover_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" />
@@ -230,7 +225,7 @@ export default function BlogPage({
           content={unlockTarget}
           contentType="post"
           currentUser={currentUser}
-          onClose={() => setUnlockTarget(null)}
+          onClose={() => { setUnlockTarget(null); closeItem('blog') }}
           onUnlocked={() => { setSelectedPost(unlockTarget); setUnlockTarget(null) }}
           setPage={() => {}}
         />
@@ -300,7 +295,7 @@ function PostDetail({ post, onBack, currentUser }) {
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,5vw,44px)', letterSpacing: 0.5, lineHeight: 1.08, color: 'var(--white)' }}>
               {post.title}
             </h1>
-            <ShareButton url={window.location.origin + '/?post=' + post.id} text={'Read ' + post.title + ' on Tunez9ja!'} title={post.title} coverUrl={post.cover_url} />
+            <ShareButton url={shareLinkFor('post', post.id)} text={'Read ' + post.title + ' on Tunez9ja!'} title={post.title} coverUrl={post.cover_url} />
           </div>
 
           {/* Meta */}

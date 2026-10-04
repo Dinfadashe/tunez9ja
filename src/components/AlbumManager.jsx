@@ -10,6 +10,7 @@ export default function AlbumManager({ currentUser }) {
   const [creating,  setCreating]  = useState(false)
   const [loading,   setLoading]   = useState(true)
   const [saving,    setSaving]    = useState(false)
+  const [error,     setError]     = useState('')
   const [form, setForm] = useState({
     title: '', description: '', genre: '', release_date: '',
     is_premium: false, tunez_price: ''
@@ -52,26 +53,33 @@ export default function AlbumManager({ currentUser }) {
     e.preventDefault()
     if (!form.title.trim()) return
     setSaving(true)
+    setError('')
 
-    let cover_url = null
-    if (coverFile) {
-      const ext  = coverFile.name.split('.').pop()
-      const path = `album-covers/${currentUser.id}_${Date.now()}.${ext}`
-      await supabase.storage.from('music-covers').upload(path, coverFile, { upsert: true })
-      const { data: urlData } = supabase.storage.from('music-covers').getPublicUrl(path)
-      cover_url = urlData.publicUrl
-    }
-
-    // Test phase limit
+    // Test phase limit — checked before uploading anything
     const { count: aCount } = await supabase.from('albums')
       .select('id', { count: 'exact', head: true })
       .eq('artist_id', currentUser.id)
     if (aCount >= 3) {
       setError('❌ Test phase: max 3 albums allowed. Reach verification milestone to create more.')
+      setSaving(false)
       return
     }
 
-    const { data } = await supabase.from('albums').insert({
+    let cover_url = null
+    if (coverFile) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(coverFile.type) || coverFile.size > 5 * 1024 * 1024) {
+        setError('❌ Cover must be a JPG, PNG or WebP image under 5MB.'); setSaving(false); return
+      }
+      const ext  = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[coverFile.type]
+      const path = `album-covers/${currentUser.id}_${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage.from('music-covers')
+        .upload(path, coverFile, { upsert: true, contentType: coverFile.type })
+      if (upErr) { setError('❌ Cover upload failed: ' + upErr.message); setSaving(false); return }
+      const { data: urlData } = supabase.storage.from('music-covers').getPublicUrl(path)
+      cover_url = urlData.publicUrl
+    }
+
+    const { data, error: insErr } = await supabase.from('albums').insert({
       artist_id: currentUser.id,
       title: form.title.trim(),
       description: form.description || null,
@@ -83,6 +91,7 @@ export default function AlbumManager({ currentUser }) {
       status: 'pending',
     }).select().single()
 
+    if (insErr) setError('❌ Could not create album: ' + insErr.message)
     if (data) {
       setAlbums(prev => [data, ...prev])
       setForm({ title: '', description: '', genre: '', release_date: '', is_premium: false, tunez_price: '' })
@@ -208,7 +217,7 @@ export default function AlbumManager({ currentUser }) {
                       <Upload size={24} /><span style={{ fontSize: 11 }}>Upload</span>
                     </div>
                 }
-                <input id="album-cover-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCover} />
+                <input id="album-cover-input" type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handleCover} />
               </div>
             </div>
 
@@ -255,6 +264,7 @@ export default function AlbumManager({ currentUser }) {
               )}
             </div>
 
+            {error && <div role="alert" style={{ color: 'var(--red)', fontSize: 13, margin: '4px 0 12px' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 12 }}>
               <button type="submit" className="btn btn-primary" style={{ gap: 8 }} disabled={saving}>
                 <Check size={15} /> {saving ? 'Creating...' : 'Create Album'}

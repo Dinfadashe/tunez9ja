@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Logo } from '../components/UI.jsx'
 import { Eye, EyeOff, Mic2, Newspaper, Shield, User as User2, Headphones } from 'lucide-react'
@@ -8,6 +8,8 @@ const sanitize = (str) => { if (!str) return ''; return str.trim().split('<').jo
 const sanitizeEmail = (email) => { if (!email) return ''; var e = email.trim().toLowerCase(); var ok = 'abcdefghijklmnopqrstuvwxyz0123456789@._+-'; var out = ''; for (var i=0;i<e.length;i++) { if (ok.indexOf(e[i]) >= 0) out += e[i]; } return out }
 
 
+
+const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
 
 const ROLE_CONFIG = {
   admin:   { label: 'Admin',   icon: Shield,    color: 'var(--red)',  page: 'admin-dashboard'   },
@@ -22,6 +24,23 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [rolePicker, setRolePicker] = useState(null)
+  const [notice, setNotice]     = useState('')
+  const [sendingReset, setSendingReset] = useState(false)
+
+  const sendReset = async () => {
+    setError(''); setNotice('')
+    const email = form.email.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Enter your email above, then tap "Forgot password?" again.'); return }
+    setSendingReset(true)
+    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/?page=reset-password`,
+    })
+    setSendingReset(false)
+    // Same message whether or not the account exists (no account probing)
+    if (resetErr && !/rate|seconds/i.test(resetErr.message)) { setError('Could not send the reset email. Please try again shortly.'); return }
+    if (resetErr) { setError('Please wait a minute before requesting another reset email.'); return }
+    setNotice('If an account exists for that email, a password reset link is on its way. Check your inbox and spam folder.')
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError(''); setLoading(true)
@@ -30,7 +49,13 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
         supabase.auth.signInWithPassword({ email: form.email, password: form.password }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out. Please try again.')), 15000))
       ])
-      if (authError) { setError(authError.message || 'Login failed.'); setLoading(false); return }
+      if (authError) {
+        const m = authError.message || ''
+        setError(/email not confirmed/i.test(m) ? 'Please confirm your email first — check your inbox for the confirmation link.'
+          : /invalid login credentials/i.test(m) ? 'Incorrect email or password.'
+          : m || 'Login failed.')
+        setLoading(false); return
+      }
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
       setLoading(false)
       if (!profile) { setError('Profile not found. Contact support.'); return }
@@ -105,10 +130,16 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
           </div>
         )}
 
+        {notice && (
+          <div role="status" style={{ background: 'rgba(0,200,100,0.1)', border: '1px solid rgba(0,200,100,0.3)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#00c864' }}>
+            {notice}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Email</label>
-            <input className="form-control" type="email" placeholder="you@example.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} required />
+            <input className="form-control" type="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} required />
           </div>
           <div className="form-group">
             <label className="form-label">Password</label>
@@ -120,6 +151,12 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+          </div>
+          <div style={{ textAlign: 'right', marginTop: -6, marginBottom: 6 }}>
+            <button type="button" onClick={sendReset} disabled={sendingReset}
+              style={{ background: 'none', border: 'none', color: 'var(--grey-300)', fontSize: 13, cursor: 'pointer', padding: '6px 0', textDecoration: 'underline' }}>
+              {sendingReset ? 'Sending…' : 'Forgot password?'}
+            </button>
           </div>
           <button className="btn btn-primary" type="submit" style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: 15, marginTop: 8 }} disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
@@ -161,6 +198,8 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('')
     if (!form.name || !form.email || !form.password || !form.role) { setError('Please fill all required fields'); return }
+    if (!['user', 'artist', 'blogger'].includes(form.role)) { setError('Please choose a valid account type'); return }
+    if (form.password.length < 8) { setError('Password must be at least 8 characters'); return }
     if (!termsAgreed) { setError('Please agree to the Terms of Service and Privacy Policy to continue'); return }
     setLoading(true)
     try {
@@ -206,11 +245,13 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
         // Still continue - auth account was created
       }
       // Handle referral bonus
-      if (refCode) {
+      // Only letters, digits and dashes — the code goes into a database filter
+      const cleanRef = String(refCode || '').trim().replace(/[^A-Za-z0-9-]/g, '').slice(0, 64)
+      if (cleanRef) {
         const { data: referrer } = await supabase
           .from('profiles')
           .select('id')
-          .or('referral_code.eq.' + refCode + ',id.eq.' + refCode)
+          .eq(isUuid(cleanRef) ? 'id' : 'referral_code', isUuid(cleanRef) ? cleanRef : cleanRef.toUpperCase())
           .maybeSingle()
         if (referrer?.id) {
           // Credit referrer with 15 TUNEZ
@@ -294,7 +335,7 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
               </div>
               <div className="form-group">
                 <label className="form-label">Password *</label>
-                <input className="form-control" type="password" placeholder="Min. 6 characters" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required minLength={6} />
+                <input className="form-control" type="password" placeholder="Min. 8 characters" autoComplete="new-password" minLength={8} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required minLength={6} />
               </div>
               {form.role === 'artist' && (
                 <div className="form-group">
@@ -366,5 +407,76 @@ function RoleCard({ icon, title, desc, onClick, color }) {
       <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, letterSpacing: 0.5, marginBottom: 8 }}>{title}</div>
       <div style={{ fontSize: 13, color: 'var(--grey-300)', lineHeight: 1.6 }}>{desc}</div>
     </button>
+  )
+}
+
+
+// ── Reset password (landing page of the recovery email link) ────────────────
+export function ResetPasswordPage({ setPage }) {
+  const [pw, setPw]           = useState('')
+  const [pw2, setPw2]         = useState('')
+  const [error, setError]     = useState('')
+  const [done, setDone]       = useState(false)
+  const [saving, setSaving]   = useState(false)
+  const [hasSession, setHasSession] = useState(null)
+
+  useEffect(() => {
+    // The recovery link signs the user in temporarily; give supabase-js a
+    // moment to read the token from the URL before deciding it's invalid.
+    let tries = 0
+    const check = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session || tries++ > 6) setHasSession(!!session)
+      else setTimeout(check, 500)
+    }
+    check()
+  }, [])
+
+  const submit = async (e) => {
+    e.preventDefault(); setError('')
+    if (pw.length < 8) { setError('Password must be at least 8 characters'); return }
+    if (pw !== pw2) { setError('Passwords do not match'); return }
+    setSaving(true)
+    const { error: upErr } = await supabase.auth.updateUser({ password: pw })
+    setSaving(false)
+    if (upErr) { setError(upErr.message || 'Could not update password. Request a new reset link.'); return }
+    setDone(true)
+  }
+
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <h1 className="auth-title" style={{ marginBottom: 8 }}>Set a new password</h1>
+        {hasSession === null && <p style={{ color: 'var(--grey-300)' }}>Checking your reset link…</p>}
+        {hasSession === false && (
+          <>
+            <p style={{ color: 'var(--grey-300)', marginBottom: 16 }}>This reset link is invalid or has expired.</p>
+            <button className="btn btn-primary" onClick={() => setPage('login')}>Back to Sign In</button>
+          </>
+        )}
+        {hasSession && done && (
+          <>
+            <p style={{ color: '#00c864', marginBottom: 16 }}>✅ Your password has been updated.</p>
+            <button className="btn btn-primary" onClick={() => setPage('home')}>Continue</button>
+          </>
+        )}
+        {hasSession && !done && (
+          <form onSubmit={submit}>
+            {error && <div role="alert" style={{ background: 'var(--red-glow)', border: '1px solid var(--border-red)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#ff6b6b' }}>⚠️ {error}</div>}
+            <div className="form-group">
+              <label className="form-label">New password</label>
+              <input className="form-control" type="password" autoComplete="new-password" minLength={8} value={pw} onChange={e => setPw(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Confirm new password</label>
+              <input className="form-control" type="password" autoComplete="new-password" minLength={8} value={pw2} onChange={e => setPw2(e.target.value)} required />
+            </div>
+            <button className="btn btn-primary" type="submit" disabled={saving} style={{ width: '100%', justifyContent: 'center' }}>
+              {saving ? 'Saving…' : 'Update password'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
   )
 }

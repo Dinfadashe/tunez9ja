@@ -1,3 +1,4 @@
+import { sanitizeHTML } from '../lib/sanitize.js'
 import React, { useRef, useEffect, useCallback, useState } from 'react'
 import {
   Bold, Italic, Underline, Strikethrough,
@@ -27,7 +28,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
 
   useEffect(() => {
     if (editorRef.current && value && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value
+      editorRef.current.innerHTML = sanitizeHTML(value)
       countWords()
     }
   }, [])

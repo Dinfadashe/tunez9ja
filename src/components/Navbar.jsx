@@ -200,8 +200,7 @@ export default function Navbar({
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 'auto', flexShrink: 0 }}>
             {onDJOpen && (
               <button onClick={onDJOpen}
-                title="Launch AI DJ"
-                className="hide-xs"
+                title="Launch AI DJ" aria-label="Launch AI DJ"
                 style={{
                   background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.3)', borderRadius: 8,
                   color: 'var(--red)', cursor: 'pointer', padding: '0.35rem 0.6rem',
@@ -209,7 +208,7 @@ export default function Navbar({
                   fontSize: '0.7rem', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: 0.5,
                   minHeight: '2.25rem', whiteSpace: 'nowrap',
                 }}>
-                <Radio size={13} /> AI DJ
+                <Radio size={13} /> <span className="hide-xs">AI DJ</span>
               </button>
             )}
 
@@ -269,7 +268,6 @@ export default function Navbar({
               </button>
             ) : (
               <button onClick={() => navigate('login')}
-                className="hide-xs"
                 style={{
                   padding: '0.45rem 0.9rem', borderRadius: 8, background: 'var(--red)',
                   border: 'none', color: 'white', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700,

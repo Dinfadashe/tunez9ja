@@ -38,13 +38,21 @@ export default function VerificationPanel({ currentUser, onRoleSwitch }) {
       currency: 'NGN',
       ref:    'VRF-' + currentUser.id.slice(0,8) + '-' + Date.now(),
       metadata: { user_id: currentUser.id, type: 'verification_fee' },
-      onSuccess: async (res) => {
-        await supabase.from('profiles').update({
-          kyc_fee_paid: true,
-          kyc_fee_ref: res.reference
-        }).eq('id', currentUser.id)
-        setEligibility(prev => ({ ...prev, kyc_fee_paid: true }))
-        setStep('kyc')
+      onSuccess: (res) => {
+        // The fee is confirmed with Paystack on the server before it counts
+        setError(null)
+        supabase.functions.invoke('verify-tunez-payment', {
+          body: { reference: res.reference, purpose: 'kyc_fee' },
+        }).then(async ({ data, error: fnErr }) => {
+          if (data?.success) {
+            setEligibility(prev => ({ ...prev, kyc_fee_paid: true }))
+            setStep('kyc')
+            return
+          }
+          let reason = data?.reason
+          try { reason = reason || (await fnErr?.context?.json())?.reason } catch { /* ignore */ }
+          setError(`${reason || 'Could not confirm your payment.'} Reference: ${res.reference}`)
+        }).catch(() => setError(`Network error confirming payment. Reference: ${res.reference}`))
       },
       onClose: () => {}
     })

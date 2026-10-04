@@ -18,6 +18,7 @@ export function getAvailableRoles(profile) {
   const keys = new Set(profile.available_roles?.length ? profile.available_roles : [profile.role])
   if (keys.has('admin') || profile.role === 'admin') ['admin', 'artist', 'blogger', 'user'].forEach(k => keys.add(k))
   if (profile.editor_status === 'approved') keys.add('editor')
+  keys.add('user')   // every account has the basic user dashboard
   return ROLES.filter(r => keys.has(r.key))
 }
 

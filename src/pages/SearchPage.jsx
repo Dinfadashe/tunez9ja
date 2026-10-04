@@ -1,3 +1,4 @@
+import { openItem } from '../lib/urlState.js'
 import React, { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
@@ -197,7 +198,7 @@ export default function SearchPage({ setPage, currentUser }) {
                 </div>
                 <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                   {results.posts.map(post => (
-                    <div key={post.id}
+                    <div key={post.id} onClick={() => openItem('post', post.id, post)}
                       style={{ display:'flex', gap:14, padding:'14px', background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:10, cursor:'pointer', transition:'all 0.2s' }}
                       onMouseEnter={e => { e.currentTarget.style.borderColor='var(--border-red)' }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)' }}>
@@ -222,7 +223,7 @@ export default function SearchPage({ setPage, currentUser }) {
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', gap:14 }}>
                   {results.videos.map(video => (
-                    <div key={video.id}
+                    <div key={video.id} onClick={() => openItem('video', video.id, video)}
                       style={{ background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden', cursor:'pointer', transition:'all 0.2s' }}
                       onMouseEnter={e => { e.currentTarget.style.borderColor='var(--border-red)'; e.currentTarget.style.transform='translateY(-2px)' }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.transform='none' }}>

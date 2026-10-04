@@ -702,3 +702,9 @@ body {
 @media (max-width: 420px) {
   .acct-menu-label { display: none; }
 }
+
+/* Small phones: drop secondary navbar buttons so the bar fits (they remain
+   reachable from the hamburger menu). This class was used but never defined. */
+@media (max-width: 400px) {
+  .hide-xs { display: none !important; }
+}

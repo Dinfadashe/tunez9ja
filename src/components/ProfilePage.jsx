@@ -1,3 +1,4 @@
+import { openItem } from '../lib/urlState.js'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { MusicArt } from './UI.jsx'
@@ -287,7 +288,7 @@ export default function ProfilePage({ profileId, currentUser, setPage }) {
 
 function TrackCard({ track }) {
   return (
-    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', transition: 'all 0.2s', cursor: 'pointer' }}
+    <div onClick={() => openItem('track', track.id, track)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', transition: 'all 0.2s', cursor: 'pointer' }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-red)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none' }}
     >
@@ -322,7 +323,7 @@ function VideoCard({ video }) {
   const ytId = getYtId(video.youtube_url)
   const thumb = ytId ? 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg' : null
   return (
-    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', transition: 'all 0.2s', cursor: 'pointer' }}
+    <div onClick={() => openItem('video', video.id, video)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', transition: 'all 0.2s', cursor: 'pointer' }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-red)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
     >
@@ -345,7 +346,7 @@ function VideoCard({ video }) {
 
 function PostCard({ post, setPage }) {
   return (
-    <div onClick={() => setPage('blog')}
+    <div onClick={() => openItem('post', post.id, post)}
       style={{ display: 'flex', gap: 14, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 14, cursor: 'pointer', transition: 'all 0.15s' }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-red)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}

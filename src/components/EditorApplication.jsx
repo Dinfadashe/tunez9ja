@@ -8,7 +8,18 @@ export default function EditorApplication({ currentUser, onSwitchToEditor }) {
   const [uploading, setUploading] = useState(false)
   const [error,     setError]     = useState(null)
   const [done,      setDone]      = useState(false)
+  const [reapplying, setReapplying] = useState(false)
   const fileRef = useRef()
+
+  const CV_TYPES = ['application/pdf', 'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png']
+  const pickCv = (file) => {
+    setError(null)
+    if (!file) { setCvFile(null); return }
+    if (!CV_TYPES.includes(file.type)) { setError('CV must be a PDF, Word document, JPG or PNG'); setCvFile(null); return }
+    if (file.size > 10 * 1024 * 1024) { setError('CV must be under 10MB'); setCvFile(null); return }
+    setCvFile(file)
+  }
 
   const status = currentUser?.editor_status
 
@@ -38,7 +49,7 @@ export default function EditorApplication({ currentUser, onSwitchToEditor }) {
     </div>
   )
 
-  if (status === 'rejected') return (
+  if (status === 'rejected' && !reapplying) return (
     <div className="card" style={{ padding:28, maxWidth:480 }}>
       <XCircle size={36} color="var(--red)" style={{ marginBottom:12, display:'block' }} />
       <h3 style={{ fontFamily:'var(--font-display)', fontSize:24, marginBottom:8 }}>APPLICATION NOT APPROVED</h3>
@@ -47,7 +58,7 @@ export default function EditorApplication({ currentUser, onSwitchToEditor }) {
           <strong>Reason:</strong> {currentUser.editor_reject_reason}
         </p>
       )}
-      <button onClick={() => {}} className="btn btn-primary">Reapply</button>
+      <button onClick={() => setReapplying(true)} className="btn btn-primary">Reapply</button>
     </div>
   )
 
@@ -59,19 +70,28 @@ export default function EditorApplication({ currentUser, onSwitchToEditor }) {
     setUploading(true)
     setError(null)
     try {
-      const ext  = cvFile.name.split('.').pop()
+      const ext  = (cvFile.name.split('.').pop() || 'pdf').toLowerCase().replace(/[^a-z0-9]/g, '')
       const path = `${currentUser.id}/cv.${ext}`
       const { error: upErr } = await supabase.storage
         .from('editor-cvs').upload(path, cvFile, { upsert: true, contentType: cvFile.type })
       if (upErr) throw upErr
 
-      const { data: { publicUrl } } = supabase.storage.from('editor-cvs').getPublicUrl(path)
-
-      const { error: dbErr } = await supabase.from('profiles').update({
+      // Store the storage path, not a public URL — CVs hold personal data.
+      // Admins open them through short-lived signed links.
+      const base = {
         editor_status:     'applied',
-        editor_cv_url:     publicUrl,
+        editor_cv_url:     path,
         editor_applied_at: new Date().toISOString(),
+      }
+      let { error: dbErr } = await supabase.from('profiles').update({
+        ...base,
+        editor_motivation: form.whyEditor.trim().slice(0, 4000),
+        editor_experience: form.experience.trim().slice(0, 4000),
       }).eq('id', currentUser.id)
+      // Columns not created yet (security migration not run) — save the rest
+      if (dbErr && (dbErr.code === 'PGRST204' || /column/i.test(dbErr.message || ''))) {
+        ({ error: dbErr } = await supabase.from('profiles').update(base).eq('id', currentUser.id))
+      }
 
       if (dbErr) throw dbErr
       setDone(true)
@@ -133,7 +153,7 @@ export default function EditorApplication({ currentUser, onSwitchToEditor }) {
           )}
         </div>
         <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.jpg,.png"
-          style={{ display:'none' }} onChange={e => setCvFile(e.target.files?.[0] || null)} />
+          style={{ display:'none' }} onChange={e => pickCv(e.target.files?.[0] || null)} />
       </div>
 
       {error && <div style={{ color:'var(--red)', fontSize:13, marginBottom:16 }}>{error}</div>}

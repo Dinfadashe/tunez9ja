@@ -138,7 +138,10 @@ export function PlayerProvider({ children }) {
   const stopPlayer = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause()
-      audioRef.current.src = ''
+      // removeAttribute + load() empties the player cleanly; setting src=''
+      // makes the browser try to load the page URL and fire a false error
+      audioRef.current.removeAttribute('src')
+      audioRef.current.load()
     }
     setNowPlaying(null)
     setIsPlaying(false)
@@ -220,6 +223,8 @@ export function PlayerProvider({ children }) {
         preload="auto"
         onPlay={()       => { setIsPlaying(true); setAudioError(null) }}
         onError={(e)     => {
+          // No source loaded (player stopped/reset) — nothing actually failed
+          if (!e.target.getAttribute('src')) return
           const code = e.target.error?.code
           console.error('❌ Audio error:', code, e.target.error?.message, audioRef.current?.src)
           // MEDIA_ERR_NETWORK (2) / MEDIA_ERR_SRC_NOT_SUPPORTED (4) while

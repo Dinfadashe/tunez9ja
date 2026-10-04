@@ -29,6 +29,7 @@ export default function TunezWallet({ currentUser, setPage }) {
   const [loading,      setLoading]      = useState(true)
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [buySuccess,   setBuySuccess]   = useState(false)
+  const [buyError,     setBuyError]     = useState('')
 
   useEffect(() => {
     if (!currentUser) return
@@ -65,9 +66,16 @@ export default function TunezWallet({ currentUser, setPage }) {
     // Callback must be a plain function — no async/await
     function onSuccess(response) {
       // Verify payment via edge function
+      setBuyError('')
       supabase.functions.invoke('verify-tunez-payment', {
-        body: { reference: response.reference, user_id: currentUser.id, package_id: pkg.id }
-      }).then(({ data }) => {
+        body: { reference: response.reference, package_id: pkg.id, purpose: 'tunez' }
+      }).then(async ({ data, error }) => {
+        if (!data?.success) {
+          // Edge function errors arrive in error.context (a Response)
+          let reason = data?.reason
+          try { reason = reason || (await error?.context?.json())?.reason } catch { /* ignore */ }
+          setBuyError(`${reason || 'We could not confirm your payment yet.'} Your Paystack reference is ${response.reference} — keep it for support.`)
+        }
         if (data?.success) {
           // Refresh balance
           supabase.from('tunez_balances')
@@ -81,7 +89,10 @@ export default function TunezWallet({ currentUser, setPage }) {
           setTimeout(() => setBuySuccess(false), 4000)
         }
         setBuying(null)
-      }).catch(() => setBuying(null))
+      }).catch(() => {
+        setBuyError(`Network error while confirming payment. Your reference is ${response.reference} — refresh in a minute or contact support.`)
+        setBuying(null)
+      })
     }
 
     function onClose() {
@@ -221,6 +232,11 @@ export default function TunezWallet({ currentUser, setPage }) {
       {/* Buy TUNEZ */}
       {tab === 'buy' && (
         <div>
+          {buyError && (
+            <div role="alert" style={{ background: 'rgba(200,16,46,0.1)', border: '1px solid rgba(200,16,46,0.35)', borderRadius: 10, padding: '14px 20px', marginBottom: 20, fontSize: 14, color: '#ff6b81' }}>
+              {buyError}
+            </div>
+          )}
           {buySuccess && (
             <div style={{ background: 'rgba(0,200,100,0.1)', border: '1px solid rgba(0,200,100,0.3)', borderRadius: 10, padding: '14px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#00c864' }}>
               <Check size={18} /> TUNEZ credited to your wallet successfully!

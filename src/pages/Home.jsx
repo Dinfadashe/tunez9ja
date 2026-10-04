@@ -1,3 +1,4 @@
+import { openItem } from '../lib/urlState.js'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { useSEO, websiteJsonLd, organizationJsonLd } from '../lib/useSEO.js'
@@ -283,10 +284,7 @@ function HeroVisual({ tracks }) {
 
 const MusicCard = React.memo(function MusicCard({ track, setPage }) {
   return (
-    <div onClick={() => {
-      setPage('music')
-      setTimeout(() => window.dispatchEvent(new CustomEvent('openTrackPage', { detail: track })), 100)
-    }} style={{ cursor: 'pointer', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid var(--border)', transition: 'all 0.3s' }}
+    <div onClick={() => openItem('track', track.id, track)} style={{ cursor: 'pointer', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid var(--border)', transition: 'all 0.3s' }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--border-red)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(200,16,46,0.2)' }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
     >
@@ -337,7 +335,7 @@ const VideoCard = React.memo(function VideoCard({ video, setPage }) {
   const ytId = getYtId(video.youtube_url)
   const thumb = ytId ? 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg' : null
   return (
-    <div onClick={() => setPage('videos')}
+    <div onClick={() => openItem('video', video.id, video)}
       style={{ cursor: 'pointer', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid var(--border)', transition: 'all 0.3s' }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--border-red)' }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border)' }}>
@@ -375,7 +373,7 @@ const VideoCard = React.memo(function VideoCard({ video, setPage }) {
 
 const BlogCard = React.memo(function BlogCard({ post, setPage }) {
   return (
-    <div className="blog-card" onClick={() => setPage('blog')} style={{ cursor: 'pointer' }}>
+    <div className="blog-card" onClick={() => openItem('post', post.id, post)} style={{ cursor: 'pointer' }}>
       <div className="blog-card-img">
         {post.cover_url
           ? <img src={post.cover_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" decoding="async" />

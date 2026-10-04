@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { sanitizeHTML } from '../lib/sanitize.js'
 import { AccountMenu } from '../components/RoleSwitcher.jsx'
 
 // ─── Draft auto-save key (per-user) ──────────────────────────────────────────
@@ -45,7 +46,7 @@ function RichEditor({ value, onChange, userId }) {
     if (!el) return
     // Only update DOM if it differs (avoids cursor jump on every keystroke)
     if (el.innerHTML !== value) {
-      el.innerHTML = value || ''
+      el.innerHTML = sanitizeHTML(value || '')
     }
   }, [value])
 
@@ -126,7 +127,7 @@ function RichEditor({ value, onChange, userId }) {
   const handleImageFileChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) {
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
       setUploadError('Please select an image file (JPG, PNG, GIF, WebP).')
       return
     }

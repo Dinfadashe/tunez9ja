@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { sanitizeHTML } from '../lib/sanitize.js'
 import Sidebar from '../components/Sidebar.jsx'
 import { AccountMenu } from '../components/RoleSwitcher.jsx'
 import TunezWallet from '../components/TunezWallet.jsx'
@@ -255,7 +256,7 @@ function ReviewPosts({ user }) {
             {selected.cover_url && (
               <img src={selected.cover_url} style={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 10, marginBottom: 16 }} alt="" />
             )}
-            <div style={{ fontSize: 14, color: 'var(--grey-300)', lineHeight: 1.9 }} dangerouslySetInnerHTML={{ __html: content }} />
+            <div style={{ fontSize: 14, color: 'var(--grey-300)', lineHeight: 1.9 }} dangerouslySetInnerHTML={{ __html: sanitizeHTML(content) }} />
           </div>
         )}
 

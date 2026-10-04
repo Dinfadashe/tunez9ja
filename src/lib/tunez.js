@@ -304,19 +304,10 @@ export async function unlockPremium(userId, content, contentType) {
     p_ref_id: content.id
   })
   if (spendErr) {
-    // Fallback direct debit
-    const { error: debitErr } = await supabase.from('tunez_balances')
-      .update({ balance: bal.balance - content.tunez_price,
-                total_spent: (bal.total_spent || 0) + content.tunez_price,
-                updated_at: new Date().toISOString() })
-      .eq('user_id', userId)
-    if (debitErr) return { success: false, reason: 'debit_failed' }
-    await supabase.from('tunez_transactions').insert({
-      user_id: userId, type: 'spend_premium',
-      amount: -content.tunez_price,
-      description: 'Unlocked premium: ' + content.title,
-      ref_id: content.id
-    })
+    // Never fall back to writing balances from the browser — the balance
+    // must only change through the server-side spend function.
+    console.error('spend_tunez failed:', spendErr)
+    return { success: false, reason: 'debit_failed' }
   }
 
   // STEP 2: Record unlock IMMEDIATELY after debit

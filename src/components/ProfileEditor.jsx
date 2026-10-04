@@ -61,8 +61,8 @@ export default function ProfileEditor({ currentUser, onUpdated }) {
     if (!file) return
 
     // Validate type and size
-    if (!file.type.startsWith('image/')) {
-      setMsg({ type: 'error', text: 'Please select an image file' }); return
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+      setMsg({ type: 'error', text: 'Please select a JPG, PNG, GIF or WebP image' }); return
     }
     if (file.size > 2 * 1024 * 1024) {
       setMsg({ type: 'error', text: 'Image must be under 2MB' }); return

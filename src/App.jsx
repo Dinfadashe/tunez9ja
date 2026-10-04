@@ -6,8 +6,9 @@ const ChartsPage = React.lazy(() => import('./pages/ChartsPage.jsx'))
 const AlbumsPage = React.lazy(() => import('./components/Albums.jsx'))
 import { AppProvider } from './context/AppContext.jsx'
 import { PlayerProvider } from './context/PlayerContext.jsx'
-import { dashboardPageForRole } from './components/RoleSwitcher.jsx'
+import { dashboardPageForRole, getAvailableRoles } from './components/RoleSwitcher.jsx'
 import { supabase } from './lib/supabase.js'
+import { parseLocation, navigateToPage, openItem, onUrlChange } from './lib/urlState.js'
 import { ToastContainer } from './components/UI.jsx'
 import FloatingPlayer from './components/FloatingPlayer.jsx'
 import FloatingVideoPlayer from './components/FloatingVideoPlayer.jsx'
@@ -25,6 +26,7 @@ const TermsPage = React.lazy(() => import('./pages/Terms.jsx'))
 const PrivacyPage = React.lazy(() => import('./pages/Privacy.jsx'))
 const LoginPage    = React.lazy(() => import('./pages/Auth.jsx').then(m => ({ default: m.LoginPage })))
 const RegisterPage = React.lazy(() => import('./pages/Auth.jsx').then(m => ({ default: m.RegisterPage })))
+const ResetPasswordPage = React.lazy(() => import('./pages/Auth.jsx').then(m => ({ default: m.ResetPasswordPage })))
 const SearchPage = React.lazy(() => import('./pages/SearchPage.jsx'))
 const ProfilePage = React.lazy(() => import('./components/ProfilePage.jsx'))
 
@@ -224,14 +226,24 @@ function TelegramPopup() {
 }
 
 function AppInner() {
-  const [profileId, setProfileId] = React.useState(null)
+  // The address bar is the source of truth for what's on screen, so every
+  // page and item has a copyable link (see src/lib/urlState.js).
+  const [profileId, setProfileId] = React.useState(() => {
+    const { item } = parseLocation()
+    return item?.type === 'profile' ? item.id : null
+  })
   const [djOpen, setDjOpen] = React.useState(false)
-  const [page, rawSetPage]          = useState(() => sessionStorage.getItem('t9_page') || 'home')
-  const setPage = React.useCallback((p) => { if (p) { sessionStorage.setItem('t9_page', p); rawSetPage(p) } }, [])
+  const [page, rawSetPage]          = useState(() => parseLocation().page)
+  const setPage = React.useCallback((p) => {
+    if (!p) return
+    rawSetPage(p)
+    setDeepLink(null)
+    navigateToPage(p)
+  }, [])
   const [profile, setProfile]       = useState(null)
   const [activeRole, setActiveRole] = useState(null)
   const [authReady, setAuthReady]   = useState(false)
-  const [deepLink, setDeepLink]     = useState(null)
+  const [deepLink, setDeepLink]     = useState(() => parseLocation().item)
   const [swUpdateAvailable, setSwUpdateAvailable] = useState(false)
 
   // ── Offline support: register SW once, init the sync queue, wire
@@ -246,27 +258,29 @@ function AppInner() {
   useOfflineAudioSync(profile)
 
 
-  // ── Deep link handler — reads URL params on load ──────────
+  // ── Keep page / open item in sync with the address bar ──────
+  // Fires on in-app navigation and on browser back/forward.
+  useEffect(() => onUrlChange(() => {
+    const { page: p, item } = parseLocation()
+    rawSetPage(p)
+    setDeepLink(item)
+    if (item?.type === 'profile') setProfileId(item.id)
+  }), [])
+
+  // ── Referral / signup links → registration ─────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const track   = params.get('track')
-    const post    = params.get('post')
-    const video   = params.get('video')
-    const artist  = params.get('artist')
-    const ref     = params.get('ref')
-    const signup  = params.get('signup')
+    const ref    = params.get('ref')
+    const signup = params.get('signup')
+    if (ref) sessionStorage.setItem('t9_ref', ref)
+    if (ref || signup) { rawSetPage('register'); navigateToPage('register', { replace: true }) }
+  }, [])
 
-    if (track)  { setPage('music');  setDeepLink({ type: 'track',  id: track  }) }
-    if (post)   { setPage('blog');   setDeepLink({ type: 'post',   id: post   }) }
-    if (video)  { setPage('videos'); setDeepLink({ type: 'video',  id: video  }) }
-    if (artist) { setPage('music');  setDeepLink({ type: 'artist', id: artist }) }
-    if (ref) sessionStorage.setItem('t9_ref', ref) // save before URL clean
-    if (ref || signup) { setPage('register'); setDeepLink(prev => ({ ...prev, ref })) }
-
-    // Clean URL without reloading
-    if (track || post || video || artist || ref || signup) {
-      window.history.replaceState({}, '', window.location.pathname)
-    }
+  // ── "Open this track" requests from anywhere (player bar, home cards…) ──
+  useEffect(() => {
+    const handler = (e) => { if (e.detail?.id) openItem('track', e.detail.id, e.detail) }
+    window.addEventListener('openTrackPage', handler)
+    return () => window.removeEventListener('openTrackPage', handler)
   }, [])
 
   useEffect(() => {
@@ -292,6 +306,7 @@ function AppInner() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       // Only act on explicit signout — ignore TOKEN_REFRESHED, INITIAL_SESSION etc
+      if (event === 'PASSWORD_RECOVERY') { navigateToPage('reset-password', { replace: true }); return }
       if (event === 'SIGNED_OUT') {
         // Verify session is truly gone (ignore spurious SIGNED_OUT events)
         await new Promise(r => setTimeout(r, 500)) // small delay
@@ -372,24 +387,9 @@ function AppInner() {
 
   // Listen for profile open events from any component
   React.useEffect(() => {
-    const handler = (e) => {
-      if (e.detail?.profileId) {
-        setProfileId(e.detail.profileId)
-        rawSetPage('profile')
-        sessionStorage.setItem('t9_page', 'profile')
-        sessionStorage.setItem('t9_profileId', e.detail.profileId)
-      }
-    }
+    const handler = (e) => { if (e.detail?.profileId) openItem('profile', e.detail.profileId) }
     window.addEventListener('openProfile', handler)
     return () => window.removeEventListener('openProfile', handler)
-  }, [])
-
-  // Restore profileId from session on refresh
-  React.useEffect(() => {
-    const stored = sessionStorage.getItem('t9_profileId')
-    if (stored && sessionStorage.getItem('t9_page') === 'profile') {
-      setProfileId(stored)
-    }
   }, [])
 
   // Show home page immediately while auth resolves in background
@@ -408,7 +408,15 @@ function AppInner() {
 
   const safePage = (() => {
     // Only redirect to login if user is not authenticated at all
+    if (!ALLOWED_PAGES.has(page)) return 'home'   // unknown ?page= value
+    if (page === 'profile' && !profileId) return 'home'
     if (DASHBOARD_PAGES.includes(page) && !profile) return 'login'
+    // Dashboards only for roles this account actually holds (UI guard —
+    // the database's RLS remains the real enforcement)
+    if (DASHBOARD_PAGES.includes(page)) {
+      const allowed = getAvailableRoles(profile).map(r => r.page)
+      if (!allowed.includes(page)) return allowed.includes('user-dashboard') ? 'user-dashboard' : 'home'
+    }
     return page
   })()
 
@@ -452,9 +460,9 @@ function AppInner() {
       <main style={{ flex: 1 }}>
         <React.Suspense fallback={<div style={{minHeight:'60vh',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--grey-500)',fontFamily:'var(--font-mono)',letterSpacing:2}}>LOADING...</div>}>
         {safePage === 'home'              && <Home setPage={setPage} />}
-        {safePage === 'music'             && <MusicPage currentUser={profile} />}
-        {safePage === 'videos'            && <VideosPage currentUser={profile} />}
-        {safePage === 'blog'              && <BlogPage currentUser={profile} />}
+        {safePage === 'music'             && <MusicPage currentUser={profile} setPage={setPage} deepLink={deepLink} />}
+        {safePage === 'videos'            && <VideosPage currentUser={profile} setPage={setPage} deepLink={deepLink} />}
+        {safePage === 'blog'              && <BlogPage currentUser={profile} setPage={setPage} deepLink={deepLink} />}
         {safePage === 'about'             && <AboutPage setPage={setPage} />}
         {safePage === 'search'            && <SearchPage setPage={setPage} currentUser={profile} />}
         {safePage === 'charts'           && <ChartsPage currentUser={profile} />}
@@ -463,6 +471,7 @@ function AppInner() {
         {safePage === 'terms'             && <TermsPage />}
         {safePage === 'privacy'           && <PrivacyPage />}
         {safePage === 'login'             && <LoginPage setPage={setPage} setProfile={setProfile} setActiveRole={setActiveRole} />}
+        {safePage === 'reset-password'    && <ResetPasswordPage setPage={setPage} />}
         {safePage === 'register'          && <RegisterPage setPage={setPage} setProfile={setProfile} setActiveRole={setActiveRole} />}
         {safePage === 'admin-dashboard'   && <AdminDashboard   {...dashboardProps} />}
         {safePage === 'artist-dashboard'  && <ArtistDashboard  {...dashboardProps} />}
@@ -492,8 +501,9 @@ function AppInner() {
 
 
 const ALLOWED_PAGES = new Set([
-  'home','music','videos','blog','about','login','terms','privacy','search',
-  'admin-dashboard','artist-dashboard','blogger-dashboard','user-dashboard'
+  'home','music','videos','blog','about','login','register','reset-password','terms','privacy','search',
+  'charts','albums','profile',
+  'admin-dashboard','artist-dashboard','blogger-dashboard','user-dashboard','editor-dashboard'
 ])
 
 export default function App() {
