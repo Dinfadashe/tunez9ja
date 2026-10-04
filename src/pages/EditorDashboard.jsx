@@ -28,7 +28,7 @@ export default function EditorDashboard({ setPage, currentUser: propUser, onRole
 
   useEffect(function() {
     if (!propUser || !propUser.id) return
-    supabase.from('profiles').select('*').eq('id', propUser.id).single()
+    supabase.rpc('my_profile').maybeSingle()
       .then(function(res) { if (res.data) setFreshUser(res.data) })
   }, [propUser && propUser.id])
 
@@ -174,12 +174,21 @@ function ReviewPosts({ user }) {
       })
   }
 
+  var REVIEW_REASONS = {
+    not_pending:   'This post is no longer pending — another reviewer may have handled it.',
+    own_post:      "You can't review your own post.",
+    not_an_editor: 'Your editor access is not active.',
+    not_yourself:  'Please sign in again and retry.',
+    post_not_found:'This post no longer exists.',
+  }
+
   function approve() {
     setBusy(true)
     supabase.rpc('editor_approve_post', { p_editor_id: user.id, p_post_id: selected.id })
       .then(function(r) {
         setBusy(false)
         if (r.error) { setMsg('Error: ' + r.error.message); return }
+        if (r.data && r.data.success === false) { setMsg(REVIEW_REASONS[r.data.reason] || ('Could not approve: ' + r.data.reason)); return }
         var earned = r.data && r.data.earned ? Number(r.data.earned).toFixed(1) : '0.0'
         setMsg('Post approved and live! Earned ' + earned + 'T')
         setPosts(function(p) { return p.filter(function(x) { return x.id !== selected.id }) })
@@ -197,8 +206,13 @@ function ReviewPosts({ user }) {
     if (!reason.trim()) { setMsg('Enter rejection reason first'); return }
     setBusy(true)
     supabase.rpc('editor_reject_post', { p_editor_id: user.id, p_post_id: selected.id, p_reason: reason.trim() })
-      .then(function() {
+      .then(function(r) {
         setBusy(false)
+        if (r.error) {
+          var key = Object.keys(REVIEW_REASONS).find(function(k) { return r.error.message.indexOf(k) >= 0 })
+          setMsg(key ? REVIEW_REASONS[key] : ('Could not reject: ' + r.error.message))
+          return
+        }
         setMsg('Post rejected. Blogger notified.')
         setPosts(function(p) { return p.filter(function(x) { return x.id !== selected.id }) })
         setTimeout(function() { setSelected(null) }, 1500)

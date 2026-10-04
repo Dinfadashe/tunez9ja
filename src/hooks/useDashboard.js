@@ -8,7 +8,7 @@ export function useDashboard(propUser) {
   useEffect(() => {
     if (!propUser?.id) return
     // Always fetch fresh profile from DB — prop may be stale
-    supabase.from('profiles').select('*').eq('id', propUser.id).single()
+    supabase.rpc('my_profile').maybeSingle()
       .then(({ data }) => { if (data) setCurrentUser(data) })
       .catch(() => setCurrentUser(propUser)) // fallback to prop on error
   }, [propUser?.id])

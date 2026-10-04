@@ -122,8 +122,9 @@ export default function ProfilePage({ profileId, currentUser, setPage }) {
     setTab('music')
 
     // Fetch profile
-    supabase.from('profiles').select('*').eq('id', profileId).single()
-      .then(({ data }) => { setProfile(data); setLoading(false) })
+    // Public fields only — private ones (email, KYC…) are not readable
+    supabase.rpc('public_profile', { p_id: profileId })
+      .then(({ data }) => { setProfile(data || null); setLoading(false) })
 
     // Follower / following counts
     supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', profileId)

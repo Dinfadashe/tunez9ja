@@ -355,7 +355,7 @@ function AppInner() {
           setActiveRole(p.active_role || p.role || 'user')
           setAuthReady(true)
           // Refresh in background silently
-          supabase.from('profiles').select('*').eq('id', userId).single()
+          supabase.rpc('my_profile').maybeSingle()
             .then(({ data }) => {
               if (data) {
                 const updated = { ...data, active_role: data.active_role || data.role || 'user' }
@@ -368,7 +368,7 @@ function AppInner() {
         }
       }
       // No cache — fetch fresh
-      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
+      const { data } = await supabase.rpc('my_profile').maybeSingle()
       if (data) {
         const role = data.active_role || data.role || 'user'
         const p = { ...data, active_role: role }

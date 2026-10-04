@@ -50,8 +50,7 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles').select('*').eq('id', session.user.id).single()
+        const { data: profile } = await supabase.rpc('my_profile').maybeSingle()
         setCurrentUser(profile)
       }
     })
@@ -141,8 +140,8 @@ function AdminOverview({ setActive, fetchPending }) {
         { data: music },
         { data: posts },
       ] = await Promise.all([
-        supabase.from('profiles').select('*',     { count: 'exact', head: true }).eq('role', 'artist'),
-        supabase.from('profiles').select('*',     { count: 'exact', head: true }).eq('role', 'blogger'),
+        supabase.from('profiles').select('id',     { count: 'exact', head: true }).eq('role', 'artist'),
+        supabase.from('profiles').select('id',     { count: 'exact', head: true }).eq('role', 'blogger'),
         supabase.from('music_tracks').select('*', { count: 'exact', head: true }),
         supabase.from('music_tracks').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('music_tracks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
@@ -629,7 +628,7 @@ function UsersPanel() {
   const [roleFilter, setRoleFilter] = useState('all')
 
   useEffect(() => {
-    supabase.from('profiles').select('*').neq('role', 'admin').order('created_at', { ascending: false })
+    supabase.rpc('admin_profiles').neq('role', 'admin').order('created_at', { ascending: false })
       .then(({ data }) => setUsers(data || []))
   }, [])
 
@@ -715,7 +714,7 @@ function VideoReview({ fetchPending }) {
   }
 
   const fetchVideos = async () => {
-    let q = supabase.from('videos').select('*, profiles:uploader_id(name,email)')
+    let q = supabase.from('videos').select('*, profiles:uploader_id(name)')
     if (filter !== 'all') q = q.eq('status', filter)
     const { data } = await q.order('created_at', { ascending: false })
     setVideos(data || [])
@@ -968,7 +967,7 @@ function KYCReview() {
   const [msg,     setMsg]     = useState(null)
 
   const load = () => {
-    supabase.from('profiles')
+    supabase.rpc('admin_profiles')
       .select('id,name,email,role,kyc_status,kyc_submitted_at,kyc_legal_name,kyc_id_path,kyc_social_links,kyc_fee_paid')
       .eq('kyc_status', 'pending')
       .order('kyc_submitted_at', { ascending: true })
@@ -1063,8 +1062,7 @@ function EditorReview() {
 
   const load = (tabName = tab) => {
     setLoading(true)
-    const query = supabase.from('profiles')
-      .select('*')
+    const query = supabase.rpc('admin_profiles')
       .not('editor_status', 'is', null)
       .order('editor_applied_at', { ascending: false })
 

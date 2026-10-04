@@ -92,7 +92,7 @@ export default function Home({
 
     // Stats counts
     Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'artist'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'artist'),
       supabase.from('music_tracks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
       supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
     ]).then(([a, t, p]) => { setStats({ artists: a.count || 0, tracks: t.count || 0, posts: p.count || 0 }); setLoading(false) })

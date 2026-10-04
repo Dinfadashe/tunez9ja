@@ -57,7 +57,7 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
           : m || 'Login failed.')
         setLoading(false); return
       }
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
+      const { data: profile } = await supabase.rpc('my_profile').maybeSingle()
       setLoading(false)
       if (!profile) { setError('Profile not found. Contact support.'); return }
       const availableRoles = profile.available_roles || [profile.role]

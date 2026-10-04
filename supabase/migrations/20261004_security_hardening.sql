@@ -508,3 +508,520 @@ create policy "editor_cvs_owner_update" on storage.objects for update to authent
 drop policy if exists "editor_cvs_admin_read" on storage.objects;
 create policy "editor_cvs_admin_read" on storage.objects for select to authenticated
   using (bucket_id = 'editor-cvs' and (public.is_admin(auth.uid()) or (storage.foldername(name))[1] = auth.uid()::text));
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 8. Permission checks for admin / editor / engagement functions
+--
+-- These functions are SECURITY DEFINER but did not check who was calling:
+--   • approve_/reject_verification, approve_/reject_editor — anyone could
+--     verify themselves (blue tick + 1.5x earnings) or become an editor
+--   • editor_approve_post — `NULL != 'approved'` is not true, so ANY user
+--     could approve posts (their own included) and mint editor rewards
+--     repeatedly; editor_reject_post — anyone could reject any post
+--   • toggle_reaction — acted for whatever user id was passed in
+--   • increment_* — unlimited calls inflated plays/views (which count
+--     toward verification)
+--   • check_verification_eligibility — exposed anyone's KYC status
+--
+-- Approach: the original function is renamed to _impl_<name> (callable only
+-- by the server) and a wrapper with the same name and parameters does the
+-- checks, then calls it. Your original logic is untouched.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+do $$
+declare
+  f record;
+begin
+  for f in select * from (values
+    ('approve_editor',                 'uuid'),
+    ('reject_editor',                  'uuid, text'),
+    ('approve_verification',           'uuid'),
+    ('reject_verification',            'uuid, text'),
+    ('editor_approve_post',            'uuid, uuid'),
+    ('editor_reject_post',             'uuid, uuid, text'),
+    ('check_verification_eligibility', 'uuid'),
+    ('toggle_reaction',                'uuid, text, uuid, uuid, uuid, uuid'),
+    ('increment_play_count',           'uuid'),
+    ('increment_video_views',          'uuid'),
+    ('increment_view_count',           'uuid')
+  ) as t(name, args)
+  loop
+    if to_regprocedure(format('public._impl_%s(%s)', f.name, f.args)) is null
+       and to_regprocedure(format('public.%s(%s)', f.name, f.args)) is not null then
+      execute format('alter function public.%s(%s) rename to _impl_%s', f.name, f.args, f.name);
+    end if;
+    if to_regprocedure(format('public._impl_%s(%s)', f.name, f.args)) is not null then
+      execute format('revoke execute on function public._impl_%s(%s) from public, anon, authenticated', f.name, f.args);
+    end if;
+  end loop;
+end $$;
+
+-- Admins only (the SQL editor / service role, where auth.uid() is null, are allowed)
+create or replace function public.assert_admin()
+returns void language plpgsql stable security definer set search_path = public
+as $$
+begin
+  if auth.uid() is not null and not public.is_admin(auth.uid()) then
+    raise exception 'Only admins can do this' using errcode = '42501';
+  end if;
+end;
+$$;
+
+create or replace function public.approve_editor(p_user_id uuid)
+returns void language plpgsql security definer set search_path = public
+as $$
+begin
+  perform public.assert_admin();
+  -- Don't append 'editor' to available_roles twice
+  if exists (select 1 from public.profiles where id = p_user_id and editor_status = 'approved') then return; end if;
+  perform public._impl_approve_editor(p_user_id);
+end;
+$$;
+
+create or replace function public.reject_editor(p_user_id uuid, p_reason text)
+returns void language plpgsql security definer set search_path = public
+as $$
+begin
+  perform public.assert_admin();
+  perform public._impl_reject_editor(p_user_id, left(coalesce(p_reason, ''), 1000));
+end;
+$$;
+
+create or replace function public.approve_verification(p_user_id uuid)
+returns void language plpgsql security definer set search_path = public
+as $$
+begin
+  perform public.assert_admin();
+  perform public._impl_approve_verification(p_user_id);
+end;
+$$;
+
+create or replace function public.reject_verification(p_user_id uuid, p_reason text)
+returns void language plpgsql security definer set search_path = public
+as $$
+begin
+  perform public.assert_admin();
+  perform public._impl_reject_verification(p_user_id, left(coalesce(p_reason, ''), 1000));
+end;
+$$;
+
+-- Editors act only as themselves, only on pending posts, never their own;
+-- the post row is locked so it can't be approved twice concurrently.
+create or replace function public.editor_review_check(p_editor_id uuid, p_post_id uuid)
+returns text language plpgsql security definer set search_path = public
+as $$
+declare
+  v_uid    uuid := auth.uid();
+  v_status text;
+  v_author uuid;
+begin
+  if v_uid is not null and v_uid <> p_editor_id and not public.is_admin(v_uid) then
+    return 'not_yourself';
+  end if;
+  if not exists (select 1 from public.profiles
+                 where id = p_editor_id
+                   and (editor_status = 'approved' or role::text = 'admin')) then
+    return 'not_an_editor';
+  end if;
+  select status::text, author_id into v_status, v_author
+    from public.blog_posts where id = p_post_id for update;
+  if not found then return 'post_not_found'; end if;
+  if v_author = p_editor_id then return 'own_post'; end if;
+  if v_status <> 'pending' then return 'not_pending'; end if;
+  return null;
+end;
+$$;
+
+create or replace function public.editor_approve_post(p_editor_id uuid, p_post_id uuid)
+returns jsonb language plpgsql security definer set search_path = public
+as $$
+declare
+  v_problem text := public.editor_review_check(p_editor_id, p_post_id);
+begin
+  if v_problem is not null then
+    return jsonb_build_object('success', false, 'reason', v_problem);
+  end if;
+  return public._impl_editor_approve_post(p_editor_id, p_post_id);
+end;
+$$;
+
+create or replace function public.editor_reject_post(p_editor_id uuid, p_post_id uuid, p_reason text)
+returns void language plpgsql security definer set search_path = public
+as $$
+declare
+  v_problem text := public.editor_review_check(p_editor_id, p_post_id);
+begin
+  if v_problem is not null then
+    raise exception 'Cannot reject this post: %', v_problem using errcode = '42501';
+  end if;
+  perform public._impl_editor_reject_post(p_editor_id, p_post_id, left(coalesce(p_reason, ''), 1000));
+end;
+$$;
+
+create or replace function public.check_verification_eligibility(p_user_id uuid)
+returns jsonb language plpgsql security definer set search_path = public
+as $$
+begin
+  if auth.uid() is not null and auth.uid() <> p_user_id and not public.is_admin(auth.uid()) then
+    return jsonb_build_object('eligible', false, 'reason', 'Not allowed');
+  end if;
+  return public._impl_check_verification_eligibility(p_user_id);
+end;
+$$;
+
+create or replace function public.toggle_reaction(
+  p_user_id uuid, p_type text,
+  p_post_id uuid default null, p_track_id uuid default null,
+  p_video_id uuid default null, p_comment_id uuid default null)
+returns text language plpgsql security definer set search_path = public
+as $$
+begin
+  if auth.uid() is null or auth.uid() <> p_user_id then
+    raise exception 'You can only react as yourself' using errcode = '42501';
+  end if;
+  if p_type is null or length(p_type) > 20 then
+    raise exception 'Invalid reaction';
+  end if;
+  return public._impl_toggle_reaction(p_user_id, p_type, p_post_id, p_track_id, p_video_id, p_comment_id);
+end;
+$$;
+
+-- ── Plays / views: count each listener once per window ─────────────────────
+-- Logged-in viewers: once per content per window. Logged-out visitors: at
+-- most once per content every 30 seconds overall (they can't be told apart).
+create table if not exists public.content_view_log (
+  content_id uuid not null,
+  viewer_key text not null,
+  counted_at timestamptz not null default now(),
+  primary key (content_id, viewer_key)
+);
+alter table public.content_view_log enable row level security;   -- no policies: server only
+revoke all on public.content_view_log from anon, authenticated;
+
+create or replace function public.should_count_view(p_content_id uuid, p_window interval)
+returns boolean language plpgsql security definer set search_path = public
+as $$
+declare
+  v_key    text := coalesce(auth.uid()::text, 'anon');
+  v_window interval := case when auth.uid() is null then interval '30 seconds' else p_window end;
+  v_ok     boolean;
+begin
+  if p_content_id is null then return false; end if;
+  insert into public.content_view_log as l (content_id, viewer_key, counted_at)
+  values (p_content_id, v_key, now())
+  on conflict (content_id, viewer_key) do update set counted_at = now()
+    where l.counted_at < now() - v_window
+  returning true into v_ok;
+  return coalesce(v_ok, false);
+end;
+$$;
+
+create or replace function public.increment_play_count(p_track_id uuid)
+returns void language plpgsql security definer set search_path = public
+as $$
+begin
+  if public.should_count_view(p_track_id, interval '6 hours') then
+    perform public._impl_increment_play_count(p_track_id);
+  end if;
+end;
+$$;
+
+create or replace function public.increment_video_views(p_video_id uuid)
+returns void language plpgsql security definer set search_path = public
+as $$
+begin
+  if public.should_count_view(p_video_id, interval '6 hours') then
+    perform public._impl_increment_video_views(p_video_id);
+  end if;
+end;
+$$;
+
+create or replace function public.increment_view_count(p_post_id uuid)
+returns void language plpgsql security definer set search_path = public
+as $$
+begin
+  if public.should_count_view(p_post_id, interval '24 hours') then
+    perform public._impl_increment_view_count(p_post_id);
+  end if;
+end;
+$$;
+
+-- Who may call the wrappers
+do $$
+declare
+  fn record;
+begin
+  for fn in
+    select p.oid::regprocedure as sig, p.proname
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('approve_editor', 'reject_editor', 'approve_verification', 'reject_verification',
+                        'editor_approve_post', 'editor_reject_post', 'check_verification_eligibility',
+                        'toggle_reaction', 'increment_play_count', 'increment_video_views',
+                        'increment_view_count', 'assert_admin', 'editor_review_check', 'should_count_view')
+  loop
+    execute format('revoke execute on function %s from public', fn.sig);
+    if fn.proname in ('assert_admin', 'editor_review_check', 'should_count_view') then
+      execute format('revoke execute on function %s from anon, authenticated', fn.sig);
+    elsif fn.proname in ('increment_play_count', 'increment_video_views', 'increment_view_count') then
+      execute format('grant execute on function %s to anon, authenticated', fn.sig);   -- logged-out plays still count
+    else
+      execute format('revoke execute on function %s from anon', fn.sig);
+      execute format('grant execute on function %s to authenticated', fn.sig);
+    end if;
+    execute format('grant execute on function %s to service_role', fn.sig);
+  end loop;
+end $$;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 9. Content status can only be changed by admins and the review functions
+--
+-- Creators may save drafts and submit for review ('draft' / 'pending') but
+-- cannot approve their own content, edit counters or review fields, or
+-- transfer ownership — whatever the table's RLS policies allow.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+create or replace function public.guard_content_status()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  j_new jsonb;
+  j_old jsonb;
+  k     text;
+begin
+  if not public.is_direct_user_request() or public.is_admin(auth.uid()) then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    if new.status is null or new.status::text not in ('draft', 'pending') then
+      new.status := 'pending';
+    end if;
+    -- New content starts with zeroed counters and no review data
+    j_new := to_jsonb(new);
+    foreach k in array array['play_count', 'view_count', 'views'] loop
+      if j_new ? k then j_new := jsonb_set(j_new, array[k], '0'::jsonb); end if;
+    end loop;
+    foreach k in array array['reviewed_by', 'reviewed_at', 'published_at'] loop
+      if j_new ? k then j_new := jsonb_set(j_new, array[k], 'null'::jsonb); end if;
+    end loop;
+    new := jsonb_populate_record(new, j_new);
+    return new;
+  end if;
+
+  -- UPDATE
+  if new.status is distinct from old.status and new.status::text not in ('draft', 'pending') then
+    new.status := old.status;
+  end if;
+
+  -- Counters, review fields and ownership keep their old values
+  j_new := to_jsonb(new);
+  j_old := to_jsonb(old);
+  foreach k in array array['play_count', 'view_count', 'views', 'reviewed_by', 'reviewed_at',
+                           'published_at', 'author_id', 'artist_id', 'uploader_id'] loop
+    if j_new ? k then
+      j_new := jsonb_set(j_new, array[k], coalesce(j_old -> k, 'null'::jsonb));
+    end if;
+  end loop;
+  new := jsonb_populate_record(new, j_new);
+  return new;
+end;
+$$;
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['blog_posts', 'music_tracks', 'videos', 'albums'] loop
+    if to_regclass('public.' || t) is not null then
+      execute format('drop trigger if exists trg_guard_content_status on public.%I', t);
+      execute format('create trigger trg_guard_content_status before insert or update on public.%I
+                      for each row execute function public.guard_content_status()', t);
+    end if;
+  end loop;
+end $$;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 10. Read access & remaining policies (from the pg_policies review)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── 10a. Private profile columns ───────────────────────────────────────────
+-- `profiles_read_all` lets anyone (even logged-out visitors) read every row.
+-- Rows stay public (names, avatars, bios are shown across the app) but the
+-- private COLUMNS are no longer readable directly. The app reads them via:
+--   my_profile()      — your own full row
+--   admin_profiles()  — full rows, admins only
+--   public_profile()  — anyone's profile minus private fields
+-- NOTE: a column added to profiles later is private by default; to make it
+-- public, re-run this block (or `grant select (col) on profiles to anon, authenticated`).
+do $$
+declare
+  cols text;
+begin
+  select string_agg(quote_ident(column_name), ', ' order by ordinal_position) into cols
+  from information_schema.columns
+  where table_schema = 'public' and table_name = 'profiles'
+    and column_name !~ '^(email|phone.*|kyc_.*|last_kyc_attempt|editor_cv_url|editor_motivation|editor_experience|editor_reject_reason|content_violations|date_of_birth|dob|address.*|bank_.*|account_.*)$';
+  execute 'revoke select on public.profiles from anon, authenticated';
+  execute format('grant select (%s) on public.profiles to anon, authenticated', cols);
+end $$;
+
+create or replace function public.my_profile()
+returns setof public.profiles
+language sql stable security definer set search_path = public
+as $$ select * from public.profiles where id = auth.uid() $$;
+
+create or replace function public.admin_profiles()
+returns setof public.profiles
+language sql stable security definer set search_path = public
+as $$ select * from public.profiles where public.is_admin(auth.uid()) $$;
+
+create or replace function public.public_profile(p_id uuid)
+returns jsonb
+language sql stable security definer set search_path = public
+as $$
+  select to_jsonb(p) - array['email', 'phone', 'phone_number', 'kyc_legal_name', 'kyc_id_path', 'kyc_social_links',
+                             'kyc_fee_ref', 'kyc_fee_paid', 'kyc_status', 'kyc_submitted_at', 'kyc_reject_reason',
+                             'last_kyc_attempt', 'editor_cv_url', 'editor_motivation', 'editor_experience',
+                             'editor_reject_reason', 'content_violations', 'date_of_birth', 'dob', 'address']
+  from public.profiles p where p.id = p_id
+$$;
+
+revoke execute on function public.my_profile() from public, anon;
+grant  execute on function public.my_profile() to authenticated, service_role;
+revoke execute on function public.admin_profiles() from public, anon;
+grant  execute on function public.admin_profiles() to authenticated, service_role;
+grant  execute on function public.public_profile(uuid) to anon, authenticated, service_role;
+
+
+-- ── 10b. Tables that had no policies ───────────────────────────────────────
+-- Enabling RLS with owner-scoped policies. SECURITY DEFINER functions (which
+-- write the ledger, editor activity, etc.) are unaffected.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['tunez_transactions', 'tunez_unlocks', 'tunez_purchases',
+                           'tunez_cooldowns', 'tunez_daily_caps'] loop
+    if to_regclass('public.' || t) is not null then
+      execute format('alter table public.%I enable row level security', t);
+      execute format('drop policy if exists "%s: own read" on public.%I', t, t);
+      execute format('create policy "%s: own read" on public.%I for select to authenticated using (user_id = auth.uid())', t, t);
+      execute format('drop policy if exists "%s: admin read" on public.%I', t, t);
+      execute format('create policy "%s: admin read" on public.%I for select to authenticated using (public.is_admin(auth.uid()))', t, t);
+    end if;
+  end loop;
+end $$;
+
+-- Balances: drop the "own ALL" write policy (reads stay; writes are server-only)
+drop policy if exists "tunze_balances: own all" on public.tunez_balances;
+
+-- Owner-scoped policies for the remaining tables. Each table is skipped if it
+-- doesn't exist, so the script never stops halfway.
+create or replace function pg_temp.apply_policies(p_table text, p_stmts text[])
+returns void language plpgsql as $f$
+declare st text;
+begin
+  if to_regclass('public.' || p_table) is null then
+    raise notice 'Skipping % (table not found)', p_table; return;
+  end if;
+  execute format('alter table public.%I enable row level security', p_table);
+  foreach st in array p_stmts loop execute st; end loop;
+end $f$;
+
+select pg_temp.apply_policies('albums', array[
+  'drop policy if exists "albums: public reads approved" on public.albums',
+  'create policy "albums: public reads approved" on public.albums for select using (status::text = ''approved'')',
+  'drop policy if exists "albums: owner reads own" on public.albums',
+  'create policy "albums: owner reads own" on public.albums for select to authenticated using (artist_id = auth.uid())',
+  'drop policy if exists "albums: admin all" on public.albums',
+  'create policy "albums: admin all" on public.albums for all to authenticated using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()))',
+  'drop policy if exists "albums: owner inserts own" on public.albums',
+  'create policy "albums: owner inserts own" on public.albums for insert to authenticated with check (artist_id = auth.uid())',
+  'drop policy if exists "albums: owner updates own" on public.albums',
+  'create policy "albums: owner updates own" on public.albums for update to authenticated using (artist_id = auth.uid()) with check (artist_id = auth.uid())',
+  'drop policy if exists "albums: owner deletes own non-approved" on public.albums',
+  'create policy "albums: owner deletes own non-approved" on public.albums for delete to authenticated using (artist_id = auth.uid() and status::text <> ''approved'')'
+]);
+
+-- Playlists, playlist tracks, saved tracks: private to their owner
+select pg_temp.apply_policies('playlists', array[
+  'drop policy if exists "playlists: owner all" on public.playlists',
+  'create policy "playlists: owner all" on public.playlists for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid())'
+]);
+select pg_temp.apply_policies('playlist_tracks', array[
+  'drop policy if exists "playlist_tracks: owner all" on public.playlist_tracks',
+  'create policy "playlist_tracks: owner all" on public.playlist_tracks for all to authenticated
+     using (exists (select 1 from public.playlists p where p.id = playlist_id and p.user_id = auth.uid()))
+     with check (exists (select 1 from public.playlists p where p.id = playlist_id and p.user_id = auth.uid()))'
+]);
+select pg_temp.apply_policies('saved_tracks', array[
+  'drop policy if exists "saved_tracks: owner all" on public.saved_tracks',
+  'create policy "saved_tracks: owner all" on public.saved_tracks for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid())'
+]);
+
+-- Editor activity: written only by the review functions
+select pg_temp.apply_policies('editor_activity', array[
+  'drop policy if exists "editor_activity: own read" on public.editor_activity',
+  'create policy "editor_activity: own read" on public.editor_activity for select to authenticated using (editor_id = auth.uid() or public.is_admin(auth.uid()))'
+]);
+
+-- Referrals: rows are created by claim_referral_bonus only; users just read
+do $$
+begin
+  if to_regclass('public.referrals') is not null then
+    drop policy if exists "System can insert referrals" on public.referrals;
+    drop policy if exists "System can update referrals" on public.referrals;
+  end if;
+end $$;
+
+
+-- ── 10c. Editors can see and edit the review queue ─────────────────────────
+-- No policy let editors read pending posts, so the Editor dashboard queue
+-- was always empty and their text edits silently failed. Status changes stay
+-- blocked by the content guard (section 9); approval goes through
+-- editor_approve_post.
+create or replace function public.is_approved_editor(uid uuid)
+returns boolean language sql stable security definer set search_path = public
+as $$ select exists (select 1 from public.profiles where id = uid and editor_status = 'approved') $$;
+
+drop policy if exists "posts: editor reads pending" on public.blog_posts;
+create policy "posts: editor reads pending" on public.blog_posts for select to authenticated
+  using (status::text = 'pending' and public.is_approved_editor(auth.uid()));
+drop policy if exists "posts: editor updates pending" on public.blog_posts;
+create policy "posts: editor updates pending" on public.blog_posts for update to authenticated
+  using (status::text = 'pending' and public.is_approved_editor(auth.uid()))
+  with check (status::text = 'pending' and public.is_approved_editor(auth.uid()));
+
+
+-- ── 10d. Storage: only the uploader (or an admin) may delete files ─────────
+-- "owner delete" on music-audio / music-covers let ANY logged-in user delete
+-- ANY song or cover.
+do $$
+declare
+  owner_expr text;
+  b text;
+begin
+  -- Newer Supabase stores the uploader in owner_id (text), older in owner (uuid)
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'storage' and table_name = 'objects' and column_name = 'owner_id') then
+    owner_expr := 'owner_id = auth.uid()::text';
+  elsif exists (select 1 from information_schema.columns
+                where table_schema = 'storage' and table_name = 'objects' and column_name = 'owner') then
+    owner_expr := 'owner = auth.uid()';
+  else
+    raise warning 'SKIPPED storage delete fix: storage.objects has no owner column';
+    return;
+  end if;
+  foreach b in array array['music-audio', 'music-covers'] loop
+    execute format('drop policy if exists %I on storage.objects', b || ': owner delete');
+    execute format('create policy %I on storage.objects for delete to authenticated
+                    using (bucket_id = %L and (%s or public.is_admin(auth.uid())))',
+                   b || ': owner delete', b, owner_expr);
+  end loop;
+end $$;
