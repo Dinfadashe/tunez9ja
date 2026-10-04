@@ -91,11 +91,16 @@ serve(async (req) => {
   if (!existing) {
     // With the unique index on paystack_ref (see security migration) a
     // concurrent second call fails here instead of crediting twice.
-    const { error: insErr } = await admin.from('tunez_purchases').insert({
-      user_id: user.id, paystack_ref: reference,
-      amount_ngn: pkg.ngn, tunez_credited: pkg.tunez, status: 'pending',
-    })
+    // Production schema: id, user_id, paystack_ref, amount_ngn,
+    // tunze_credited (NOT NULL — old "tunze" spelling), status, created_at.
+    // If that column is ever renamed, fall back to the corrected spelling.
+    const base = { user_id: user.id, paystack_ref: reference, amount_ngn: pkg.ngn, status: 'pending' }
+    let { error: insErr } = await admin.from('tunez_purchases').insert({ ...base, tunze_credited: pkg.tunez })
+    if (insErr && (insErr.code === 'PGRST204' || insErr.code === '42703')) {
+      ({ error: insErr } = await admin.from('tunez_purchases').insert({ ...base, tunez_credited: pkg.tunez }))
+    }
     if (insErr) {
+      console.error('tunez_purchases insert failed:', insErr)
       if (insErr.code === '23505') return json({ success: false, reason: 'Payment is already being processed' }, 409)
       return json({ success: false, reason: 'Could not record purchase' }, 500)
     }
@@ -105,7 +110,10 @@ serve(async (req) => {
     p_user_id: user.id, p_paystack_ref: reference,
     p_amount_ngn: pkg.ngn, p_tunez: pkg.tunez,
   })
-  if (error) return json({ success: false, reason: 'Payment received but crediting failed. Contact support with ref ' + reference }, 500)
+  if (error) {
+    console.error('credit_purchased_tunez failed:', error)
+    return json({ success: false, reason: 'Payment received but crediting failed. Contact support with ref ' + reference }, 500)
+  }
 
   return json({ success: true, tunez: pkg.tunez })
 })
