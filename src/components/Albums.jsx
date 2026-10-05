@@ -1,3 +1,4 @@
+import TrackMenu from './TrackMenu.jsx'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
@@ -118,6 +119,7 @@ export default function Albums({ currentUser, setPage }) {
             <div style={{ fontSize: 12, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', width: 80, textAlign: 'right', flexShrink: 0 }}>
               {track.duration || '—'}
             </div>
+            <TrackMenu track={{ ...track, artist_id: track.artist_id || selected?.artist_id, profiles: track.profiles || selected?.profiles }} currentUser={currentUser} size={18} />
           </div>
         ))}
       </div>

@@ -30,6 +30,7 @@ const RegisterPage = React.lazy(() => import('./pages/Auth.jsx').then(m => ({ de
 const ResetPasswordPage = React.lazy(() => import('./pages/Auth.jsx').then(m => ({ default: m.ResetPasswordPage })))
 const SearchPage = React.lazy(() => import('./pages/SearchPage.jsx'))
 const ProfilePage = React.lazy(() => import('./components/ProfilePage.jsx'))
+const DownloadsPage = React.lazy(() => import('./pages/DownloadsPage.jsx'))
 
 // Offline audio downloads cost the listener mobile data, so be careful:
 //  'chosen' — tracks the user saved/unlocked: OK unless Data Saver / 2G
@@ -164,7 +165,7 @@ function TelegramPopup() {
       bottom: 'max(1.5rem, calc(1rem + env(safe-area-inset-bottom, 0px)))',
       right: 'max(1rem, env(safe-area-inset-right, 0px))',
       left: 'max(1rem, env(safe-area-inset-left, 0px))',
-      zIndex: 1800,
+      zIndex: 1100, // below menus & sheets (1200) so it never covers an open menu
       background: 'var(--bg-card)',
       border: '1px solid rgba(0,136,204,0.5)',
       borderRadius: 14,
@@ -228,7 +229,7 @@ function TelegramPopup() {
           }}>
           ✈️ Join Now
         </a>
-        <button onClick={dismiss} style={{
+        <button onClick={() => dismiss(false)} style={{
           padding: '0.625rem 0.875rem', borderRadius: 8, minHeight: '2.75rem',
           background: 'transparent', border: '1px solid var(--border)',
           color: 'var(--grey-400)', cursor: 'pointer', fontSize: '0.8125rem',
@@ -248,7 +249,11 @@ function AppInner() {
     return item?.type === 'profile' ? item.id : null
   })
   const [djOpen, setDjOpen] = React.useState(false)
-  const [page, rawSetPage]          = useState(() => parseLocation().page)
+  // Opening the app with no connection lands on Downloads (music that plays offline)
+  const [page, rawSetPage]          = useState(() => {
+    const p = parseLocation().page
+    return (!navigator.onLine && p === 'home') ? 'downloads' : p
+  })
   const setPage = React.useCallback((p) => {
     if (!p) return
     rawSetPage(p)
@@ -281,6 +286,15 @@ function AppInner() {
     import('./lib/tunez.js').then(({ claimReferralBonus }) => claimReferralBonus(code))
       .finally(() => localStorage.removeItem('t9_ref_pending'))
   }, [profile?.id])
+
+  // ── Cache the whole app for offline use (after the page has loaded) ──
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    const go = () => { if (navigator.onLine) postToServiceWorker({ type: 'PRECACHE_APP' }) }
+    const t = setTimeout(go, 6000)
+    window.addEventListener('online', go)
+    return () => { clearTimeout(t); window.removeEventListener('online', go) }
+  }, [])
 
   // ── Keep page / open item in sync with the address bar ──────
   // Fires on in-app navigation and on browser back/forward.
@@ -499,6 +513,7 @@ function AppInner() {
         {safePage === 'privacy'           && <PrivacyPage />}
         {safePage === 'login'             && <LoginPage setPage={setPage} setProfile={setProfile} setActiveRole={setActiveRole} />}
         {safePage === 'reset-password'    && <ResetPasswordPage setPage={setPage} />}
+        {safePage === 'downloads'         && <DownloadsPage setPage={setPage} />}
         {safePage === 'register'          && <RegisterPage setPage={setPage} setProfile={setProfile} setActiveRole={setActiveRole} />}
         {safePage === 'admin-dashboard'   && <AdminDashboard   {...dashboardProps} />}
         {safePage === 'artist-dashboard'  && <ArtistDashboard  {...dashboardProps} />}
@@ -530,7 +545,7 @@ function AppInner() {
 
 
 const ALLOWED_PAGES = new Set([
-  'home','music','videos','blog','about','login','register','reset-password','terms','privacy','search',
+  'home','music','videos','blog','about','login','register','reset-password','downloads','terms','privacy','search',
   'charts','albums','profile',
   'admin-dashboard','artist-dashboard','blogger-dashboard','user-dashboard','editor-dashboard'
 ])

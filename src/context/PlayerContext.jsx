@@ -1,8 +1,10 @@
+import { isDownloadedUrl, getDownloadedBlobUrl } from '../lib/downloads.js'
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react'
 
 const PlayerContext = createContext(null)
 
 export function PlayerProvider({ children }) {
+  const lastBlobUrl = useRef(null)
   const [queue,       setQueue]      = useState([])
   const [queueIndex,  setQueueIndex] = useState(0)
   const [nowPlaying,  setNowPlaying] = useState(null)
@@ -172,22 +174,27 @@ export function PlayerProvider({ children }) {
     if (audioRef.current) audioRef.current.muted = newMuted
   }, [muted])
 
-  // ── Add to play next ────────────────────────────────────────
-  const addToQueue = useCallback((track) => {
+  // ── Queue: play next / add to queue (Spotify-style) ────────
+  // The queue never holds the same track twice (skip looks tracks up by id),
+  // and with nothing playing either action simply starts the track.
+  const insertIntoQueue = useCallback((track, where) => {
+    if (!track?.audio_url) return false
+    if (!nowPlaying) { playTrack(track, [track]); return true }
+    if (track.id === nowPlaying.id) return false
     setQueue(q => {
-      if (q.find(t => t.id === track.id)) return q
-      return [...q, track]
+      const rest = q.filter(t => t.id !== track.id)
+      let cur = rest.findIndex(t => t.id === nowPlaying.id)
+      if (cur < 0) { rest.unshift(nowPlaying); cur = 0 }
+      if (where === 'next') rest.splice(cur + 1, 0, track)
+      else rest.push(track)
+      setQueueIndex(cur)
+      return rest
     })
-  }, [])
+    return true
+  }, [nowPlaying, playTrack])
 
-  const addToPlayNext = useCallback((track) => {
-    setQueue(q => {
-      const idx  = q.findIndex(t => t.id === nowPlaying?.id)
-      const newQ = [...q]
-      newQ.splice(idx + 1, 0, track)
-      return newQ
-    })
-  }, [nowPlaying?.id])
+  const addToPlayNext = useCallback((track) => insertIntoQueue(track, 'next'), [insertIntoQueue])
+  const addToQueue    = useCallback((track) => insertIntoQueue(track, 'end'),  [insertIntoQueue])
 
   // ── Media Session API ───────────────────────────────────────
   useEffect(() => {
@@ -225,6 +232,20 @@ export function PlayerProvider({ children }) {
         onError={(e)     => {
           // No source loaded (player stopped/reset) — nothing actually failed
           if (!e.target.getAttribute('src')) return
+          // A downloaded song that didn't load through the service worker
+          // (e.g. first offline launch): play it straight from storage.
+          const failedSrc = e.target.getAttribute('src')
+          if (!failedSrc.startsWith('blob:') && isDownloadedUrl(failedSrc)) {
+            const el = e.target
+            getDownloadedBlobUrl(failedSrc).then(blobUrl => {
+              if (!blobUrl || el.getAttribute('src') !== failedSrc) return
+              if (lastBlobUrl.current) URL.revokeObjectURL(lastBlobUrl.current)
+              lastBlobUrl.current = blobUrl
+              el.src = blobUrl
+              el.play().catch(() => setIsPlaying(false))
+            })
+            return
+          }
           const code = e.target.error?.code
           console.error('❌ Audio error:', code, e.target.error?.message, audioRef.current?.src)
           // MEDIA_ERR_NETWORK (2) / MEDIA_ERR_SRC_NOT_SUPPORTED (4) while

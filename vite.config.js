@@ -1,8 +1,28 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// Lists every built JS/CSS file in /asset-manifest.json so the service
+// worker can cache the whole app for offline use (public/sw.js → precacheApp).
+function assetManifest() {
+  return {
+    name: 'tunez-asset-manifest',
+    apply: 'build',
+    generateBundle(_, bundle) {
+      const files = Object.keys(bundle)
+        .filter((f) => /\.(js|css)$/.test(f))
+        .map((f) => '/' + f)
+      files.push('/index.html', '/manifest.json', '/logo.png', '/offline.html')
+      this.emitFile({
+        type: 'asset',
+        fileName: 'asset-manifest.json',
+        source: JSON.stringify({ builtAt: new Date().toISOString(), files }, null, 2),
+      })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), assetManifest()],
   build: {
     target: 'es2018',
     cssCodeSplit: true,

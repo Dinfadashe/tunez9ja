@@ -1,3 +1,4 @@
+import TrackMenu from './TrackMenu.jsx'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
@@ -173,6 +174,7 @@ export default function Playlists({ currentUser }) {
                 title="Remove from playlist">
                 <X size={15} />
               </button>
+              <TrackMenu track={track} currentUser={currentUser} size={18} />
             </div>
           ))}
         </div>

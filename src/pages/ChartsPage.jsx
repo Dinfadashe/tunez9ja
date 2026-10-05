@@ -1,3 +1,4 @@
+import TrackMenu from '../components/TrackMenu.jsx'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { useSEO } from '../lib/useSEO.js'
@@ -134,6 +135,7 @@ const ChartRow = React.memo(function ChartRow({ track, position, currentUser, is
           : <Play size={13} fill={isCurrentTrack ? 'white' : 'var(--grey-400)'} color={isCurrentTrack ? 'white' : 'var(--grey-400)'} style={{ marginLeft: 1 }} />
         }
       </button>
+      <TrackMenu track={track} currentUser={currentUser} size={18} />
     </div>
   )
 })

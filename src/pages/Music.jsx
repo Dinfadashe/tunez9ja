@@ -10,6 +10,7 @@ import { MusicArt, SearchBar, EmptyState } from '../components/UI.jsx'
 import { Play, Pause, Music, Heart, Plus, ListMusic, Disc, Headphones } from 'lucide-react'
 import ShareButton from '../components/ShareButton.jsx'
 import TrackPage   from '../components/TrackPage.jsx'
+import TrackMenu   from '../components/TrackMenu.jsx'
 import { openItem, closeItem, takeCachedItem, shareLinkFor } from '../lib/urlState.js'
 import Albums from '../components/Albums.jsx'
 
@@ -49,60 +50,11 @@ const SaveButton = React.memo(function SaveButton({ track, currentUser }) {
   )
 })
 
-// ── Add to playlist dropdown ──────────────────────────────────
-function AddToPlaylist({ track, currentUser }) {
-  const [open,      setOpen]      = React.useState(false)
-  const [playlists, setPlaylists] = React.useState([])
-  const [added,     setAdded]     = React.useState(null)
-
-  const openMenu = async (e) => {
-    e.stopPropagation()
-    if (!currentUser) return
-    const { data } = await supabase.from('playlists').select('id,name').eq('user_id', currentUser.id).order('created_at', { ascending: false })
-    setPlaylists(data || [])
-    setOpen(o => !o)
-  }
-
-  const addTo = async (e, playlist) => {
-    e.stopPropagation()
-    const count = await supabase.from('playlist_tracks').select('id', { count: 'exact', head: true }).eq('playlist_id', playlist.id)
-    await supabase.from('playlist_tracks').upsert({
-      playlist_id: playlist.id, track_id: track.id, position: (count.count || 0) + 1
-    })
-    setAdded(playlist.name)
-    setTimeout(() => { setAdded(null); setOpen(false) }, 1500)
-  }
-
-  return (
-    <div style={{ position: 'relative', flexShrink: 0 }}>
-      <button onClick={openMenu} title="Add to playlist"
-        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--grey-500)', display: 'flex', alignItems: 'center' }}>
-        <Plus size={15} />
-      </button>
-      {open && (
-        <div style={{ position: 'absolute', right: 0, bottom: '110%', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, minWidth: 180, zIndex: 100, boxShadow: 'var(--shadow)', overflow: 'hidden' }}
-          onClick={e => e.stopPropagation()}>
-          <div style={{ padding: '8px 12px', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--grey-500)', letterSpacing: 1, borderBottom: '1px solid var(--border)' }}>ADD TO PLAYLIST</div>
-          {added ? (
-            <div style={{ padding: '10px 14px', fontSize: 13, color: '#00c864' }}>✅ Added to {added}</div>
-          ) : playlists.length === 0 ? (
-            <div style={{ padding: '10px 14px', fontSize: 12, color: 'var(--grey-500)' }}>No playlists yet</div>
-          ) : (
-            playlists.map(pl => (
-              <button key={pl.id} onClick={e => addTo(e, pl)}
-                style={{ width: '100%', textAlign: 'left', padding: '9px 14px', background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer', fontSize: 13 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                {pl.name}
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  )
+// 215 → "3:35" (values like "3:35" pass through)
+const fmtDur = (v) => {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n / 60) + ':' + String(Math.round(n % 60)).padStart(2, '0') : v
 }
-
 
 function MusicSkeleton() {
   return (
@@ -402,7 +354,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
                           </span>
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--grey-600)', marginBottom: 10 }}>
-                          {track.genre}{track.duration ? ' · ' + track.duration : ''}
+                          {track.genre}{track.duration ? ' · ' + fmtDur(track.duration) : ''}
                         </div>
                       </div>
 
@@ -410,7 +362,8 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
                       <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 10px 10px', flexWrap: 'wrap' }}>
                         <ReactionBar targetType="track" targetId={track.id} currentUser={currentUser} compact />
                         <SaveButton track={track} currentUser={currentUser} />
-                        <AddToPlaylist track={track} currentUser={currentUser} />
+                        <TrackMenu track={track} currentUser={currentUser} trigger="plus" size={16} />
+                        <TrackMenu track={track} currentUser={currentUser} size={16} />
                         <button onClick={() => openTrack(track)}
                           style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', color: 'var(--grey-400)', cursor: 'pointer', fontSize: 11 }}>
                           View

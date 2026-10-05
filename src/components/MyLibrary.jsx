@@ -1,3 +1,4 @@
+import TrackMenu from './TrackMenu.jsx'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Heart } from 'lucide-react'
@@ -6,13 +7,6 @@ import { usePlayer } from '../context/PlayerContext.jsx'
 import { Play, Music, Newspaper, Video, Lock } from 'lucide-react'
 
 // Cache a track for offline playback
-function cacheTrackOffline(audioUrl) {
-  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({
-      type: 'CACHE_AUDIO', url: audioUrl
-    })
-  }
-}
 
 // Check if track is cached offline
 async function isTrackCached(audioUrl) {
@@ -113,11 +107,8 @@ export default function MyLibrary({ currentUser }) {
                   {/* Play button for tracks */}
                   {type === 'track' && (
                     <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 6 }}>
-                      <button onClick={() => item.audio_url && cacheTrackOffline(item.audio_url)}
-                        title="Save for offline"
-                        style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 14 }}>
-                        ⬇️
-                      </button>
+                      <TrackMenu track={item} currentUser={currentUser} size={16}
+                        style={{ width: 36, height: 36, minWidth: 36, minHeight: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }} />
                       <button onClick={() => playTrack(item)}
                         style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--red)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                         <Play size={16} fill="white" color="white" style={{ marginLeft: 2 }} />
@@ -195,6 +186,7 @@ export default function MyLibrary({ currentUser }) {
                   title="Remove from library">
                   <Heart size={14} fill="var(--red)" />
                 </button>
+                <TrackMenu track={track} currentUser={currentUser} size={18} />
               </div>
             ))}
           </div>

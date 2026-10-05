@@ -1,3 +1,4 @@
+import { navigateToPage } from '../lib/urlState.js'
 import React from 'react'
 import useOnlineStatus from '../hooks/useOnlineStatus.js'
 import { flushQueue } from '../lib/syncQueue.js'
@@ -44,15 +45,18 @@ export default function OfflineIndicator() {
         background: showOffline ? 'rgba(200,16,46,0.92)' : showReconnected ? 'rgba(34,197,94,0.92)' : 'rgba(255,180,0,0.92)',
         color: 'white',
         transition: 'background 0.25s ease',
-        cursor: showPending ? 'pointer' : 'default',
+        cursor: showPending || showOffline ? 'pointer' : 'default',
       }}
-      onClick={() => { if (showPending) flushQueue().catch(() => {}) }}
-      title={showPending ? 'Tap to retry now' : undefined}
+      onClick={() => {
+        if (showPending) flushQueue().catch(() => {})
+        else if (showOffline) navigateToPage('downloads')
+      }}
+      title={showPending ? 'Tap to retry now' : showOffline ? 'Open your downloads' : undefined}
     >
       {showOffline && (
         <>
           <WifiOff size={14} />
-          <span>You're offline — cached music still plays</span>
+          <span>Offline — tap for your downloads</span>
         </>
       )}
       {showReconnected && (

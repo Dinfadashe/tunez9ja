@@ -14,7 +14,11 @@ const CACHE_API    = `t9j-api-${SW_VERSION}`       // GET API responses (stale-w
 const CACHE_IMAGES = `t9j-images-${SW_VERSION}`    // covers / avatars / thumbnails
 const CACHE_AUDIO  = `t9j-audio-${SW_VERSION}`     // music files — the important one
 
-const ALL_CACHES = [CACHE_SHELL, CACHE_STATIC, CACHE_JS, CACHE_API, CACHE_IMAGES, CACHE_AUDIO]
+// User downloads: NOT versioned, never deleted on update, never evicted for
+// space. Must match DOWNLOADS_CACHE in src/lib/downloads.js.
+const CACHE_DOWNLOADS = 't9j-downloads'
+
+const ALL_CACHES = [CACHE_SHELL, CACHE_STATIC, CACHE_JS, CACHE_API, CACHE_IMAGES, CACHE_AUDIO, CACHE_DOWNLOADS]
 
 const APP_SHELL = ['/', '/index.html', '/manifest.json', '/offline.html']
 const OFFLINE_FALLBACK = '/offline.html'
@@ -99,7 +103,13 @@ self.addEventListener('fetch', (event) => {
 
   // ── Images (covers, avatars, thumbnails): cache-first ──
   if (isImageRequest(req, url)) {
-    event.respondWith(cacheFirst(req, CACHE_IMAGES, IMAGE_MAX_ENTRIES))
+    event.respondWith((async () => {
+      try {
+        const dl = await (await caches.open(CACHE_DOWNLOADS)).match(req.url, { ignoreVary: true })
+        if (dl) return dl
+      } catch { /* ignore */ }
+      return cacheFirst(req, CACHE_IMAGES, IMAGE_MAX_ENTRIES)
+    })())
     return
   }
 
@@ -239,15 +249,20 @@ async function networkFirstNavigate(req) {
   try {
     const res = await fetch(req)
     if (res && res.ok) {
-      const clone = res.clone()
-      caches.open(CACHE_SHELL).then((c) => c.put(req, clone)).catch(() => {})
+      const clone = res.clone(), clone2 = res.clone()
+      caches.open(CACHE_SHELL).then((c) => {
+        c.put(req, clone)
+        // Every route serves the same SPA page — keep the offline fallback
+        // copy current, so it never points at deleted JS bundles.
+        c.put('/index.html', clone2)
+      }).catch(() => {})
     }
     return res
   } catch {
-    const cached = await caches.match(req)
-    if (cached) return cached
     const shellIndex = await caches.match('/index.html')
     if (shellIndex) return shellIndex
+    const cached = await caches.match(req)
+    if (cached) return cached
     const offline = await caches.match(OFFLINE_FALLBACK)
     if (offline) return offline
     return new Response('<h1>Offline</h1>', { status: 503, headers: { 'Content-Type': 'text/html' } })
@@ -267,8 +282,15 @@ async function networkFirstNavigate(req) {
 //   3. Revalidate in the background without blocking playback.
 // ════════════════════════════════════════════════════════════════
 async function handleAudio(req) {
-  const cache = await caches.open(CACHE_AUDIO)
   const rangeHeader = req.headers.get('range')
+
+  // 1) Songs the user downloaded — always served from the device
+  try {
+    const dl = await (await caches.open(CACHE_DOWNLOADS)).match(req.url, { ignoreVary: true })
+    if (dl) return rangeHeader ? await sliceRangeResponse(dl, rangeHeader) : dl
+  } catch { /* fall through */ }
+
+  const cache = await caches.open(CACHE_AUDIO)
 
   // Look up the FULL cached entry by URL (ignoring this request's Range header)
   const fullCached = await cache.match(req.url, { ignoreVary: true })
@@ -468,6 +490,11 @@ self.addEventListener('message', (event) => {
     return
   }
 
+  if (data.type === 'PRECACHE_APP') {
+    event.waitUntil(precacheApp())
+    return
+  }
+
   if (data.type === 'CHECK_AUDIO_CACHED') {
     checkAudioCached(data.url).then((cached) => {
       event.source && event.source.postMessage({ type: 'AUDIO_CACHED_RESULT', url: data.url, cached })
@@ -583,4 +610,36 @@ async function notifyClientsToFlushQueue() {
     // nothing more we can do from the SW itself; the queue will flush
     // as soon as a tab opens (syncQueue.js flushes on load + online event).
   }
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// Whole-app precache so the PWA opens offline (Downloads included),
+// not just the screens the user happened to visit. The build writes
+// /asset-manifest.json (see vite.config.js); the page asks for this
+// after each load, so every deploy's files get cached once.
+// ════════════════════════════════════════════════════════════════
+async function precacheApp() {
+  try {
+    const res = await fetch('/asset-manifest.json', { cache: 'no-store' })
+    if (!res.ok) return
+    const { files = [] } = await res.json()
+    const wanted = new Set(files.map((f) => new URL(f, self.location.origin).href))
+
+    const jsCache = await caches.open(CACHE_JS)
+    const cssCache = await caches.open(CACHE_STATIC)
+    for (const href of wanted) {
+      const cache = href.endsWith('.css') ? cssCache : jsCache
+      if (await cache.match(href)) continue
+      try {
+        const r = await fetch(href)
+        if (r.ok) await cache.put(href, r)
+      } catch { /* offline mid-way — the rest fills in next time */ }
+    }
+    // Drop bundles from older deploys (hashed names that no longer exist)
+    for (const req of await jsCache.keys()) {
+      if (/\/assets\/.+\.js$/.test(req.url) && !wanted.has(req.url)) await jsCache.delete(req)
+    }
+    await caches.open(CACHE_SHELL).then((c) => c.add('/index.html')).catch(() => {})
+  } catch { /* non-fatal */ }
 }

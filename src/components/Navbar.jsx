@@ -5,7 +5,7 @@ import NotificationsPanel from './NotificationsPanel.jsx'
 import { Avatar } from './ProfileEditor.jsx'
 import { getPageLabel } from '../hooks/useNavigation.js'
 import RoleSwitcher, { dashboardPageForRole, getAvailableRoles } from './RoleSwitcher.jsx'
-import {
+import { Download,
   Search, Sun, Moon, Coins, Menu, X,
   Home, Music2, Radio,
   Video, Newspaper, Info, LayoutDashboard, TrendingUp,
@@ -20,6 +20,7 @@ const NAV_LINKS = [
   { label: 'Videos', page: 'videos', icon: Video },
   { label: 'Blog',   page: 'blog',   icon: Newspaper },
   { label: 'Charts', page: 'charts', icon: TrendingUp },
+  { label: 'Downloads', page: 'downloads', icon: Download },
   { label: 'About',  page: 'about',  icon: Info },
 ]
 

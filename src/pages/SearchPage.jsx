@@ -1,4 +1,5 @@
 import { openItem } from '../lib/urlState.js'
+import TrackMenu from '../components/TrackMenu.jsx'
 import React, { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
@@ -130,6 +131,7 @@ export default function SearchPage({ setPage, currentUser }) {
                       </div>
                       <span style={{ fontSize:11, color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>{track.genre}</span>
                     {track.play_count > 0 && <span style={{ fontSize:11, color:'var(--grey-500)', display:'flex', alignItems:'center', gap:3 }}><Play size={10}/>{track.play_count >= 1000 ? (track.play_count/1000).toFixed(1)+'K':track.play_count}</span>}
+                      <TrackMenu track={track} currentUser={currentUser} size={18} />
                     </div>
                   ))}
                 </div>

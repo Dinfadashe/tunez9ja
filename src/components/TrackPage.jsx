@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { queuedMutation } from '../lib/syncQueue.js'
 import CommentsSection, { ReactionBar } from './CommentsSection.jsx'
+import TrackMenu from './TrackMenu.jsx'
 import ShareButton from './ShareButton.jsx'
 import PremiumUnlockModal from './PremiumUnlockModal.jsx'
 import { MusicArt } from './UI.jsx'
@@ -121,6 +122,8 @@ export default function TrackPage({ track, currentUser, onBack, onPlay, isPlayin
         </button>
 
         <ShareButton url={shareLinkFor('track', track.id)} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} coverUrl={track.cover_url} />
+
+        <TrackMenu track={track} currentUser={currentUser} size={20} style={{ border: '1px solid var(--border)', borderRadius: 8, minWidth: 40, minHeight: 40 }} />
       </div>
 
       {/* Reactions */}
@@ -151,8 +154,7 @@ function QueuePanel({ currentUser, onClose, onBack, nowPlaying, onPlay, isPlayin
   const { addToPlayNext, addToQueue, queue } = usePlayer()
   const [allTracks, setAllTracks] = useState([])
   const [search, setSearch]       = useState('')
-  const [menuTrack, setMenuTrack] = useState(null)
-  const [tab, setTab]             = useState('queue') // queue | browse
+    const [tab, setTab]             = useState('queue') // queue | browse
 
   useEffect(() => {
     supabase.from('music_tracks').select('*, profiles:artist_id(name,is_verified)')
@@ -183,28 +185,10 @@ function QueuePanel({ currentUser, onClose, onBack, nowPlaying, onPlay, isPlayin
             {t.profiles?.name}{t.profiles?.is_verified ? ' ✅' : ''} · {t.genre || ''}
           </div>
         </div>
-        {/* Menu button */}
-        <button onClick={e => { e.stopPropagation(); setMenuTrack(menuTrack?.id === t.id ? null : t) }}
-          style={{ background: 'none', border: 'none', color: 'var(--grey-500)', cursor: 'pointer', padding: 6, borderRadius: 6, flexShrink: 0 }}>
-          <MoreVertical size={16} />
-        </button>
-        {/* Dropdown menu */}
-        {menuTrack?.id === t.id && (
-          <div style={{ position: 'absolute', right: 0, top: 40, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 6, zIndex: 100, minWidth: 160, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
-            <button onClick={() => { addToPlayNext(t); setMenuTrack(null) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', color: 'var(--grey-200)', cursor: 'pointer', padding: '8px 12px', borderRadius: 6, fontSize: 13, textAlign: 'left' }}>
-              <ListPlus size={14} /> Play Next
-            </button>
-            <button onClick={() => { addToQueue(t); setMenuTrack(null) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', color: 'var(--grey-200)', cursor: 'pointer', padding: '8px 12px', borderRadius: 6, fontSize: 13, textAlign: 'left' }}>
-              <Plus size={14} /> Add to Queue
-            </button>
-            <button onClick={() => { onPlay(t); setMenuTrack(null) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', color: 'var(--grey-200)', cursor: 'pointer', padding: '8px 12px', borderRadius: 6, fontSize: 13, textAlign: 'left' }}>
-              <Play size={14} /> Play Now
-            </button>
-          </div>
-        )}
+        {/* Track menu: play next, queue, playlist, download, share… */}
+        <div onClick={e => e.stopPropagation()}>
+          <TrackMenu track={t} currentUser={currentUser} size={18} />
+        </div>
       </div>
     )
   }
