@@ -67,7 +67,7 @@ export default function TrackPage({ track, currentUser, onBack, onPlay, isPlayin
   )
 
   return (
-    <div style={{ maxWidth: 680, margin: '0 auto', paddingBottom: 120 }}>
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '0 16px 120px', boxSizing: 'border-box', width: '100%' }}>
       {/* Back */}
       <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer', fontSize: 14, padding: '20px 0', fontFamily: 'inherit' }}>
         <ArrowLeft size={18} /> Back to Music
@@ -99,7 +99,7 @@ export default function TrackPage({ track, currentUser, onBack, onPlay, isPlayin
           {track.profiles?.name}{track.profiles?.is_verified && <span style={{ marginLeft: 6 }}>✅</span>}
         </div>
         <div style={{ fontSize: 13, color: 'var(--grey-500)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
-          {track.genre}{track.duration ? ' · ' + track.duration : ''} · {(track.play_count || 0) >= 1000 ? ((track.play_count||0)/1000).toFixed(1)+'K' : (track.play_count||0)} plays
+          {track.genre}{track.duration ? ' · ' + fmtDur(track.duration) : ''} · {(track.play_count || 0) >= 1000 ? ((track.play_count||0)/1000).toFixed(1)+'K' : (track.play_count||0)} plays
         </div>
       </div>
 
@@ -149,12 +149,54 @@ export default function TrackPage({ track, currentUser, onBack, onPlay, isPlayin
   )
 }
 
+// 215 → "3:35" (values like "3:35" pass through)
+const fmtDur = (v) => {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n / 60) + ':' + String(Math.round(n % 60)).padStart(2, '0') : v
+}
+
+// ── One track in the Now Playing panel ─────────────────────────
+// Defined at module level (not inside the panel) and memoised: a component
+// declared inside another is a *new type* on every render, so React tore
+// down and rebuilt every row — covers flickered and menus snapped shut.
+const QueueTrackRow = React.memo(function QueueTrackRow({ t, isNow, isPlaying, currentUser, onPlayRow }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <div onClick={() => onPlayRow(t)} style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, cursor: 'pointer' }}>
+        {t.cover_url
+          ? <img src={t.cover_url} loading="lazy" style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} alt="" />
+          : <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--bg-surface)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>♪</div>
+        }
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, color: isNow ? 'var(--red)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {isNow && isPlaying ? '▶ ' : ''}{t.title}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--grey-400)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {t.profiles?.name}{t.profiles?.is_verified ? ' ✅' : ''}{t.genre ? ' · ' + t.genre : ''}
+          </div>
+        </div>
+      </div>
+      <TrackMenu track={t} currentUser={currentUser} size={18} />
+    </div>
+  )
+})
+
 // ── Queue / Now Playing Panel ─────────────────────────────────
 function QueuePanel({ currentUser, onClose, onBack, nowPlaying, onPlay, isPlaying }) {
-  const { addToPlayNext, addToQueue, queue } = usePlayer()
+  const { queue, playTrack } = usePlayer()
   const [allTracks, setAllTracks] = useState([])
   const [search, setSearch]       = useState('')
-    const [tab, setTab]             = useState('queue') // queue | browse
+  const [tab, setTab]             = useState('queue') // queue | browse
+
+  // Queue tab: jump to that song within your queue. Browse tab: play it the
+  // way the Music page does.
+  const queueRef = React.useRef(queue)
+  queueRef.current = queue
+  const onPlayRow = React.useCallback((t) => {
+    if (tab === 'queue') playTrack(t, queueRef.current)
+    else onPlay(t)
+    supabase.rpc('increment_play_count', { p_track_id: t.id }).then(() => {}).catch(() => {})
+  }, [tab, playTrack, onPlay])
 
   useEffect(() => {
     supabase.from('music_tracks').select('*, profiles:artist_id(name,is_verified)')
@@ -169,39 +211,16 @@ function QueuePanel({ currentUser, onClose, onBack, nowPlaying, onPlay, isPlayin
     (t.profiles?.name || '').toLowerCase().includes(search.toLowerCase())
   )
 
-  function TrackRow({ t }) {
-    const isNow = nowPlaying?.id === t.id
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', position: 'relative' }}>
-        {t.cover_url
-          ? <img src={t.cover_url} style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} alt="" />
-          : <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--bg-surface)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>♪</div>
-        }
-        <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => { onPlay(t); supabase.rpc('increment_play_count', { p_track_id: t.id }).then(() => {}).catch(() => {}) }}>
-          <div style={{ fontWeight: 600, fontSize: 14, color: isNow ? 'var(--red)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {isNow && isPlaying ? '▶ ' : ''}{t.title}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--grey-400)', marginTop: 2 }}>
-            {t.profiles?.name}{t.profiles?.is_verified ? ' ✅' : ''} · {t.genre || ''}
-          </div>
-        </div>
-        {/* Track menu: play next, queue, playlist, download, share… */}
-        <div onClick={e => e.stopPropagation()}>
-          <TrackMenu track={t} currentUser={currentUser} size={18} />
-        </div>
-      </div>
-    )
-  }
 
   return (
-    <div style={{ maxWidth: 680, margin: '0 auto', paddingBottom: 120 }}>
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '0 16px 120px', boxSizing: 'border-box', width: '100%' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 0 16px' }}>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer', padding: 4 }}>
+        <button onClick={onClose} aria-label="Back" style={{ background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer', minWidth: 40, minHeight: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginLeft: -8 }}>
           <ArrowLeft size={20} />
         </button>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, margin: 0, flex: 1 }}>NOW PLAYING</h2>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--grey-500)', cursor: 'pointer', fontSize: 12 }}>✕ Close</button>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, margin: 0, flex: 1, minWidth: 0 }}>NOW PLAYING</h2>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--grey-500)', cursor: 'pointer', fontSize: 13, minHeight: 40, padding: '0 4px', whiteSpace: 'nowrap', flexShrink: 0 }}>✕ Close</button>
       </div>
 
       {/* Now playing track */}
@@ -244,12 +263,15 @@ function QueuePanel({ currentUser, onClose, onBack, nowPlaying, onPlay, isPlayin
       </div>
 
       {/* Track list */}
-      <div onClick={() => setMenuTrack(null)}>
+      <div>
         {filtered.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--grey-500)' }}>
             {tab === 'queue' ? 'Queue is empty — browse tracks to add some' : 'No tracks found'}
           </div>
-        ) : filtered.map(t => <TrackRow key={t.id} t={t} />)}
+        ) : filtered.map(t => (
+          <QueueTrackRow key={t.id} t={t} isNow={nowPlaying?.id === t.id} isPlaying={isPlaying}
+            currentUser={currentUser} onPlayRow={onPlayRow} />
+        ))}
       </div>
     </div>
   )

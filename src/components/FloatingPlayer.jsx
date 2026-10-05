@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { usePlayer } from '../context/PlayerContext.jsx'
+import { usePlayer, usePlayerTime } from '../context/PlayerContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { earnStream } from '../lib/tunez.js'
 import {
@@ -44,8 +44,9 @@ function Equalizer({ isPlaying, color = 'var(--red)', size = 'md' }) {
 }
 
 export default function FloatingPlayer({ currentUser }) {
+  const { currentTime, duration } = usePlayerTime()
   const {
-    nowPlaying, isPlaying, currentTime, duration,
+    nowPlaying, isPlaying,
     queue, queueIndex, volume, muted,
     audioRef, audioError, skipNext, skipPrev,
     togglePlay, seekTo, changeVolume, toggleMute, playTrack,

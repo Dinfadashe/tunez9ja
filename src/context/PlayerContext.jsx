@@ -1,7 +1,11 @@
 import { isDownloadedUrl, getDownloadedBlobUrl } from '../lib/downloads.js'
-import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect, useMemo } from 'react'
 
 const PlayerContext = createContext(null)
+// Playback position changes several times a second. It lives in its own
+// context so only the player bar re-renders on every tick — not every page
+// that shows a play button (that made lists flicker and drop taps).
+const PlayerTimeContext = createContext({ currentTime: 0, duration: 0 })
 
 export function PlayerProvider({ children }) {
   const lastBlobUrl = useRef(null)
@@ -210,20 +214,27 @@ export function PlayerProvider({ children }) {
     navigator.mediaSession.setActionHandler('previoustrack', skipPrev)
   }, [nowPlaying, skipNext, skipPrev])
 
+  const playerValue = useMemo(() => ({
+    nowPlaying, isPlaying,
+    queue, queueIndex, volume, muted,
+    audioRef, audioError,
+    playTrack, stopPlayer,
+    skipNext, skipPrev,
+    playNext: skipNext, playPrev: skipPrev,
+    togglePlay, seekTo,
+    changeVolume, toggleMute,
+    addToPlayNext,
+    addToQueue,
+    setIsPlaying,
+  }), [nowPlaying, isPlaying, queue, queueIndex, volume, muted, audioError,
+       playTrack, stopPlayer, skipNext, skipPrev, togglePlay, seekTo,
+       changeVolume, toggleMute, addToPlayNext, addToQueue])
+
+  const timeValue = useMemo(() => ({ currentTime, duration }), [currentTime, duration])
+
   return (
-    <PlayerContext.Provider value={{
-      nowPlaying, isPlaying, currentTime, duration,
-      queue, queueIndex, volume, muted,
-      audioRef, audioError,
-      playTrack, stopPlayer,
-      skipNext, skipPrev,
-      playNext: skipNext, playPrev: skipPrev,
-      togglePlay, seekTo,
-      changeVolume, toggleMute,
-      addToPlayNext,
-      addToQueue,
-      setIsPlaying,
-    }}>
+    <PlayerContext.Provider value={playerValue}>
+    <PlayerTimeContext.Provider value={timeValue}>
       {/* Single global <audio> — the only audio element in the entire app */}
       <audio
         ref={audioRef}
@@ -265,6 +276,7 @@ export function PlayerProvider({ children }) {
         onLoadedMetadata={e => setDuration(e.target.duration || 0)}
       />
       {children}
+    </PlayerTimeContext.Provider>
     </PlayerContext.Provider>
   )
 }
@@ -273,4 +285,9 @@ export function usePlayer() {
   const ctx = useContext(PlayerContext)
   if (!ctx) throw new Error('usePlayer must be used within PlayerProvider')
   return ctx
+}
+
+/** Playback position — only for components that show progress (player bar). */
+export function usePlayerTime() {
+  return useContext(PlayerTimeContext)
 }

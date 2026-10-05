@@ -525,7 +525,8 @@ function AppInner() {
       {!NO_FOOTER.includes(safePage) && <Footer setPage={setPage} />}
 
       {/* Floating player — renders on ALL pages, survives navigation */}
-      {!isDashboard && (
+      {/* Pinned under the navbar, so only on pages where it doesn't cover a title */}
+      {(safePage === 'home' || safePage === 'about') && (
         <React.Suspense fallback={null}>
           <WhitepaperWidget />
         </React.Suspense>
