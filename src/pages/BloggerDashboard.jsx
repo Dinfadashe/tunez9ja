@@ -40,6 +40,107 @@ function RichEditor({ value, onChange, userId }) {
   const [uploading, setUploading]   = useState(false)
   const [uploadError, setUploadError] = useState('')
   const savedRange = useRef(null)
+  const wrapRef = useRef(null)
+  const [selImg, setSelImg] = useState(null)   // { el, top, left, width, height }
+
+  // ── Image selection (tap/click an image to select it, then remove) ──
+  // Browsers (especially iPhone Safari) can't put the caret next to a block
+  // image or select it by tapping, so Backspace couldn't remove images.
+  const selectImage = (img) => {
+    const wrap = wrapRef.current
+    if (!img || !wrap) { setSelImg(null); return }
+    const w = wrap.getBoundingClientRect(), r = img.getBoundingClientRect()
+    setSelImg({ el: img, top: r.top - w.top, left: r.left - w.left, width: r.width, height: r.height })
+  }
+  const removeSelectedImage = () => {
+    const img = selImg?.el
+    if (!img || !editorRef.current?.contains(img)) { setSelImg(null); return }
+    const parent = img.parentElement
+    img.remove()
+    // Drop a now-empty wrapper (e.g. <p> or <figure> that only held the image)
+    if (parent && parent !== editorRef.current && !parent.textContent.trim() && !parent.querySelector('img,video,iframe')) {
+      parent.remove()
+    }
+    setSelImg(null)
+    ensureTrailingLine()
+    editorRef.current?.focus()
+    handleInput()
+  }
+  // Keep an editable line after a trailing image so the caret can sit below it
+  const ensureTrailingLine = () => {
+    const ed = editorRef.current
+    const last = ed?.lastElementChild
+    if (last && (last.tagName === 'IMG' || last.tagName === 'FIGURE')) {
+      const p = document.createElement('p'); p.appendChild(document.createElement('br'))
+      ed.appendChild(p)
+    }
+  }
+  const onEditorClick = (e) => {
+    if (e.target.tagName === 'IMG') { e.preventDefault(); selectImage(e.target) }
+    else setSelImg(null)
+  }
+  // The image (if any) directly before the caret: either the caret sits
+  // right after an <img>, or at the very start of the line below one.
+  const imageBeforeCaret = () => {
+    const ed = editorRef.current, sel = window.getSelection()
+    if (!ed || !sel || !sel.rangeCount || !sel.isCollapsed) return null
+    const range = sel.getRangeAt(0)
+    if (!ed.contains(range.startContainer)) return null
+    const prevMeaningful = (node) => {
+      while (node && node.nodeType === 3 && !node.textContent.trim()) node = node.previousSibling
+      return node
+    }
+    const lastImgIn = (node) => {
+      if (!node || node.nodeType !== 1) return null
+      if (node.tagName === 'IMG') return node
+      const imgs = node.querySelectorAll('img')
+      const last = imgs[imgs.length - 1]
+      // only if nothing visible follows that image inside the node
+      if (last) {
+        const after = document.createRange(); after.setStartAfter(last); after.setEnd(node, node.childNodes.length)
+        if (!after.toString().trim() && !after.cloneContents().querySelector('img,video,iframe')) return last
+      }
+      return null
+    }
+    // 1) caret directly after an image within the same parent
+    const { startContainer: c, startOffset: o } = range
+    if (c.nodeType === 1 && o > 0) {
+      const img = lastImgIn(prevMeaningful(c.childNodes[o - 1]))
+      if (img) return img
+    }
+    if (c.nodeType === 3 && o === 0) {
+      const img = lastImgIn(prevMeaningful(c.previousSibling))
+      if (img) return img
+    }
+    // 2) caret at the start of a line whose previous line ends with an image
+    let block = c.nodeType === 1 ? c : c.parentElement
+    while (block && block.parentElement !== ed && block !== ed) block = block.parentElement
+    if (!block || block === ed) return null
+    const before = document.createRange(); before.selectNodeContents(block); before.setEnd(c, o)
+    if (before.toString().length || before.cloneContents().querySelector('img')) return null
+    return lastImgIn(prevMeaningful(block.previousSibling))
+  }
+
+  const onEditorKeyDown = (e) => {
+    if (selImg) {
+      if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); removeSelectedImage() }
+      else if (e.key === 'Escape' || e.key.length === 1 || e.key.startsWith('Arrow') || e.key === 'Enter') setSelImg(null)
+      return
+    }
+    // A plain Backspace right after an image deletes the image
+    if (e.key === 'Backspace') {
+      const img = imageBeforeCaret()
+      if (img) {
+        e.preventDefault()
+        const parent = img.parentElement
+        img.remove()
+        if (parent && parent !== editorRef.current && !parent.textContent.trim() && !parent.querySelector('img,video,iframe') && !parent.contains(window.getSelection()?.anchorNode)) {
+          parent.remove()
+        }
+        handleInput()
+      }
+    }
+  }
 
   // Initialise editor content from value prop (only on first mount / external reset)
   useEffect(() => {
@@ -53,6 +154,7 @@ function RichEditor({ value, onChange, userId }) {
 
   // Emit HTML up to parent on every input event
   const handleInput = () => {
+    ensureTrailingLine()
     onChange(editorRef.current?.innerHTML || '')
   }
 
@@ -144,8 +246,17 @@ function RichEditor({ value, onChange, userId }) {
   const insertImageHtml = (src, alt) => {
     restoreSelection()
     editorRef.current?.focus()
+    const safeSrc = String(src).replace(/"/g, '&quot;')
+    const safeAlt = String(alt || 'image').replace(/[<>"]/g, '')
     document.execCommand('insertHTML', false,
-      `<img src="${src}" alt="${alt || 'image'}" style="max-width:100%;border-radius:6px;margin:8px 0;display:block;" />`)
+      `<img src="${safeSrc}" alt="${safeAlt}" style="max-width:100%;border-radius:6px;margin:8px 0;display:block;" /><p id="t9-after-img"><br></p>`)
+    // Put the caret on the new line under the image
+    const after = editorRef.current?.querySelector('#t9-after-img')
+    if (after) {
+      after.removeAttribute('id')
+      const range = document.createRange(); range.setStart(after, 0); range.collapse(true)
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range)
+    }
     handleInput()
   }
 
@@ -241,13 +352,17 @@ function RichEditor({ value, onChange, userId }) {
       </div>
 
       {/* ── Editable area ── */}
+      <div ref={wrapRef} style={{ position: 'relative' }}>
       <div
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
-        onInput={handleInput}
+        onInput={() => { setSelImg(null); handleInput() }}
         onPaste={handleInput}
         onKeyUp={handleInput}
+        onClick={onEditorClick}
+        onKeyDown={onEditorKeyDown}
+        onBlur={e => { if (!wrapRef.current?.contains(e.relatedTarget)) setSelImg(null) }}
         data-placeholder="Write your post here…"
         style={{
           minHeight: 320,
@@ -259,6 +374,25 @@ function RichEditor({ value, onChange, userId }) {
           overflowY: 'auto',
         }}
       />
+      {selImg && (
+        <div aria-hidden={false} style={{
+          position: 'absolute', top: selImg.top, left: selImg.left, width: selImg.width, height: selImg.height,
+          outline: '3px solid #c8102e', outlineOffset: 2, borderRadius: 6, pointerEvents: 'none',
+        }}>
+          <button type="button" data-t9-img-remove="1"
+            onMouseDown={e => e.preventDefault()}
+            onClick={removeSelectedImage}
+            style={{
+              position: 'absolute', top: 8, right: 8, pointerEvents: 'auto',
+              minHeight: 40, padding: '8px 14px', borderRadius: 8, border: 'none',
+              background: '#c8102e', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+            }}>
+            🗑 Remove image
+          </button>
+        </div>
+      )}
+      </div>
 
       {/* ── Link dialog ── */}
       {showLinkDialog && (
@@ -908,7 +1042,8 @@ function buildPayload(formData, userId, status) {
   return {
     author_id:     userId,
     title:         formData.title?.trim() || '(Untitled draft)',
-    content:       formData.content || '',
+    // Drop empty trailing lines (the editor keeps one under a final image)
+    content:       (formData.content || '').replace(/(\s*<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>)+\s*$/i, ''),
     excerpt:       formData.excerpt?.trim() || '',
     // blob: URLs are local previews only — never persist them
     cover_url:     formData.cover_url && !formData.cover_url.startsWith('blob:') ? formData.cover_url : null,
