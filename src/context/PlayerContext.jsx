@@ -19,6 +19,11 @@ export function PlayerProvider({ children }) {
   const [muted,       setMuted]      = useState(false)
   const [audioError,  setAudioError] = useState(null) // { trackId, message } | null — surfaced to UI for a friendly offline notice instead of a silent failure
   const audioRef = useRef(null)
+  // Does the listener want music playing? Lets us tell a pause the user made
+  // apart from one the phone made (incoming call, another app's audio…).
+  const wantPlayingRef = useRef(false)
+  const interruptRef   = useRef(null)   // { at, wasHidden } while interrupted
+  const lastDeviceChangeRef = useRef(0) // headphones/Bluetooth changes
 
   // ── Core: play a track ──────────────────────────────────────
   const playTrack = useCallback((track, trackList = []) => {
@@ -26,6 +31,7 @@ export function PlayerProvider({ children }) {
       console.error('❌ playTrack: no audio_url on track', track?.title, track)
       return
     }
+    wantPlayingRef.current = true
     const list = trackList.length ? trackList : [track]
     const idx  = list.findIndex(t => t.id === track.id)
     setQueue(list)
@@ -66,6 +72,7 @@ export function PlayerProvider({ children }) {
       const ni   = (idx + 1) % q.length
       const next = q[ni]
       if (next && next.audio_url) {
+        wantPlayingRef.current = true
         setQueueIndex(ni)
         setNowPlaying(next)
         setIsPlaying(true)
@@ -109,7 +116,7 @@ export function PlayerProvider({ children }) {
           audioRef.current.pause()
           audioRef.current.currentTime = 0
           audioRef.current.src = prev.audio_url
-          const playPromise = audioRef.current.play()
+          const playPromise = (wantPlayingRef.current = true, audioRef.current.play())
       if (playPromise !== undefined) {
         playPromise.catch(err => {
           // Autoplay blocked by browser - user needs to click play button
@@ -127,8 +134,11 @@ export function PlayerProvider({ children }) {
   const togglePlay = useCallback(() => {
     if (!audioRef.current) return
     if (isPlaying) {
+      wantPlayingRef.current = false
+      interruptRef.current = null
       audioRef.current.pause()
     } else {
+      wantPlayingRef.current = true
       const playPromise = audioRef.current.play()
       if (playPromise !== undefined) {
         playPromise.catch(err => {
@@ -142,6 +152,8 @@ export function PlayerProvider({ children }) {
 
   // ── Stop ────────────────────────────────────────────────────
   const stopPlayer = useCallback(() => {
+    wantPlayingRef.current = false
+    interruptRef.current = null
     if (audioRef.current) {
       audioRef.current.pause()
       // removeAttribute + load() empties the player cleanly; setting src=''
@@ -197,22 +209,162 @@ export function PlayerProvider({ children }) {
     return true
   }, [nowPlaying, playTrack])
 
+  const removeFromQueue = useCallback((trackId) => {
+    if (!trackId || trackId === nowPlaying?.id) return
+    setQueue(q => {
+      const rest = q.filter(t => t.id !== trackId)
+      setQueueIndex(Math.max(0, rest.findIndex(t => t.id === nowPlaying?.id)))
+      return rest
+    })
+  }, [nowPlaying])
+
   const addToPlayNext = useCallback((track) => insertIntoQueue(track, 'next'), [insertIntoQueue])
   const addToQueue    = useCallback((track) => insertIntoQueue(track, 'end'),  [insertIntoQueue])
 
-  // ── Media Session API ───────────────────────────────────────
+  // ── Media Session API (lock screen / notification / headphones) ──
   useEffect(() => {
     if (!('mediaSession' in navigator) || !nowPlaying) return
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title:   nowPlaying.title || 'Unknown',
-      artist:  nowPlaying.profiles?.name || '',
-      artwork: nowPlaying.cover_url ? [{ src: nowPlaying.cover_url }] : [],
+    const ms = navigator.mediaSession
+    const art = nowPlaying.cover_url
+      ? ['96x96', '192x192', '512x512'].map(sizes => ({ src: nowPlaying.cover_url, sizes }))
+      : [{ src: '/logo.png', sizes: '512x512', type: 'image/png' }]
+    ms.metadata = new MediaMetadata({
+      title:  nowPlaying.title || 'Unknown',
+      artist: nowPlaying.profiles?.name || '',
+      album:  'Tunez9ja',
+      artwork: art,
     })
-    navigator.mediaSession.setActionHandler('play',          () => { audioRef.current?.play(); setIsPlaying(true) })
-    navigator.mediaSession.setActionHandler('pause',         () => { audioRef.current?.pause(); setIsPlaying(false) })
-    navigator.mediaSession.setActionHandler('nexttrack',     skipNext)
-    navigator.mediaSession.setActionHandler('previoustrack', skipPrev)
+    const set = (action, fn) => { try { ms.setActionHandler(action, fn) } catch { /* unsupported */ } }
+    set('play', () => {
+      wantPlayingRef.current = true
+      audioRef.current?.play().catch(() => setIsPlaying(false))
+    })
+    set('pause', () => {
+      wantPlayingRef.current = false
+      interruptRef.current = null
+      audioRef.current?.pause()
+    })
+    set('nexttrack', skipNext)
+    set('previoustrack', skipPrev)
+    set('seekto', (d) => { if (audioRef.current && d.seekTime != null) audioRef.current.currentTime = d.seekTime })
+    set('seekbackward', (d) => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - (d.seekOffset || 10)) })
+    set('seekforward', (d) => { if (audioRef.current) audioRef.current.currentTime = audioRef.current.currentTime + (d.seekOffset || 10) })
+    set('stop', () => { wantPlayingRef.current = false; interruptRef.current = null; audioRef.current?.pause() })
   }, [nowPlaying, skipNext, skipPrev])
+
+  useEffect(() => {
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = nowPlaying ? (isPlaying ? 'playing' : 'paused') : 'none'
+  }, [isPlaying, nowPlaying])
+
+  // Lock-screen progress bar (once a second is plenty)
+  const wholeSecond = Math.floor(currentTime)
+  useEffect(() => {
+    try {
+      if (navigator.mediaSession?.setPositionState && duration > 0 && Number.isFinite(duration)) {
+        navigator.mediaSession.setPositionState({ duration, position: Math.min(currentTime, duration), playbackRate: 1 })
+      }
+    } catch { /* ignore */ }
+  }, [wholeSecond, duration])
+
+  // ── Keep playing after interruptions (calls, other apps, network drops) ──
+  // Browsers pause the <audio> for a phone call but never resume afterwards.
+  // If the pause wasn't the listener's, retry quietly until playback is
+  // possible again: on returning to the app, when the network comes back,
+  // and every few seconds while the app is in the background.
+  useEffect(() => {
+    // iOS/iPadOS: declare this as a music player (better background behaviour)
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback' } catch { /* ignore */ }
+
+    const tryResume = (reason) => {
+      const a = audioRef.current, it = interruptRef.current
+      if (!a || !it || !wantPlayingRef.current || !a.getAttribute('src')) return
+      if (Date.now() - it.at > 30 * 60 * 1000) { interruptRef.current = null; return }   // give up after 30 min
+      // Network dropped mid-stream: reload the file at the same position
+      if (a.error || a.networkState === 3) {
+        const t = a.currentTime, src = a.getAttribute('src')
+        a.src = src
+        try { a.currentTime = t } catch { /* ignore */ }
+      }
+      a.play().catch(() => { /* still interrupted (e.g. call in progress) — try again later */ })
+    }
+
+    const onVisible = () => { if (!document.hidden) tryResume('visible') }
+    const onOnline  = () => tryResume('online')
+    const onDevice  = () => {
+      lastDeviceChangeRef.current = Date.now()
+      // Headphones/Bluetooth just disconnected: don't resume through the speaker
+      if (interruptRef.current && Date.now() - interruptRef.current.at < 3000) interruptRef.current = null
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    window.addEventListener('pageshow', onVisible)
+    window.addEventListener('online', onOnline)
+    navigator.mediaDevices?.addEventListener?.('devicechange', onDevice)
+    // Background retries: during a call play() is refused; right after it
+    // ends, the next attempt succeeds — usually within 3 seconds.
+    const timer = setInterval(() => { if (document.hidden) tryResume('background') }, 3000)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+      window.removeEventListener('pageshow', onVisible)
+      window.removeEventListener('online', onOnline)
+      navigator.mediaDevices?.removeEventListener?.('devicechange', onDevice)
+      clearInterval(timer)
+    }
+  }, [])
+
+  // ── Remember the session (track, queue, position) across app restarts ──
+  const SESSION_KEY = 't9_player_session_v1'
+  const slim = (t) => t && ({
+    id: t.id, title: t.title, audio_url: t.audio_url, cover_url: t.cover_url || null,
+    artist_id: t.artist_id || null, is_premium: !!t.is_premium, duration: t.duration || null,
+    genre: t.genre || null, profiles: t.profiles ? { name: t.profiles.name, is_verified: !!t.profiles.is_verified } : null,
+  })
+  const saveSession = useCallback(() => {
+    try {
+      if (!nowPlaying) return
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        track: slim(nowPlaying),
+        queue: queue.slice(0, 200).map(slim),
+        time: audioRef.current?.currentTime || 0,
+        savedAt: Date.now(),
+      }))
+    } catch { /* storage full */ }
+  }, [nowPlaying, queue])
+
+  useEffect(() => { saveSession() }, [saveSession])
+  useEffect(() => {
+    if (!isPlaying) return
+    const t = setInterval(saveSession, 5000)
+    return () => clearInterval(t)
+  }, [isPlaying, saveSession])
+  useEffect(() => {
+    const onHide = () => saveSession()
+    window.addEventListener('pagehide', onHide)
+    document.addEventListener('visibilitychange', onHide)
+    return () => { window.removeEventListener('pagehide', onHide); document.removeEventListener('visibilitychange', onHide) }
+  }, [saveSession])
+
+  // Restore on start — paused, at the saved position, ready to tap play
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
+      if (!saved?.track?.audio_url || nowPlaying) return
+      setQueue(saved.queue?.length ? saved.queue : [saved.track])
+      setQueueIndex(Math.max(0, (saved.queue || []).findIndex(t => t.id === saved.track.id)))
+      setNowPlaying(saved.track)
+      setIsPlaying(false)
+      setCurrentTime(saved.time || 0)
+      const a = audioRef.current
+      if (a) {
+        a.preload = 'none'              // don't download anything until play is tapped
+        a.src = saved.track.audio_url
+        try { a.currentTime = saved.time || 0 } catch { /* applied when it loads */ }
+        if (saved.track.duration) setDuration(Number(saved.track.duration) || 0)
+      }
+    } catch { /* corrupt record — ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const playerValue = useMemo(() => ({
     nowPlaying, isPlaying,
@@ -225,10 +377,11 @@ export function PlayerProvider({ children }) {
     changeVolume, toggleMute,
     addToPlayNext,
     addToQueue,
+    removeFromQueue,
     setIsPlaying,
   }), [nowPlaying, isPlaying, queue, queueIndex, volume, muted, audioError,
        playTrack, stopPlayer, skipNext, skipPrev, togglePlay, seekTo,
-       changeVolume, toggleMute, addToPlayNext, addToQueue])
+       changeVolume, toggleMute, addToPlayNext, addToQueue, removeFromQueue])
 
   const timeValue = useMemo(() => ({ currentTime, duration }), [currentTime, duration])
 
@@ -270,8 +423,17 @@ export function PlayerProvider({ children }) {
           }
           setIsPlaying(false)
         }}
-        onPause={()      => setIsPlaying(false)}
-        onEnded={() => {}} // Handled by FloatingPlayer with repeat/shuffle logic
+        onPause={(e) => {
+          setIsPlaying(false)
+          const a = e.target
+          // Not the listener's pause and not the end of the song → interrupted
+          if (wantPlayingRef.current && !a.ended && a.getAttribute('src')
+              && Date.now() - lastDeviceChangeRef.current > 3000) {
+            interruptRef.current = { at: Date.now(), wasHidden: document.hidden }
+          }
+        }}
+        onPlaying={() => { interruptRef.current = null; if (audioRef.current) audioRef.current.preload = 'auto' }}
+        onEnded={() => { interruptRef.current = null }} // next track: FloatingPlayer (repeat/shuffle)
         onTimeUpdate={e  => { setCurrentTime(e.target.currentTime); setDuration(e.target.duration || 0) }}
         onLoadedMetadata={e => setDuration(e.target.duration || 0)}
       />

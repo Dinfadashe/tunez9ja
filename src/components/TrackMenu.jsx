@@ -56,16 +56,14 @@ export default function TrackMenu({ track, currentUser, trigger = 'dots', size =
   }
   const close = () => setOpen(false)
 
-  // Close on Escape / outside tap; stop page scroll behind the mobile sheet
+  // Close on Escape. Taps outside are caught by a full-screen layer behind
+  // the menu (see MenuPanel) that closes on the *completed* tap and swallows
+  // it — closing on finger-down let the tap fall through to whatever was
+  // underneath (e.g. a cover's play/pause), pausing the music.
   useEffect(() => {
     if (!open) return
     const onKey = (e) => { if (e.key === 'Escape') close() }
-    const onDown = (e) => {
-      if (sheetRef.current?.contains(e.target) || btnRef.current?.contains(e.target)) return
-      close()
-    }
     document.addEventListener('keydown', onKey)
-    document.addEventListener('pointerdown', onDown)
     const prev = document.body.style.overflow
     if (isMobile) document.body.style.overflow = 'hidden'
     // Phone: rotating/resizing closes the sheet. Desktop: the popover follows
@@ -76,7 +74,6 @@ export default function TrackMenu({ track, currentUser, trigger = 'dots', size =
     if (!isMobile) window.addEventListener('scroll', onScroll, { passive: true, capture: true })
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.removeEventListener('pointerdown', onDown)
       document.body.style.overflow = prev
       window.removeEventListener('resize', onResize)
       window.removeEventListener('scroll', onScroll, { capture: true })
@@ -211,9 +208,13 @@ function MenuPanel({ track, currentUser, view, setView, isMobile, pos, sheetRef,
   return (
     // React passes portal events up to the TrackMenu's parents (often a
     // clickable track row) — stop them here so menu taps never start playback.
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1200, pointerEvents: isMobile ? 'auto' : 'none' }}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1200 }}
       onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
-      {isMobile && <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />}
+      {/* Tap-anywhere-to-close layer: dimmed on phones, invisible on desktop */}
+      <div data-testid="menu-backdrop"
+        onClick={e => { e.preventDefault(); onClose() }}
+        onContextMenu={e => { e.preventDefault(); onClose() }}
+        style={{ position: 'absolute', inset: 0, background: isMobile ? 'rgba(0,0,0,0.6)' : 'transparent' }} />
       <div ref={sheetRef} role="menu" aria-label={`Options for ${track.title}`} style={{ ...panelStyle, pointerEvents: 'auto' }}
         onClick={e => e.stopPropagation()}>
         {isMobile && <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--grey-700, #444)', margin: '10px auto 2px' }} />}

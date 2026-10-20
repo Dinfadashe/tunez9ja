@@ -20,7 +20,8 @@ const CACHE_DOWNLOADS = 't9j-downloads'
 
 const ALL_CACHES = [CACHE_SHELL, CACHE_STATIC, CACHE_JS, CACHE_API, CACHE_IMAGES, CACHE_AUDIO, CACHE_DOWNLOADS]
 
-const APP_SHELL = ['/', '/index.html', '/manifest.json', '/offline.html']
+const APP_SHELL = ['/', '/index.html', '/manifest.json', '/offline.html',
+  '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/logo.png']
 const OFFLINE_FALLBACK = '/offline.html'
 
 // ── Storage budgets (bytes) — exceeding these triggers LRU eviction ──
@@ -53,6 +54,9 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_SHELL)
       .then((cache) => cache.addAll(APP_SHELL))
       .catch(() => { /* offline during install — non-fatal, shell fills in lazily */ })
+      // Cache the whole app now, so an installed app works offline from the
+      // first launch (not only the screens the user happened to open)
+      .then(() => precacheApp())
   )
   self.skipWaiting()
 })
@@ -190,8 +194,8 @@ async function cacheFirst(req, cacheName, maxEntries) {
     }
     return res
   } catch {
-    const cache = await caches.open(cacheName)
-    const cached = await cache.match(req)
+    // Offline: look in every cache (the logo/icons live in the app-shell cache)
+    const cached = await caches.match(req, { ignoreVary: true })
     if (cached) return cached
     return placeholderResponse(req)
   }

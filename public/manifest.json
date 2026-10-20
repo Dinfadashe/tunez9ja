@@ -1,16 +1,24 @@
 {
-  "name": "Tunez9ja Entertainment",
+  "id": "/",
+  "name": "Tunez9ja — Music, Offline",
   "short_name": "Tunez9ja",
-  "description": "Nigeria's Premier Music Blog — Stream, Discover, Connect",
+  "description": "Stream and download Nigerian music. Play your downloads offline, earn TUNEZ while you listen.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#0f0f0f",
-  "theme_color": "#c8102e",
-  "orientation": "portrait-primary",
+  "theme_color": "#0f0f0f",
+  "orientation": "portrait",
   "icons": [
-    { "src": "/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
-  "categories": ["music", "entertainment", "news"],
+  "shortcuts": [
+    { "name": "Downloads", "short_name": "Downloads", "description": "Music saved for offline", "url": "/?page=downloads", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Music", "short_name": "Music", "url": "/?page=music", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "categories": ["music", "entertainment"],
   "lang": "en-NG"
 }

@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react'
 import { usePlayer, usePlayerTime } from '../context/PlayerContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { earnStream } from '../lib/tunez.js'
+import FullPlayer from './FullPlayer.jsx'
 import {
   Play, Pause, SkipBack, SkipForward,
   Volume2, VolumeX, Shuffle, Repeat, Repeat1,
@@ -57,6 +58,7 @@ export default function FloatingPlayer({ currentUser }) {
   const [shuffle,    setShuffle]   = useState(false)
   const [repeat,     setRepeat]    = useState('none') // none | all | one
   const [minimised,  setMinimised] = useState(false)
+  const [fullOpen,   setFullOpen]  = useState(false)
 
   // ── Premium guard helpers ─────────────────────────────────────
   const [unlockedIds, setUnlockedIds] = React.useState(new Set())
@@ -234,7 +236,7 @@ export default function FloatingPlayer({ currentUser }) {
           padding: '6px 14px',
         }}>
           {/* Cover */}
-          <div style={{
+          <div onClick={() => setFullOpen(true)} style={{ cursor: 'pointer',
             width: 30, height: 30, borderRadius: 4,
             overflow: 'hidden', flexShrink: 0,
             background: 'var(--bg-surface)',
@@ -260,7 +262,7 @@ export default function FloatingPlayer({ currentUser }) {
 
           {/* Title + artist — click to open track page */}
           <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-            onClick={() => { window.dispatchEvent(new CustomEvent('openTrackPage', { detail: nowPlaying })) }}>
+            onClick={() => setFullOpen(true)} role="button" aria-label="Open full player">
             <div style={{
               fontSize: 12, fontWeight: 700,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -306,8 +308,8 @@ export default function FloatingPlayer({ currentUser }) {
 
           {/* Cover + equalizer overlay — click to minimise */}
           <div
-            onClick={() => setMinimised(true)}
-            title="Click to minimise"
+            onClick={() => setFullOpen(true)}
+            title="Open full player"
             style={{ position: 'relative', flexShrink: 0, cursor: 'pointer' }}
           >
             <div style={{
@@ -335,7 +337,7 @@ export default function FloatingPlayer({ currentUser }) {
 
           {/* Track info — click to open track page */}
           <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-            onClick={() => { window.dispatchEvent(new CustomEvent('openTrackPage', { detail: nowPlaying })) }}>
+            onClick={() => setFullOpen(true)} role="button" aria-label="Open full player">
             <div style={{
               fontWeight: 700, fontSize: 13,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -432,6 +434,8 @@ export default function FloatingPlayer({ currentUser }) {
         </div>
       )}
     </div>
+    <FullPlayer open={fullOpen} onClose={() => setFullOpen(false)} currentUser={currentUser}
+      shuffle={shuffle} setShuffle={setShuffle} repeat={repeat} cycleRepeat={cycleRepeat} />
     </>
   )
 }

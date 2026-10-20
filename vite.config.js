@@ -11,7 +11,8 @@ function assetManifest() {
       const files = Object.keys(bundle)
         .filter((f) => /\.(js|css)$/.test(f))
         .map((f) => '/' + f)
-      files.push('/index.html', '/manifest.json', '/logo.png', '/offline.html')
+      files.push('/index.html', '/manifest.json', '/logo.png', '/offline.html',
+        '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/og-default.jpg')
       this.emitFile({
         type: 'asset',
         fileName: 'asset-manifest.json',

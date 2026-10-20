@@ -27,9 +27,11 @@ export function onUpdateAvailable(callback) {
 
 export function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return
-  // Don't fight startup — register after load so it never competes
-  // with the initial render for bandwidth/CPU.
-  window.addEventListener('load', async () => {
+  // Don't fight startup — register after load so it never competes with the
+  // initial render. This runs from a React effect, which often happens AFTER
+  // 'load' has already fired; waiting for it then meant the service worker was
+  // never registered (no offline mode). So: register now if already loaded.
+  const register = async () => {
     try {
       const reg = await navigator.serviceWorker.register('/sw.js')
       registrationRef = reg
@@ -63,7 +65,9 @@ export function registerServiceWorker() {
       // Registration failed (unsupported, blocked, served over non-HTTPS in
       // dev, etc.) — the app must work fully without a SW, so this is silent.
     }
-  })
+  }
+  if (document.readyState === 'complete') register()
+  else window.addEventListener('load', register, { once: true })
 
   // controllerchange fires exactly once per actual SW swap. We use it only
   // to confirm the swap happened — NOT to reload. If the user clicked

@@ -140,6 +140,9 @@ export default function NotificationsPanel({ userId }) {
     if (!open) return
     const handler = (e) => {
       if (panelRef.current?.contains(e.target) || sheetRef.current?.contains(e.target)) return
+      // Phones: the backdrop closes the panel on the completed tap and
+      // swallows it — closing here on finger-down let the tap hit the page.
+      if (window.innerWidth < 640) return
       setOpen(false)
     }
     document.addEventListener('pointerdown', handler)

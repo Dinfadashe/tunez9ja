@@ -94,7 +94,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
   const [loading, setLoading]         = useState(true)
   const [search, setSearch]           = useState('')
   const [activeGenre, setActiveGenre] = useState('All')
-  const { nowPlaying, isPlaying, playTrack, addToPlayNext } = usePlayer()
+  const { nowPlaying, isPlaying, playTrack, togglePlay, addToPlayNext } = usePlayer()
   const [unlockTarget, setUnlockTarget] = React.useState(null)
   const [unlockedIds, setUnlockedIds] = React.useState(new Set())
   const [unlocksLoaded, setUnlocksLoaded] = React.useState(false)
@@ -303,7 +303,9 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
                       <div style={{ position: 'relative', cursor: 'pointer' }}
                         onClick={() => {
                           if (locked) { setUnlockTarget(track); return }
-                          console.log('🎵 Playing track:', track.title, 'audio_url:', track.audio_url)
+                          // The cover shows ⏸ while this song plays — so tapping it
+                          // pauses/resumes instead of restarting from 0:00
+                          if (playing) { togglePlay(); return }
                           playTrack(track, filtered)
                           supabase.rpc('increment_play_count', { p_track_id: track.id }).then(() => {}).catch(() => {})
                         }}>
