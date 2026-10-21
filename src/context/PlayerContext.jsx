@@ -1,4 +1,5 @@
 import { isDownloadedUrl, getDownloadedBlobUrl } from '../lib/downloads.js'
+import { getPlayableUrl, resolvePlayableUrl, presignTracks, premiumPath } from '../lib/audioUrl.js'
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect, useMemo } from 'react'
 
 const PlayerContext = createContext(null)
@@ -46,6 +47,8 @@ export function PlayerProvider({ children }) {
   }
 
   // Load and play one track (shared by every action below)
+  const startAtRef = useRef(0)   // resume position for a restored session
+  const currentTimeRef = useRef(0); currentTimeRef.current = currentTime
   const startTrack = useCallback((track) => {
     if (!track?.audio_url) return false
     wantPlayingRef.current = true
@@ -54,11 +57,12 @@ export function PlayerProvider({ children }) {
     setCurrentTime(0)
     setAudioError(null)
     const a = audioRef.current
-    if (a) {
+    if (!a) return true
+    const begin = (src, at = 0) => {
       a.pause()
       a.preload = 'auto'
-      a.src = track.audio_url
-      a.currentTime = 0
+      a.src = src
+      try { a.currentTime = at } catch { /* applied once loaded */ }
       a.volume = volume
       a.muted  = muted
       const pp = a.play()
@@ -70,6 +74,21 @@ export function PlayerProvider({ children }) {
         })
       }
     }
+    // Free tracks, downloads and pre-signed premium links play immediately
+    const ready = getPlayableUrl(track)
+    if (ready) { begin(ready, startAtRef.current); startAtRef.current = 0; return true }
+    // Premium: get a signed link first (only issued if the listener is entitled)
+    a.pause()
+    const at = startAtRef.current; startAtRef.current = 0
+    resolvePlayableUrl(track).then(url => {
+      if (nowRef.current?.id !== track.id) return          // moved on meanwhile
+      if (url) { begin(url, at); return }
+      wantPlayingRef.current = false
+      setIsPlaying(false)
+      setAudioError({ trackId: track.id, message: navigator.onLine
+        ? 'Unlock this premium track to play it.'
+        : "This track isn't available offline yet." })
+    })
     return true
   }, [volume, muted])
 
@@ -88,6 +107,7 @@ export function PlayerProvider({ children }) {
     setQueue(q)
     setQueueIndex(idx >= 0 ? idx : 0)
     startTrack(track)
+    presignTracks(q)          // so Next/Previous on premium tracks start instantly
   }, [startTrack])
 
   // ── Next: follows shuffle (already applied to the queue order) and repeat
@@ -179,6 +199,12 @@ export function PlayerProvider({ children }) {
       audioRef.current.pause()
     } else {
       wantPlayingRef.current = true
+      // Restored session / premium track without a loaded link yet
+      if (nowPlaying && !audioRef.current.getAttribute('src')) {
+        startAtRef.current = currentTimeRef.current || 0
+        startTrack(nowPlaying)
+        return
+      }
       const playPromise = audioRef.current.play()
       if (playPromise !== undefined) {
         playPromise.catch(err => {
@@ -188,7 +214,7 @@ export function PlayerProvider({ children }) {
         })
       }
     }
-  }, [isPlaying])
+  }, [isPlaying, nowPlaying, startTrack])
 
   // ── Stop ────────────────────────────────────────────────────
   const stopPlayer = useCallback(() => {
@@ -403,8 +429,13 @@ export function PlayerProvider({ children }) {
       const a = audioRef.current
       if (a) {
         a.preload = 'none'              // don't download anything until play is tapped
-        a.src = saved.track.audio_url
-        try { a.currentTime = saved.time || 0 } catch { /* applied when it loads */ }
+        const ready = getPlayableUrl(saved.track)
+        if (ready) {                    // free or downloaded: load it now
+          a.src = ready
+          try { a.currentTime = saved.time || 0 } catch { /* applied when it loads */ }
+        } else {
+          a.removeAttribute('src')      // premium: a signed link is fetched on play
+        }
         if (saved.track.duration) setDuration(Number(saved.track.duration) || 0)
       }
     } catch { /* corrupt record — ignore */ }
@@ -445,6 +476,20 @@ export function PlayerProvider({ children }) {
         onError={(e)     => {
           // No source loaded (player stopped/reset) — nothing actually failed
           if (!e.target.getAttribute('src')) return
+          // Premium signed link expired → fetch a fresh one, keep the position
+          const np = nowRef.current
+          if (np && premiumPath(np.audio_url) && failedSrc.includes('token=') && !e.target.dataset.resigned) {
+            const el = e.target, at = el.currentTime
+            el.dataset.resigned = '1'
+            resolvePlayableUrl({ ...np, audio_url: np.audio_url }).then(url => {
+              if (!url || nowRef.current?.id !== np.id) return
+              el.src = url
+              try { el.currentTime = at } catch { /* ignore */ }
+              el.play().catch(() => setIsPlaying(false))
+              setTimeout(() => { delete el.dataset.resigned }, 5000)
+            })
+            return
+          }
           // A downloaded song that didn't load through the service worker
           // (e.g. first offline launch): play it straight from storage.
           const failedSrc = e.target.getAttribute('src')

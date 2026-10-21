@@ -136,11 +136,12 @@ export async function getTransactions(userId, limit = 20) {
 }
 
 // ── Leaderboard ────────────────────────────────────────────────
+// Wallets are private; the leaderboard comes from a server function that
+// exposes only names and lifetime earned totals.
 export async function getLeaderboard(limit = 10) {
-  const { data } = await supabase
-    .from('tunez_balances')
-    .select('user_id, total_earned, profiles:user_id(name, is_verified)')
-    .order('total_earned', { ascending: false })
-    .limit(limit)
-  return data || []
+  const { data } = await supabase.rpc('tunez_leaderboard', { p_limit: limit })
+  return (data || []).map(r => ({
+    user_id: r.user_id, total_earned: r.total_earned,
+    profiles: { name: r.name, is_verified: r.is_verified, avatar_url: r.avatar_url },
+  }))
 }

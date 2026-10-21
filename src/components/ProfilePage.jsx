@@ -76,13 +76,8 @@ function FollowButton({ profileId, currentUser, onFollowChange }) {
         .insert({ follower_id: currentUser.id, following_id: profileId })
       setFollowing(true)
       onFollowChange && onFollowChange(1)
-      // Notify the profile owner
-      supabase.from('notifications').insert({
-        user_id: profileId,
-        type: 'new_follower',
-        message: (currentUser.name || 'Someone') + ' started following you',
-        is_read: false,
-      }).catch(() => {})
+      // Notify the profile owner — the server writes the message itself
+      supabase.rpc('notify_new_follower', { p_target: profileId }).then(() => {}, () => {})
     }
     setLoading(false)
   }

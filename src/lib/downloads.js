@@ -65,7 +65,16 @@ export async function downloadTrack(track) {
   askPersistentStorage()
 
   try {
-    const res = await fetch(track.audio_url, { mode: 'cors', signal: controller.signal, cache: 'no-store' })
+    // Premium tracks are private: download through a signed link (only issued
+    // if the listener unlocked it). The file is still saved under the track's
+    // permanent URL, so offline playback finds it.
+    let source = track.audio_url
+    const { premiumPath, resolvePlayableUrl } = await import('./audioUrl.js')
+    if (premiumPath(track.audio_url)) {
+      source = await resolvePlayableUrl(track)
+      if (!source) throw new Error('Unlock this premium track to download it')
+    }
+    const res = await fetch(source, { mode: 'cors', signal: controller.signal, cache: 'no-store' })
     if (!res.ok) throw new Error(`Download failed (${res.status})`)
     state.total = Number(res.headers.get('content-length') || 0)
 

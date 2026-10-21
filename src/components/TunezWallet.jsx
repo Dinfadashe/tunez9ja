@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { getLeaderboard } from '../lib/tunez.js'
 import { loadPaystack } from '../lib/paystack.js'
 import { TUNEZ_PACKAGES } from '../lib/tunez.js'
 import { Coins, TrendingUp, ShoppingCart, History, Trophy, AlertTriangle, ExternalLink, Check } from 'lucide-react'
@@ -50,11 +51,9 @@ export default function TunezWallet({ currentUser, setPage }) {
       .limit(30)
       .then(({ data }) => setTransactions(data || []))
 
-    supabase.from('tunez_balances')
-      .select('user_id, total_earned, profiles:user_id(name, is_verified)')
-      .order('total_earned', { ascending: false })
-      .limit(10)
-      .then(({ data }) => { setLeaderboard(data || []); setLoading(false) })
+    getLeaderboard(10)
+      .then((rows) => { setLeaderboard(rows); setLoading(false) })
+      .catch(() => setLoading(false))
   }, [currentUser])
 
   // ── Unconfirmed payments (kept on this device until the server confirms) ──

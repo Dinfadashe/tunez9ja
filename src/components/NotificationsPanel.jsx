@@ -309,9 +309,8 @@ export default function NotificationsPanel({ userId }) {
   )
 }
 
-export async function sendNotification(userId, type, message, refId = null) {
+// Admin-only: notifications are created by the server (see admin_notify)
+export async function sendNotification(userId, _type, message) {
   if (!userId) return
-  await supabase.from('notifications').insert({
-    user_id: userId, type, message, ref_id: refId, is_read: false,
-  }).catch(() => {})
+  await supabase.rpc('admin_notify', { p_user_id: userId, p_message: message }).then(() => {}, () => {})
 }

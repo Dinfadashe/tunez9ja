@@ -377,34 +377,37 @@ const handleAudioChange = (e) => {
 
     // Upload audio file to Supabase Storage
     if (audioFile) {
-      setMessage('⏳ Uploading audio file...')
-      const audioExt  = audioFile.name.split('.').pop()
-      const audioPath = `${currentUser.id}/${Date.now()}.${audioExt}`
-      const { data: audioData, error: audioErr } = await supabase.storage
-        .from('music-audio')
-        .upload(audioPath, audioFile, { upsert: false, contentType: audioFile.type || 'audio/mpeg' })
-      if (audioErr) { setMessage('❌ Audio upload failed: ' + audioErr.message); setLoading(false); return }
-      
-      // Verify uploaded file is playable
-      const verifyUrl = `https://hjsmdxokyzwpwcjeczmh.supabase.co/storage/v1/object/public/music-audio/${audioPath}`
+      // Check the file plays BEFORE uploading (works for private uploads too,
+      // and saves uploading a broken file)
+      setMessage('⏳ Checking audio file...')
       const canPlay = await new Promise(resolve => {
+        const localUrl = URL.createObjectURL(audioFile)
         const testAudio = new Audio()
         testAudio.preload = 'metadata'
-        const timer = setTimeout(() => resolve(false), 8000)
-        testAudio.onloadedmetadata = () => { clearTimeout(timer); resolve(testAudio.duration > 0) }
-        testAudio.onerror = () => { clearTimeout(timer); resolve(false) }
-        testAudio.src = verifyUrl
+        const done = (ok) => { clearTimeout(timer); URL.revokeObjectURL(localUrl); resolve(ok) }
+        const timer = setTimeout(() => done(false), 8000)
+        testAudio.onloadedmetadata = () => done(testAudio.duration > 0)
+        testAudio.onerror = () => done(false)
+        testAudio.src = localUrl
       })
       if (!canPlay) {
-        // Delete the bad upload
-        await supabase.storage.from('music-audio').remove([audioPath])
-        setMessage('❌ Upload failed: file appears corrupted or is not a valid audio file. Please try a different file or convert to MP3 first.')
+        setMessage('❌ This file appears corrupted or is not a valid audio file. Please try a different file or convert to MP3 first.')
         setLoading(false); return
       }
-      const { data: audioUrlData } = supabase.storage.from('music-audio').getPublicUrl(audioData.path)
-      const rawAudioUrl = audioUrlData?.publicUrl || ''
-      // Ensure full URL — fallback to manual construction if needed
-      audio_url = rawAudioUrl.startsWith('http') ? rawAudioUrl : `https://hjsmdxokyzwpwcjeczmh.supabase.co/storage/v1/object/public/music-audio/${audioData.path}`
+
+      // Premium tracks go to the PRIVATE bucket: listeners only get a signed
+      // link after unlocking. Free tracks stay public.
+      setMessage('⏳ Uploading audio file...')
+      const bucket    = form.is_premium ? 'music-premium' : 'music-audio'
+      const audioExt  = (audioFile.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const audioPath = `${currentUser.id}/${Date.now()}.${audioExt}`
+      const { data: audioData, error: audioErr } = await supabase.storage
+        .from(bucket)
+        .upload(audioPath, audioFile, { upsert: false, contentType: audioFile.type || 'audio/mpeg' })
+      if (audioErr) { setMessage('❌ Audio upload failed: ' + audioErr.message); setLoading(false); return }
+      // Permanent address of the file (for premium it's not publicly readable)
+      audio_url = supabase.storage.from(bucket).getPublicUrl(audioData.path).data?.publicUrl
+        || `https://hjsmdxokyzwpwcjeczmh.supabase.co/storage/v1/object/public/${bucket}/${audioData.path}`
     }
 
     // Upload cover art to Supabase Storage

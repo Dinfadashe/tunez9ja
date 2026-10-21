@@ -67,9 +67,19 @@ serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY)
 
+  // A payment can only ever be used for the purpose it was made for
+  // (security audit follow-up: no reusing a TUNEZ purchase as the KYC fee or
+  // vice versa). The wallet tags payments with `package`, the KYC screen with
+  // `type: 'verification_fee'`.
+  const madeForKyc = meta?.type === 'verification_fee'
+  if (purpose === 'kyc_fee' && meta?.package) return json({ success: false, reason: 'This payment was for a TUNEZ package, not the verification fee' }, 400)
+  if (purpose === 'tunez' && madeForKyc) return json({ success: false, reason: 'This payment was for the verification fee, not TUNEZ' }, 400)
+
   // ── Verification (KYC) fee ──────────────────────────────────
   if (purpose === 'kyc_fee') {
     if (tx.amount < KYC_FEE_NGN * 100) return json({ success: false, reason: 'Amount mismatch' }, 400)
+    const { data: asPurchase } = await admin.from('tunez_purchases').select('id').eq('paystack_ref', reference).maybeSingle()
+    if (asPurchase) return json({ success: false, reason: 'Reference already used for a TUNEZ purchase' }, 409)
     const { data: used } = await admin.from('profiles').select('id').eq('kyc_fee_ref', reference).maybeSingle()
     if (used && used.id !== user.id) return json({ success: false, reason: 'Reference already used' }, 409)
     const { error } = await admin.from('profiles')
@@ -79,8 +89,13 @@ serve(async (req) => {
   }
 
   // ── TUNEZ package purchase ──────────────────────────────────
-  const pkg = PACKAGES[String(body.package_id || meta?.package || '')]
+  if (meta?.package && body.package_id && meta.package !== body.package_id) {
+    return json({ success: false, reason: 'Package does not match the payment' }, 400)
+  }
+  const pkg = PACKAGES[String(meta?.package || body.package_id || '')]
   if (!pkg) return json({ success: false, reason: 'Invalid package' }, 400)
+  const { data: asKyc } = await admin.from('profiles').select('id').eq('kyc_fee_ref', reference).maybeSingle()
+  if (asKyc) return json({ success: false, reason: 'Reference already used for the verification fee' }, 409)
   if (tx.amount < pkg.ngn * 100) return json({ success: false, reason: 'Amount mismatch' }, 400)
 
   const { data: existing } = await admin.from('tunez_purchases')

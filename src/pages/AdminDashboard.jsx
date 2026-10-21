@@ -237,6 +237,27 @@ function MusicReview({ fetchPending }) {
   const [rejectPostModal, setRejectPostModal] = useState(null)
   const [rejectNote, setRejectNote]   = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [securing, setSecuring]       = useState(false)
+  const [secureMsg, setSecureMsg]     = useState('')
+
+  // Premium audio must live in the private bucket (security audit #3).
+  // Runs quietly when this screen opens; the button shows the result.
+  const securePremiumAudio = async (quiet = false) => {
+    if (!quiet) { setSecuring(true); setSecureMsg('') }
+    try {
+      const { data, error } = await supabase.functions.invoke('secure-premium-audio', { body: {} })
+      if (error || !data) throw error || new Error('No response')
+      if (!quiet || data.moved) {
+        setSecureMsg(data.moved
+          ? `🔒 Moved ${data.moved} premium track${data.moved === 1 ? '' : 's'} to private storage.` + (data.failed?.length ? ` ${data.failed.length} could not be moved.` : '')
+          : (data.failed?.length ? `⚠️ ${data.failed.length} track(s) could not be moved: ${data.failed[0].reason}` : '✅ All premium audio is already private.'))
+      }
+      if (data.moved) fetchTracks()
+    } catch (e) {
+      if (!quiet) setSecureMsg('⚠️ Could not run the check: ' + (e?.message || 'is the secure-premium-audio function deployed?'))
+    } finally { if (!quiet) setSecuring(false) }
+  }
+  useEffect(() => { securePremiumAudio(true) }, [])
 
   const fetchTracks = async () => {
     let q = supabase.from('v_admin_music_queue').select('*')
@@ -278,7 +299,12 @@ function MusicReview({ fetchPending }) {
             <button key={f} className={`tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)} style={{ padding: '8px 14px', textTransform: 'capitalize' }}>{f}</button>
           ))}
         </div>
+        <button className="btn btn-secondary" onClick={() => securePremiumAudio(false)} disabled={securing}
+          title="Make sure premium tracks can only be played after unlocking" style={{ minHeight: 40 }}>
+          {securing ? 'Checking…' : '🔒 Secure premium audio'}
+        </button>
       </div>
+      {secureMsg && <div role="status" style={{ marginBottom: 16, fontSize: 13, color: 'var(--grey-300)' }}>{secureMsg}</div>}
 
       {filtered.length === 0 ? (
         <EmptyState icon={<Music size={48} />} title="No tracks here" message="Nothing matches the current filter." />
@@ -1126,10 +1152,8 @@ function EditorReview() {
         editor_status: 'suspended'
       }).eq('id', id)
     }
-    await supabase.from('notifications').insert({
-      user_id: id, type: 'general',
-      message: '⚠️ Your editor access has been suspended by admin. Please contact us for more information.'
-    })
+    await supabase.rpc('admin_notify', { p_user_id: id,
+      p_message: '⚠️ Your editor access has been suspended by admin. Please contact us for more information.' })
     setMsg('Editor suspended.')
     setSelected(null)
     load()
@@ -1143,10 +1167,8 @@ function EditorReview() {
         available_roles: [...prof.available_roles, 'editor']
       }).eq('id', id)
     }
-    await supabase.from('notifications').insert({
-      user_id: id, type: 'general',
-      message: '✅ Your editor access has been reinstated. You can now review posts again.'
-    })
+    await supabase.rpc('admin_notify', { p_user_id: id,
+      p_message: '✅ Your editor access has been reinstated. You can now review posts again.' })
     setMsg('✅ Editor reinstated.')
     setSelected(null)
     load()
