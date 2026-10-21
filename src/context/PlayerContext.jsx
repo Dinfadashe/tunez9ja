@@ -26,109 +26,149 @@ export function PlayerProvider({ children }) {
   const lastDeviceChangeRef = useRef(0) // headphones/Bluetooth changes
 
   // ── Core: play a track ──────────────────────────────────────
+  // ── Shuffle / repeat live here so EVERY way of moving between songs
+  // (Next, Previous, song ending, lock screen, headphones, keyboard) uses them.
+  const [shuffle, setShuffleState] = useState(false)
+  const [repeat,  setRepeat]       = useState('none')     // none | all | one
+  const originalOrderRef = useRef([])                     // queue order before shuffling
+  const queueRef = useRef([]); queueRef.current = queue
+  const nowRef   = useRef(null); nowRef.current = nowPlaying
+  const shuffleRef = useRef(false); shuffleRef.current = shuffle
+  const repeatRef  = useRef('none'); repeatRef.current = repeat
+  // Premium tracks the listener hasn't unlocked are skipped (set by the player bar)
+  const canPlayRef = useRef(() => true)
+  const setCanPlay = useCallback((fn) => { canPlayRef.current = typeof fn === 'function' ? fn : () => true }, [])
+
+  const shuffled = (arr) => {
+    const a = arr.slice()
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]] }
+    return a
+  }
+
+  // Load and play one track (shared by every action below)
+  const startTrack = useCallback((track) => {
+    if (!track?.audio_url) return false
+    wantPlayingRef.current = true
+    setNowPlaying(track)
+    setIsPlaying(true)
+    setCurrentTime(0)
+    setAudioError(null)
+    const a = audioRef.current
+    if (a) {
+      a.pause()
+      a.preload = 'auto'
+      a.src = track.audio_url
+      a.currentTime = 0
+      a.volume = volume
+      a.muted  = muted
+      const pp = a.play()
+      if (pp !== undefined) {
+        pp.catch(err => {
+          if (!navigator.onLine) setAudioError({ trackId: track.id, message: "This track isn't available offline yet." })
+          else console.warn('Autoplay blocked:', err.message)
+          setIsPlaying(false)
+        })
+      }
+    }
+    return true
+  }, [volume, muted])
+
   const playTrack = useCallback((track, trackList = []) => {
     if (!track?.audio_url) {
       console.error('❌ playTrack: no audio_url on track', track?.title, track)
       return
     }
-    wantPlayingRef.current = true
     const list = trackList.length ? trackList : [track]
-    const idx  = list.findIndex(t => t.id === track.id)
-    setQueue(list)
+    originalOrderRef.current = list
+    // Shuffle on: the chosen song plays first, the rest in random order
+    const q = shuffleRef.current
+      ? [track, ...shuffled(list.filter(t => t.id !== track.id))]
+      : list
+    const idx = q.findIndex(t => t.id === track.id)
+    setQueue(q)
     setQueueIndex(idx >= 0 ? idx : 0)
-    setNowPlaying(track)
-    setIsPlaying(true)
-    setCurrentTime(0)
-    setAudioError(null)
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
-      audioRef.current.src = track.audio_url
-      audioRef.current.volume = volume
-      audioRef.current.muted  = muted
-      const playPromise = audioRef.current.play()
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          if (!navigator.onLine) {
-            // Offline and this track was never cached by the service
-            // worker — give the user a clear, friendly reason instead
-            // of a silently stuck play button.
-            setAudioError({ trackId: track.id, message: "This track isn't available offline yet." })
-          } else {
-            // Autoplay blocked by browser - user needs to click play button
-            console.warn('Autoplay blocked:', err.message)
-          }
-          setIsPlaying(false) // Show play button so user can click manually
-        })
-      }
-    }
-  }, [volume, muted])
+    startTrack(track)
+  }, [startTrack])
 
-  // ── Skip next ───────────────────────────────────────────────
-  const skipNext = useCallback(() => {
-    setQueue(q => {
-      if (!q.length) return q
-      const idx  = q.findIndex(t => t.id === nowPlaying?.id)
-      const ni   = (idx + 1) % q.length
-      const next = q[ni]
-      if (next && next.audio_url) {
-        wantPlayingRef.current = true
-        setQueueIndex(ni)
-        setNowPlaying(next)
-        setIsPlaying(true)
-        setCurrentTime(0)
-        if (audioRef.current) {
-          audioRef.current.pause()
-          audioRef.current.currentTime = 0
-          audioRef.current.src = next.audio_url
-          const playPromise = audioRef.current.play()
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          // Autoplay blocked by browser - user needs to click play button
-          console.warn('Autoplay blocked:', err.message)
-          setIsPlaying(false) // Show play button so user can click manually
-        })
-      }
+  // ── Next: follows shuffle (already applied to the queue order) and repeat
+  //    auto = the song ended by itself (vs. the listener pressing Next)
+  const skipNext = useCallback((opts) => {
+    const auto = opts === true || opts?.auto === true
+    const q = queueRef.current
+    if (!q.length) return
+    const cur = Math.max(-1, q.findIndex(t => t.id === nowRef.current?.id))
+    for (let step = 1; step <= q.length; step++) {
+      let i = cur + step
+      if (i >= q.length) {
+        // End of the queue: wrap only with Repeat all (or when Next is pressed)
+        if (repeatRef.current !== 'all' && auto) {
+          wantPlayingRef.current = false
+          setIsPlaying(false)
+          return
+        }
+        i = i % q.length
+        // Repeat all + shuffle: a fresh random order for the next round
+        if (shuffleRef.current && i === 0 && q.length > 2) {
+          const now = nowRef.current
+          const rest = shuffled(q.filter(t => t.id !== now?.id))
+          const nq = [...rest, now].filter(Boolean)
+          setQueue(nq); queueRef.current = nq
+          const first = nq.find(t => canPlayRef.current(t) && t.audio_url)
+          if (first) { setQueueIndex(nq.indexOf(first)); startTrack(first) }
+          return
         }
       }
-      return q
-    })
-  }, [nowPlaying?.id])
+      const t = q[i]
+      if (t && t.audio_url && canPlayRef.current(t)) {
+        setQueueIndex(i)
+        startTrack(t)
+        return
+      }
+    }
+  }, [startTrack])
 
-  // ── Skip prev ───────────────────────────────────────────────
+  // ── Previous: restart if >3s in, else the previous song ─────
   const skipPrev = useCallback(() => {
-    // If more than 3 seconds in, restart current track
-    if (audioRef.current && audioRef.current.currentTime > 3) {
-      audioRef.current.currentTime = 0
-      return
+    const a = audioRef.current
+    if (a && a.currentTime > 3) { a.currentTime = 0; return }
+    const q = queueRef.current
+    if (!q.length) return
+    const cur = q.findIndex(t => t.id === nowRef.current?.id)
+    for (let step = 1; step <= q.length; step++) {
+      let i = cur - step
+      if (i < 0) {
+        if (repeatRef.current !== 'all') { if (a) a.currentTime = 0; return }
+        i = (i + q.length) % q.length
+      }
+      const t = q[i]
+      if (t && t.audio_url && canPlayRef.current(t)) { setQueueIndex(i); startTrack(t); return }
     }
-    setQueue(q => {
-      if (!q.length) return q
-      const idx  = q.findIndex(t => t.id === nowPlaying?.id)
-      const pi   = (idx - 1 + q.length) % q.length
-      const prev = q[pi]
-      if (prev && prev.audio_url) {
-        setQueueIndex(pi)
-        setNowPlaying(prev)
-        setIsPlaying(true)
-        setCurrentTime(0)
-        if (audioRef.current) {
-          audioRef.current.pause()
-          audioRef.current.currentTime = 0
-          audioRef.current.src = prev.audio_url
-          const playPromise = (wantPlayingRef.current = true, audioRef.current.play())
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          // Autoplay blocked by browser - user needs to click play button
-          console.warn('Autoplay blocked:', err.message)
-          setIsPlaying(false) // Show play button so user can click manually
-        })
+  }, [startTrack])
+
+  // ── Shuffle on/off: reorders what's coming up (so Up next is accurate) ──
+  const setShuffle = useCallback((v) => {
+    const on = typeof v === 'function' ? v(shuffleRef.current) : !!v
+    if (on === shuffleRef.current) return
+    const q = queueRef.current, now = nowRef.current
+    const cur = q.findIndex(t => t.id === now?.id)
+    if (on) {
+      originalOrderRef.current = q
+      const nq = cur >= 0 ? [...q.slice(0, cur + 1), ...shuffled(q.slice(cur + 1))] : shuffled(q)
+      setQueue(nq); queueRef.current = nq
+    } else {
+      const orig = originalOrderRef.current
+      if (orig.length && (!now || orig.some(t => t.id === now.id))) {
+        // keep songs added while shuffled
+        const extra = q.filter(t => !orig.some(o => o.id === t.id))
+        const nq = [...orig, ...extra]
+        setQueue(nq); queueRef.current = nq
+        setQueueIndex(Math.max(0, nq.findIndex(t => t.id === now?.id)))
       }
-        }
-      }
-      return q
-    })
-  }, [nowPlaying?.id])
+    }
+    setShuffleState(on)
+  }, [])
+  const toggleShuffle = useCallback(() => setShuffle(s => !s), [setShuffle])
+  const cycleRepeat = useCallback(() => setRepeat(r => r === 'none' ? 'all' : r === 'all' ? 'one' : 'none'), [])
 
   // ── Toggle play/pause ───────────────────────────────────────
   const togglePlay = useCallback(() => {
@@ -203,6 +243,7 @@ export function PlayerProvider({ children }) {
       if (cur < 0) { rest.unshift(nowPlaying); cur = 0 }
       if (where === 'next') rest.splice(cur + 1, 0, track)
       else rest.push(track)
+      originalOrderRef.current = [...originalOrderRef.current.filter(t => t.id !== track.id), track]
       setQueueIndex(cur)
       return rest
     })
@@ -211,6 +252,7 @@ export function PlayerProvider({ children }) {
 
   const removeFromQueue = useCallback((trackId) => {
     if (!trackId || trackId === nowPlaying?.id) return
+    originalOrderRef.current = originalOrderRef.current.filter(t => t.id !== trackId)
     setQueue(q => {
       const rest = q.filter(t => t.id !== trackId)
       setQueueIndex(Math.max(0, rest.findIndex(t => t.id === nowPlaying?.id)))
@@ -244,7 +286,7 @@ export function PlayerProvider({ children }) {
       interruptRef.current = null
       audioRef.current?.pause()
     })
-    set('nexttrack', skipNext)
+    set('nexttrack', () => skipNext())
     set('previoustrack', skipPrev)
     set('seekto', (d) => { if (audioRef.current && d.seekTime != null) audioRef.current.currentTime = d.seekTime })
     set('seekbackward', (d) => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - (d.seekOffset || 10)) })
@@ -327,10 +369,11 @@ export function PlayerProvider({ children }) {
         track: slim(nowPlaying),
         queue: queue.slice(0, 200).map(slim),
         time: audioRef.current?.currentTime || 0,
+        shuffle, repeat,
         savedAt: Date.now(),
       }))
     } catch { /* storage full */ }
-  }, [nowPlaying, queue])
+  }, [nowPlaying, queue, shuffle, repeat])
 
   useEffect(() => { saveSession() }, [saveSession])
   useEffect(() => {
@@ -354,6 +397,8 @@ export function PlayerProvider({ children }) {
       setQueueIndex(Math.max(0, (saved.queue || []).findIndex(t => t.id === saved.track.id)))
       setNowPlaying(saved.track)
       setIsPlaying(false)
+      if (saved.shuffle) { setShuffleState(true); originalOrderRef.current = saved.queue || [] }
+      if (['none', 'all', 'one'].includes(saved.repeat)) setRepeat(saved.repeat)
       setCurrentTime(saved.time || 0)
       const a = audioRef.current
       if (a) {
@@ -379,9 +424,13 @@ export function PlayerProvider({ children }) {
     addToQueue,
     removeFromQueue,
     setIsPlaying,
+    shuffle, setShuffle, toggleShuffle,
+    repeat, setRepeat, cycleRepeat,
+    setCanPlay,
   }), [nowPlaying, isPlaying, queue, queueIndex, volume, muted, audioError,
        playTrack, stopPlayer, skipNext, skipPrev, togglePlay, seekTo,
-       changeVolume, toggleMute, addToPlayNext, addToQueue, removeFromQueue])
+       changeVolume, toggleMute, addToPlayNext, addToQueue, removeFromQueue,
+       shuffle, setShuffle, toggleShuffle, repeat, cycleRepeat, setCanPlay])
 
   const timeValue = useMemo(() => ({ currentTime, duration }), [currentTime, duration])
 
@@ -433,7 +482,11 @@ export function PlayerProvider({ children }) {
           }
         }}
         onPlaying={() => { interruptRef.current = null; if (audioRef.current) audioRef.current.preload = 'auto' }}
-        onEnded={() => { interruptRef.current = null }} // next track: FloatingPlayer (repeat/shuffle)
+        onEnded={(e) => {
+          interruptRef.current = null
+          if (repeatRef.current === 'one') { e.target.currentTime = 0; e.target.play().catch(() => setIsPlaying(false)); return }
+          skipNext({ auto: true })
+        }}
         onTimeUpdate={e  => { setCurrentTime(e.target.currentTime); setDuration(e.target.duration || 0) }}
         onLoadedMetadata={e => setDuration(e.target.duration || 0)}
       />

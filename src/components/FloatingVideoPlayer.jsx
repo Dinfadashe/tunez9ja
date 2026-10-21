@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { X, Minimize2, Maximize2, Volume2, VolumeX } from 'lucide-react'
+import { UploadedVideo, YouTubeEmbed } from './VideoPlayers.jsx'
 
 // Global video state
 let globalSetVideo = null
@@ -103,21 +104,12 @@ export default function FloatingVideoPlayer() {
       {!minimized && (
         <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
           {ytId ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&mute=${muted ? 1 : 0}`}
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-              title={video.title}
-            />
+            <div style={{ position: 'absolute', inset: 0 }}>
+              <YouTubeEmbed ytId={ytId} title={video.title} muted={muted} />
+            </div>
           ) : video.video_url ? (
-            <video
-              src={video.video_url}
-              autoPlay
-              muted={muted}
-              controls
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000' }}
-            />
+            <UploadedVideo src={video.video_url} poster={video.thumbnail_url} title={video.title} muted={muted}
+              style={{ position: 'absolute', inset: 0 }} />
           ) : (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--grey-500)', fontSize: 13 }}>
               No video source

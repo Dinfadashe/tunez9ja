@@ -3,6 +3,7 @@ import CommentsSection, { ReactionBar } from '../components/CommentsSection.jsx'
 import { earnWatch } from '../lib/tunez.js'
 import ShareButton from '../components/ShareButton.jsx'
 import { playFloatingVideo } from '../components/FloatingVideoPlayer.jsx'
+import { UploadedVideo, YouTubeEmbed } from '../components/VideoPlayers.jsx'
 import { openItem, closeItem, takeCachedItem, shareLinkFor } from '../lib/urlState.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { supabase } from '../lib/supabase.js'
@@ -209,20 +210,9 @@ function VideoPlayer({ video, currentUser }) {
   return (
     <div style={{ background:'var(--bg-card)', border:'1px solid var(--border-red)', borderRadius:12, overflow:'hidden' }}>
       {ytId ? (
-        <div style={{ position:'relative', paddingBottom:'56.25%', height:0 }}>
-          <iframe
-            src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
-            style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', border:'none' }}
-            allowFullScreen
-            allow="autoplay; encrypted-media"
-            title={video.title}
-          />
-        </div>
+        <YouTubeEmbed ytId={ytId} title={video.title} />
       ) : video.video_url ? (
-        <video controls autoPlay style={{ width:'100%', maxHeight:520, background:'#000' }}>
-          <source src={video.video_url} />
-          Your browser does not support video playback.
-        </video>
+        <UploadedVideo src={video.video_url} poster={video.thumbnail_url} title={video.title} artist={video.profiles?.name} />
       ) : null}
       <div style={{ padding:20 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:8 }}>

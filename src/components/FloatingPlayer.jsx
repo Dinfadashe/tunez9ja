@@ -3,7 +3,8 @@ import { usePlayer, usePlayerTime } from '../context/PlayerContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { earnStream } from '../lib/tunez.js'
 import FullPlayer from './FullPlayer.jsx'
-import {
+import { PlayerShortcuts, ShortcutHelp } from './PlayerShortcuts.jsx'
+import { ListMusic,
   Play, Pause, SkipBack, SkipForward,
   Volume2, VolumeX, Shuffle, Repeat, Repeat1,
   ChevronDown, ChevronUp, Music
@@ -51,14 +52,16 @@ export default function FloatingPlayer({ currentUser }) {
     queue, queueIndex, volume, muted,
     audioRef, audioError, skipNext, skipPrev,
     togglePlay, seekTo, changeVolume, toggleMute, playTrack,
+    shuffle, setShuffle, toggleShuffle, repeat, cycleRepeat, setCanPlay,
   } = usePlayer()
 
   const earnedRef = useRef(false)
   const prevIdRef = useRef(null)
-  const [shuffle,    setShuffle]   = useState(false)
-  const [repeat,     setRepeat]    = useState('none') // none | all | one
   const [minimised,  setMinimised] = useState(false)
   const [fullOpen,   setFullOpen]  = useState(false)
+  const [openQueue,  setOpenQueue] = useState(false)   // open the full player on the queue
+  const [showKeys,   setShowKeys]  = useState(false)
+  const openNowPlaying = () => { setOpenQueue(true); setFullOpen(true) }
 
   // ── Premium guard helpers ─────────────────────────────────────
   const [unlockedIds, setUnlockedIds] = React.useState(new Set())
@@ -78,19 +81,8 @@ export default function FloatingPlayer({ currentUser }) {
     return !unlockedIds.has(track.id)
   }
 
-  const skipNextUnlocked = () => {
-    if (!queue.length) return
-    let idx = (queueIndex + 1) % queue.length
-    let attempts = 0
-    while (isTrackLocked(queue[idx]) && attempts < queue.length) {
-      idx = (idx + 1) % queue.length
-      attempts++
-    }
-    if (!isTrackLocked(queue[idx])) {
-      playTrack(queue[idx], queue)
-    }
-  }
-
+  // The player engine skips premium tracks the listener hasn't unlocked
+  useEffect(() => { setCanPlay(t => !isTrackLocked(t)) }, [unlockedIds, currentUser?.id, setCanPlay])
 
   // ── Track change ─────────────────────────────────────────────
   useEffect(() => {
@@ -110,37 +102,7 @@ export default function FloatingPlayer({ currentUser }) {
     }
   }, [currentTime, nowPlaying, currentUser])
 
-  // ── Track end: repeat / shuffle ──────────────────────────────
-  useEffect(() => {
-    if (!audioRef.current) return
-    const audio = audioRef.current
-    const onEnd = () => {
-      if (repeat === 'one') {
-        audio.currentTime = 0
-        audio.play().catch(() => {})
-        return
-      }
-      if (shuffle && queue.length > 1) {
-        // Skip locked premium tracks in shuffle
-        let attempts = 0
-        let idx
-        do {
-          idx = Math.floor(Math.random() * queue.length)
-          attempts++
-        } while (attempts < queue.length && (idx === queueIndex || isTrackLocked(queue[idx])))
-        if (!isTrackLocked(queue[idx])) {
-          playTrack(queue[idx], queue)
-        }
-        return
-      }
-      if (repeat === 'all' || queueIndex < queue.length - 1) {
-        skipNextUnlocked()
-      }
-      // else: stop — last track, no repeat
-    }
-    audio.addEventListener('ended', onEnd)
-    return () => audio.removeEventListener('ended', onEnd)
-  }, [repeat, shuffle, queue, queueIndex, skipNext, playTrack])
+  // Song ending (repeat / shuffle / next) is handled by the player engine.
 
   if (!nowPlaying) return null
 
@@ -160,7 +122,6 @@ export default function FloatingPlayer({ currentUser }) {
     seekTo(((e.clientX - rect.left) / rect.width) * (duration || 0))
   }
 
-  const cycleRepeat = () => setRepeat(r => r === 'none' ? 'all' : r === 'all' ? 'one' : 'none')
 
   const btnStyle = (active = false, color = 'var(--grey-400)') => ({
     background: 'none', border: 'none', cursor: 'pointer',
@@ -293,6 +254,10 @@ export default function FloatingPlayer({ currentUser }) {
             <button onClick={skipNext} style={btnStyle()}>
               <SkipForward size={15} />
             </button>
+            <button onClick={openNowPlaying} title="Now playing (Q)" aria-label="Now playing"
+              style={btnStyle(false, 'var(--grey-300)')}>
+              <ListMusic size={15} />
+            </button>
             {/* Expand */}
             <button onClick={() => setMinimised(false)} title="Expand player"
               style={{ ...btnStyle(), marginLeft: 4 }}>
@@ -396,6 +361,10 @@ export default function FloatingPlayer({ currentUser }) {
               style={btnStyle(repeat !== 'none')}>
               <RepeatIcon size={15} />
             </button>
+            <button onClick={openNowPlaying} title="Now playing (Q)" aria-label="Now playing"
+              style={btnStyle(false, 'var(--grey-300)')}>
+              <ListMusic size={16} />
+            </button>
           </div>
 
           {/* ── Time + Volume + Minimise ─────────────────────── */}
@@ -434,8 +403,12 @@ export default function FloatingPlayer({ currentUser }) {
         </div>
       )}
     </div>
-    <FullPlayer open={fullOpen} onClose={() => setFullOpen(false)} currentUser={currentUser}
-      shuffle={shuffle} setShuffle={setShuffle} repeat={repeat} cycleRepeat={cycleRepeat} />
+    <FullPlayer open={fullOpen} onClose={() => { setFullOpen(false); setOpenQueue(false) }} currentUser={currentUser}
+      startOnQueue={openQueue} />
+    <PlayerShortcuts
+      onFull={() => setFullOpen(o => !o)} onQueue={openNowPlaying}
+      onHelp={() => setShowKeys(v => !v)} fullOpen={fullOpen} />
+    {showKeys && <ShortcutHelp onClose={() => setShowKeys(false)} />}
     </>
   )
 }

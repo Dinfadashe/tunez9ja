@@ -26,22 +26,25 @@ const fmt = (s) => {
   return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0')
 }
 
-export default function FullPlayer({ open, onClose, currentUser, shuffle, setShuffle, repeat, cycleRepeat }) {
+export default function FullPlayer({ open, onClose, currentUser, startOnQueue = false }) {
   if (!open) return null
   return createPortal(
-    <FullPlayerView onClose={onClose} currentUser={currentUser}
-      shuffle={shuffle} setShuffle={setShuffle} repeat={repeat} cycleRepeat={cycleRepeat} />,
+    <FullPlayerView onClose={onClose} currentUser={currentUser} startOnQueue={startOnQueue} />,
     document.body,
   )
 }
 
-function FullPlayerView({ onClose, currentUser, shuffle, setShuffle, repeat, cycleRepeat }) {
-  const { nowPlaying, isPlaying, togglePlay, skipNext, skipPrev, seekTo, queue, volume, muted, changeVolume, toggleMute } = usePlayer()
+function FullPlayerView({ onClose, currentUser, startOnQueue }) {
+  const {
+    nowPlaying, isPlaying, togglePlay, skipNext, skipPrev, seekTo, queue, volume, muted, changeVolume, toggleMute,
+    shuffle, toggleShuffle, repeat, cycleRepeat,
+  } = usePlayer()
   const { currentTime, duration } = usePlayerTime()
   const { addToast } = useApp()
   const { isDownloaded } = useDownloads()
-  const [showQueue, setShowQueue] = useState(false)
+  const [showQueue, setShowQueue] = useState(!!startOnQueue)
   const closeQueue = React.useCallback(() => setShowQueue(false), [])
+  useEffect(() => { if (startOnQueue) setShowQueue(true) }, [startOnQueue])
   const [scrub, setScrub] = useState(null)          // seconds while dragging
   const [saved, setSaved] = useState(false)
   const [dragY, setDragY] = useState(0)
@@ -55,10 +58,8 @@ function FullPlayerView({ onClose, currentUser, shuffle, setShuffle, repeat, cyc
     window.addEventListener('popstate', onPop)
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    const onKey = (e) => {
-      if (e.key === 'Escape') close()
-      else if (e.key === ' ' && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName || '')) { e.preventDefault(); togglePlay() }
-    }
+    // Space / N / P etc. come from the global player shortcuts
+    const onKey = (e) => { if (e.key === 'Escape') close() }
     document.addEventListener('keydown', onKey)
     return () => {
       window.removeEventListener('popstate', onPop)
@@ -150,7 +151,7 @@ function FullPlayerView({ onClose, currentUser, shuffle, setShuffle, repeat, cyc
           <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.65)' }}>NOW PLAYING</div>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {queue.length > 1 ? `Queue · ${queue.length} songs` : 'Single'}
+              {queue.length > 1 ? `Queue · ${queue.length} songs` : 'Single'}{shuffle ? ' · Shuffle' : ''}{repeat === 'all' ? ' · Repeat' : repeat === 'one' ? ' · Repeat one' : ''}
             </div>
           </div>
           <TrackMenu track={nowPlaying} currentUser={currentUser} size={22} style={{ ...iconBtn, color: '#fff' }} />
@@ -210,7 +211,7 @@ function FullPlayerView({ onClose, currentUser, shuffle, setShuffle, repeat, cyc
 
         {/* Controls */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 0 6px' }}>
-          <button type="button" onClick={() => setShuffle(s => !s)} aria-label="Shuffle" aria-pressed={shuffle}
+          <button type="button" onClick={toggleShuffle} aria-label="Shuffle" aria-pressed={shuffle}
             style={{ ...iconBtn, color: shuffle ? 'var(--red)' : 'rgba(255,255,255,0.8)' }}><Shuffle size={22} /></button>
           <button type="button" onClick={skipPrev} aria-label="Previous" style={{ ...iconBtn, color: '#fff' }}><SkipBack size={34} fill="currentColor" /></button>
           <button type="button" onClick={togglePlay} aria-label={isPlaying ? 'Pause' : 'Play'}
@@ -225,9 +226,9 @@ function FullPlayerView({ onClose, currentUser, shuffle, setShuffle, repeat, cyc
 
         {/* Bottom row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-          <button type="button" onClick={() => setShowQueue(true)} aria-label="Up next"
+          <button type="button" onClick={() => setShowQueue(true)} aria-label="Now playing queue"
             style={{ ...pillBtn }}>
-            <ListMusic size={18} /> Up next{upNext.length ? ` · ${upNext.length}` : ''}
+            <ListMusic size={18} /> Now playing{upNext.length ? ` · ${upNext.length} next` : ''}
           </button>
           <div className="fullplayer-volume" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
             <button type="button" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} style={{ ...iconBtn, color: 'rgba(255,255,255,0.8)' }}>
@@ -288,14 +289,14 @@ const UpNext = React.memo(function UpNext({ onClose }) {
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
-      <div role="dialog" aria-label="Up next" style={{
+      <div role="dialog" aria-label="Now playing queue" style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, height: '78%', maxWidth: 520, margin: '0 auto',
         background: '#141414', borderRadius: '18px 18px 0 0', borderTop: '1px solid rgba(255,255,255,0.08)',
         display: 'flex', flexDirection: 'column', animation: 't9QueueUp .22s ease-out',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '12px 10px 6px 20px' }}>
-          <div style={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: 0.5 }}>UP NEXT</div>
+          <div style={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: 0.5 }}>NOW PLAYING</div>
           <button type="button" onClick={onClose} aria-label="Close queue" style={{ ...iconBtn, color: '#fff' }}><ChevronDown size={24} /></button>
         </div>
         <div style={{ overflowY: 'auto', padding: '0 20px 20px' }}>
