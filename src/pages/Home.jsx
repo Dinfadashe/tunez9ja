@@ -107,7 +107,7 @@ export default function Home({
       <section className="hero">
         <div className="container hero-content" style={{ paddingTop: 'var(--space-2xl)', paddingBottom: 'var(--space-2xl)' }}>
           <div className="hero-grid">
-            <div>
+            <div className="hero-copy">
               <div className="hero-eyebrow">Est. 2021 — Music For Everyone</div>
               <h1 className="hero-headline">
                 THE BEAT<br />OF <span className="accent">EVERY</span><br />CULTURE

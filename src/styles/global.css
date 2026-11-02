@@ -840,8 +840,27 @@ body {
   .hq-logo, .hq-halo, .hq-roofslab { opacity: 1; }
 }
 
-/* Phones: the HQ sits under the buttons, smaller */
+/* Phones: the HQ stands beside the headline (desktop layout unchanged).
+   The text column steps aside (display: contents) so the headline and the
+   HQ can share a row; intro text and buttons follow at full width. */
 @media (max-width: 700px) {
-  .hero-content .hero-visual-wrap { display: flex !important; }
-  .hq { width: min(86%, 340px); margin: 0 auto; }
+  .hero-content .hero-grid {
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    grid-template-areas: "eyebrow eyebrow" "headline hq" "sub sub" "actions actions";
+    row-gap: 0 !important;
+    column-gap: 12px !important;
+  }
+  .hero-copy { display: contents; }
+  .hero-copy .hero-eyebrow  { grid-area: eyebrow; }
+  .hero-copy .hero-headline { grid-area: headline; }
+  .hero-copy .hero-sub      { grid-area: sub; }
+  .hero-copy .hero-actions  { grid-area: actions; }
+  .hero-content .hero-visual-wrap {
+    display: flex !important;
+    grid-area: hq;
+    align-self: center;
+    justify-content: center;
+    margin-bottom: 28px;            /* same as the headline, so they centre together */
+  }
+  .hq { width: 100%; max-width: 200px; margin: 0; }
 }
