@@ -1,4 +1,4 @@
-import { openItem } from '../lib/urlState.js'
+import { openItem, settleItemUrl } from '../lib/urlState.js'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { MusicArt } from './UI.jsx'
@@ -119,7 +119,10 @@ export default function ProfilePage({ profileId, currentUser, setPage }) {
     // Fetch profile
     // Public fields only — private ones (email, KYC…) are not readable
     supabase.rpc('public_profile', { p_id: profileId })
-      .then(({ data }) => { setProfile(data || null); setLoading(false) })
+      .then(({ data }) => {
+        setProfile(data || null); setLoading(false)
+        if (data?.id) settleItemUrl('profile', data.id, data)
+      })
 
     // Follower / following counts
     supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', profileId)

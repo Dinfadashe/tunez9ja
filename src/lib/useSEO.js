@@ -1,3 +1,4 @@
+import { urlFor } from './urlState.js'
 // ════════════════════════════════════════════════════════════════
 // TUNEZ9JA useSEO — dynamic head management without react-helmet
 //
@@ -12,7 +13,7 @@
 //     description: 'Stream Street Sounds by Blaqbonez on Tunez9ja.',
 //     image: 'https://…/cover.jpg',
 //     imageWidth: 800, imageHeight: 800,
-//     url: 'https://tunez9ja.netlify.app/?track=abc123',
+//     url: 'https://tunez9ja.com/track/<id>/<slug>',
 //     type: 'music.song',
 //     jsonLd: { '@context': 'https://schema.org', '@type': 'MusicRecording', … },
 //   })
@@ -20,7 +21,7 @@
 
 import { useEffect } from 'react'
 
-const BASE_URL = 'https://tunez9ja.netlify.app'
+const BASE_URL = 'https://tunez9ja.com'
 const DEFAULT_IMAGE = `${BASE_URL}/og-default.jpg`
 const SITE_NAME = 'Tunez9ja'
 const TWITTER_HANDLE = '@Tunez9ja'
@@ -141,7 +142,7 @@ export function websiteJsonLd() {
     description: 'Stream Afrobeats, Hip-Hop, Highlife, Amapiano and more. Earn TUNEZ tokens for every stream, comment and reaction. The music platform where everyone gets paid.',
     potentialAction: {
       '@type': 'SearchAction',
-      target: { '@type': 'EntryPoint', urlTemplate: `${BASE_URL}/?page=search&q={search_term_string}` },
+      target: { '@type': 'EntryPoint', urlTemplate: `${BASE_URL}/search?q={search_term_string}` },
       'query-input': 'required name=search_term_string',
     },
   }
@@ -185,8 +186,8 @@ export function blogPostJsonLd(post) {
       name: 'Tunez9ja Entertainment',
       logo: { '@type': 'ImageObject', url: `${BASE_URL}/logo.png` },
     },
-    url: `${BASE_URL}/?post=${post.id}`,
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `${BASE_URL}/?post=${post.id}` },
+    url: `${BASE_URL}${urlFor(null, { type: 'post', id: post.id }, post)}`,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${BASE_URL}${urlFor(null, { type: 'post', id: post.id }, post)}` },
   }
 }
 

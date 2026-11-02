@@ -8,7 +8,7 @@ export default function AboutPage({
   useSEO({
     title: "About Tunez9ja — The Music Platform Where Everyone Gets Paid",
     description: "Tunez9ja is a global music streaming and entertainment platform where artists, fans, bloggers, and editors all earn for the value they create — built in Jos, Nigeria.",
-    url: "https://tunez9ja.netlify.app/?page=about",
+    url: "https://tunez9ja.com/about",
   })
 
   return (

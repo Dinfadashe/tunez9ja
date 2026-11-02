@@ -121,7 +121,7 @@ export default function TrackPage({ track, currentUser, onBack, onPlay, isPlayin
           <ListMusic size={16} /> Now Playing
         </button>
 
-        <ShareButton url={shareLinkFor('track', track.id)} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} coverUrl={track.cover_url} />
+        <ShareButton url={shareLinkFor('track', track.id, track)} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} coverUrl={track.cover_url} />
 
         <TrackMenu track={track} currentUser={currentUser} size={20} style={{ border: '1px solid var(--border)', borderRadius: 8, minWidth: 40, minHeight: 40 }} />
       </div>

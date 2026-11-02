@@ -4,7 +4,7 @@ import { earnWatch } from '../lib/tunez.js'
 import ShareButton from '../components/ShareButton.jsx'
 import { playFloatingVideo } from '../components/FloatingVideoPlayer.jsx'
 import { UploadedVideo, YouTubeEmbed } from '../components/VideoPlayers.jsx'
-import { openItem, closeItem, takeCachedItem, shareLinkFor } from '../lib/urlState.js'
+import { openItem, closeItem, takeCachedItem, shareLinkFor, settleItemUrl } from '../lib/urlState.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { useSEO } from '../lib/useSEO.js'
@@ -54,7 +54,7 @@ export default function VideosPage({ setPage, currentUser, deepLink }) {
   useSEO({
     title: "Music Videos — Watch Afrobeats, Hip-Hop & More | Tunez9ja",
     description: "Watch the latest music videos, visual albums, and live performance clips from independent artists worldwide on Tunez9ja.",
-    url: "https://tunez9ja.netlify.app/?page=videos",
+    url: "https://tunez9ja.com/videos",
     type: "video.other",
   })
   const [videos, setVideos]       = useState([])
@@ -92,6 +92,7 @@ export default function VideosPage({ setPage, currentUser, deepLink }) {
     return () => { cancelled = true }
   }, [videoId])
   const playVideo = (v) => openItem('video', v.id, v)
+  useEffect(() => { if (playing?.id) settleItemUrl('video', playing.id, playing) }, [playing?.id])
 
   const filtered = videos.filter(v => {
     const matchSearch = v.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -217,7 +218,7 @@ function VideoPlayer({ video, currentUser }) {
       <div style={{ padding:20 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:8 }}>
           <h2 style={{ fontFamily:'var(--font-display)', fontSize:28, margin:0 }}>{video.title}</h2>
-          <ShareButton url={shareLinkFor('video', video.id)} text={'Watch ' + video.title + ' on Tunez9ja!'} title={video.title} />
+          <ShareButton url={shareLinkFor('video', video.id, video)} text={'Watch ' + video.title + ' on Tunez9ja!'} title={video.title} />
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:16, fontSize:13, color:'var(--grey-300)', marginBottom:12 }}>
           <span>{video.profiles?.name}</span>

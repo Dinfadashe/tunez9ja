@@ -185,7 +185,7 @@ Privacy requests: privacy@tunez9ja.com
 Billing & refund requests: billing@tunez9ja.com
 General inquiries: info@tunez9ja.com
 
-Website: tunez9ja.netlify.app
+Website: tunez9ja.com
 
 Last Updated: June 2026
 Effective Date: January 2021`

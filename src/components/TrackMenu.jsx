@@ -178,7 +178,7 @@ function MenuPanel({ track, currentUser, view, setView, isMobile, pos, sheetRef,
     }
   }
   const share = async () => {
-    const url = shareLinkFor('track', track.id)
+    const url = shareLinkFor('track', track.id, track)
     try {
       if (navigator.share) await navigator.share({ title: track.title, text: `${track.title}${artistName ? ' — ' + artistName : ''} on Tunez9ja`, url })
       else { await navigator.clipboard.writeText(url); addToast('Link copied', 'success') }

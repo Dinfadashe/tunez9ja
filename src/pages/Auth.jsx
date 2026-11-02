@@ -35,7 +35,7 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Enter your email above, then tap "Forgot password?" again.'); return }
     setSendingReset(true)
     const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/?page=reset-password`,
+      redirectTo: `${window.location.origin}/reset-password`,
     })
     setSendingReset(false)
     // Same message whether or not the account exists (no account probing)

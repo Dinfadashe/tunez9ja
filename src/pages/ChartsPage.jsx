@@ -146,7 +146,7 @@ export default function ChartsPage({
   useSEO({
     title: "Global Music Charts — Top 50 Songs | Tunez9ja",
     description: "Real-time global music charts. Top 50 most-streamed tracks, trending Afrobeats, new entries and genre charts — updated live on Tunez9ja.",
-    url: "https://tunez9ja.netlify.app/?page=charts",
+    url: "https://tunez9ja.com/charts",
     type: "music.playlist",
   })
 

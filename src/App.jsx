@@ -9,7 +9,19 @@ import { PlayerProvider } from './context/PlayerContext.jsx'
 import { dashboardPageForRole, getAvailableRoles } from './components/RoleSwitcher.jsx'
 import { supabase } from './lib/supabase.js'
 import { fetchMyProfile, forgetMyProfile } from './lib/myProfile.js'
-import { parseLocation, navigateToPage, openItem, onUrlChange } from './lib/urlState.js'
+import { parseLocation, navigateToPage, openItem, onUrlChange, urlFor } from './lib/urlState.js'
+
+// Old query-style links (/?page=music, /?track=<id> …) → clean address, once,
+// before anything reads the location. Other parameters (ref, signup, q) stay.
+if (typeof window !== 'undefined') {
+  const loc = parseLocation()
+  if (loc.legacy) {
+    const rest = new URLSearchParams(window.location.search)
+    for (const k of ['page', 'post', 'track', 'video', 'profile', 'artist']) rest.delete(k)
+    const qs = rest.toString()
+    window.history.replaceState(window.history.state, '', urlFor(loc.page, loc.item) + (qs ? '?' + qs : '') + window.location.hash)
+  }
+}
 import { ToastContainer } from './components/UI.jsx'
 import FloatingPlayer from './components/FloatingPlayer.jsx'
 import FloatingVideoPlayer from './components/FloatingVideoPlayer.jsx'

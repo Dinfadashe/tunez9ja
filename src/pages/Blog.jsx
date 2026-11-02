@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import CommentsSection, { ReactionBar } from '../components/CommentsSection.jsx'
 import ShareButton from '../components/ShareButton.jsx'
 import { earnRead, isUnlocked } from '../lib/tunez.js'
-import { openItem, closeItem, takeCachedItem, shareLinkFor } from '../lib/urlState.js'
+import { openItem, closeItem, takeCachedItem, shareLinkFor, settleItemUrl, urlFor } from '../lib/urlState.js'
 import PremiumUnlockModal from '../components/PremiumUnlockModal.jsx'
 import { supabase } from '../lib/supabase.js'
 import { sanitizeHTML } from '../lib/sanitize.js'
@@ -45,7 +45,7 @@ export default function BlogPage({
   useSEO({
     title: "Afrobeats & Global Music News, Reviews & Interviews | Tunez9ja",
     description: "Read the latest Afrobeats news, global music reviews, artist interviews and culture coverage from Tunez9ja's music blog.",
-    url: "https://tunez9ja.netlify.app/?page=blog",
+    url: "https://tunez9ja.com/blog",
     type: "blog",
   })
 
@@ -85,6 +85,7 @@ export default function BlogPage({
   }, [postId, currentUser?.id])
 
   const openPost = (post) => openItem('post', post.id, post)
+  useEffect(() => { if (selectedPost?.id) settleItemUrl('post', selectedPost.id, selectedPost) }, [selectedPost?.id])
 
   useEffect(() => {
     supabase
@@ -242,7 +243,7 @@ function PostDetail({ post, onBack, currentUser }) {
       ? post.excerpt.slice(0, 155)
       : `Read "${post?.title}"${post?.profiles?.name ? ' by ' + post.profiles.name : ''} on Tunez9ja Music Blog.`,
     image: post?.cover_url,
-    url: `https://tunez9ja.netlify.app/?post=${post?.id}`,
+    url: post?.id ? `https://tunez9ja.com${urlFor(null, { type: 'post', id: post.id }, post)}` : undefined,
     type: 'article',
     jsonLd: blogPostJsonLd(post),
   })
@@ -295,7 +296,7 @@ function PostDetail({ post, onBack, currentUser }) {
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,5vw,44px)', letterSpacing: 0.5, lineHeight: 1.08, color: 'var(--white)' }}>
               {post.title}
             </h1>
-            <ShareButton url={shareLinkFor('post', post.id)} text={'Read ' + post.title + ' on Tunez9ja!'} title={post.title} coverUrl={post.cover_url} />
+            <ShareButton url={shareLinkFor('post', post.id, post)} text={'Read ' + post.title + ' on Tunez9ja!'} title={post.title} coverUrl={post.cover_url} />
           </div>
 
           {/* Meta */}

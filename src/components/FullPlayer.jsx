@@ -102,7 +102,7 @@ function FullPlayerView({ onClose, currentUser, startOnQueue }) {
     if (error) { setSaved(!next); addToast('Could not update your library', 'error') }
   }
   const share = async () => {
-    const url = shareLinkFor('track', nowPlaying.id)
+    const url = shareLinkFor('track', nowPlaying.id, nowPlaying)
     try {
       if (navigator.share) await navigator.share({ title: nowPlaying.title, text: `${nowPlaying.title}${artist ? ' — ' + artist : ''} on Tunez9ja`, url })
       else { await navigator.clipboard.writeText(url); addToast('Link copied', 'success') }

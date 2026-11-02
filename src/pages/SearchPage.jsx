@@ -10,7 +10,8 @@ function debounce(fn, ms) {
 }
 
 export default function SearchPage({ setPage, currentUser }) {
-  const [query,   setQuery]   = useState('')
+  // /search?q=… (also used by Google's site search box)
+  const [query,   setQuery]   = useState(() => new URLSearchParams(window.location.search).get('q') || '')
   const [results, setResults] = useState({ tracks: [], posts: [], videos: [], artists: [], albums: [] })
   const [loading, setLoading] = useState(false)
   const [tab,     setTab]     = useState('all')

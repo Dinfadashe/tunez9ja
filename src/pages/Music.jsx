@@ -11,7 +11,7 @@ import { Play, Pause, Music, Heart, Plus, ListMusic, Disc, Headphones } from 'lu
 import ShareButton from '../components/ShareButton.jsx'
 import TrackPage   from '../components/TrackPage.jsx'
 import TrackMenu   from '../components/TrackMenu.jsx'
-import { openItem, closeItem, takeCachedItem, shareLinkFor } from '../lib/urlState.js'
+import { openItem, closeItem, takeCachedItem, shareLinkFor, settleItemUrl } from '../lib/urlState.js'
 import Albums from '../components/Albums.jsx'
 
 
@@ -87,7 +87,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
   useSEO({
     title: "Stream Afrobeats, Hip-Hop, Highlife & More | Tunez9ja",
     description: "Listen to Afrobeats, Amapiano, Hip-Hop, Highlife, Afrofusion and more. Stream from independent artists worldwide and earn TUNEZ tokens on every play.",
-    url: "https://tunez9ja.netlify.app/?page=music",
+    url: "https://tunez9ja.com/music",
     type: "music.playlist",
   })
   const [tracks, setTracks]           = useState([])
@@ -120,6 +120,8 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
     return () => { cancelled = true }
   }, [trackId])
   const openTrack = (t) => openItem('track', t.id, t)
+  // Give the address its readable slug once the track is known
+  React.useEffect(() => { if (trackPage?.id) settleItemUrl('track', trackPage.id, trackPage) }, [trackPage?.id])
   const [view, setView] = React.useState('tracks')
   const earnedRef = React.useRef({})
 
@@ -370,7 +372,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
                           style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', color: 'var(--grey-400)', cursor: 'pointer', fontSize: 11 }}>
                           View
                         </button>
-                        <ShareButton url={shareLinkFor('track', track.id)} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} coverUrl={track.cover_url} compact />
+                        <ShareButton url={shareLinkFor('track', track.id, track)} text={'Listen to ' + track.title + ' on Tunez9ja!'} title={track.title} coverUrl={track.cover_url} compact />
                       </div>
                     </div>
                   )

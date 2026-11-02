@@ -1,29 +1,30 @@
-# Tunez9ja — Nigeria's Music Streaming Platform
-# tunez9ja.netlify.app
+# Tunez9ja — Nigeria's music streaming platform
+# https://tunez9ja.com
 
 User-agent: *
 Allow: /
 
-# Block dashboard pages — no value to index, require login
+# Signed-in areas and account pages: no value in search results
 Disallow: /admin-dashboard
 Disallow: /artist-dashboard
 Disallow: /blogger-dashboard
 Disallow: /user-dashboard
 Disallow: /editor-dashboard
-
-# Block auth pages
 Disallow: /login
 Disallow: /register
+Disallow: /reset-password
+Disallow: /downloads
 
-# Block internal SPA state paths
-Disallow: /?ref=
-Disallow: /?signup=
+# Search result pages and referral links (endless, thin pages)
+Disallow: /search
+Disallow: /*?ref=
+Disallow: /*?signup=
 
-# Sitemap location
-Sitemap: https://tunez9ja.netlify.app/sitemap.xml
+Sitemap: https://tunez9ja.com/sitemap.xml
 
-# Crawl-delay for bots that respect it (not Googlebot)
+# Heavy SEO-tool crawlers: slow down
 User-agent: AhrefsBot
 Crawl-delay: 10
+
 User-agent: SemrushBot
 Crawl-delay: 10
