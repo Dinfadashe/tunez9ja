@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { useSEO, websiteJsonLd, organizationJsonLd } from '../lib/useSEO.js'
 import { MusicArt } from '../components/UI.jsx'
+import HeroHQ from '../components/HeroHQ.jsx'
 import { Play, TrendingUp, Mic2, Newspaper, ArrowRight, Music, Video, Youtube } from 'lucide-react'
 
-const TICKER_ITEMS = ['\U0001f3b5 Afrobeats','\U0001f525 New Drops','\U0001f3a4 Artist Spotlight','\U0001f4f0 Latest Gist','\U0001f30d Global Sound','\U0001f3b5 Top Charts','\U0001f525 Hot Takes','\U0001f3a4 Studio Sessions']
+const TICKER_ITEMS = ['🎵 Afrobeats','🔥 New Drops','🎤 Artist Spotlight','📰 Latest Gist','🌍 Global Sound','🎵 Top Charts','🔥 Hot Takes','🎤 Studio Sessions']
 
 const SK_STYLE = '@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}.sk{background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);background-size:400px 100%;animation:shimmer 1.4s ease infinite;border-radius:8px}'
 
@@ -127,7 +128,7 @@ export default function Home({
               </div>
             </div>
             <div className="hero-visual-wrap">
-              <HeroVisual tracks={tracks} />
+              <HeroHQ />
             </div>
           </div>
         </div>
@@ -242,42 +243,6 @@ export default function Home({
           </div>
         </div>
       </section>
-    </div>
-  )
-}
-
-function HeroVisual({ tracks }) {
-  // All child positions/sizes are percentages of this wrapper, so the
-  // whole composition scales fluidly — the wrapper itself is sized with
-  // clamp() in CSS (.hero-visual-wrap), not a fixed pixel box.
-  return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: '20rem', aspectRatio: '1 / 1' }}>
-      {[
-        { top: '0%',     left: '0%',     size: '62.5%', zIndex: 2 },
-        { top: '12.5%',  left: '50%',    size: '50%',   zIndex: 1 },
-        { top: '53.1%',  left: '6.25%',  size: '43.75%',zIndex: 1 },
-      ].map((pos, i) => (
-        <div key={i} style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.size, height: pos.size, borderRadius: 12, overflow: 'hidden', border: i === 0 ? '2px solid var(--border-red)' : '2px solid var(--border)', boxShadow: i === 0 ? '0 0 40px rgba(200,16,46,0.3)' : 'none', zIndex: pos.zIndex }}>
-          {tracks[i] && tracks[i].cover_url
-            ? <img src={tracks[i].cover_url} alt={tracks[i].title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading={i === 0 ? 'eager' : 'lazy'} decoding={i === 0 ? 'sync' : 'async'} fetchpriority={i === 0 ? 'high' : 'auto'} />
-            : <MusicArt title={tracks[i] ? tracks[i].title : String.fromCharCode(84 + i)} size="100%" />
-          }
-        </div>
-      ))}
-      {tracks[0] && (
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(15,15,15,0.92)', backdropFilter: 'blur(8px)', border: '1px solid var(--border-red)', borderRadius: 8, padding: 'clamp(0.5rem, 0.4rem + 0.4vw, 0.75rem)', zIndex: 3 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <div style={{ width: '2rem', height: '2rem', borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Play size={14} fill="white" color="white" />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '0.8125rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tracks[0].title}</div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--red)' }}>{tracks[0].profiles ? tracks[0].profiles.name : ''}</div>
-            </div>
-            <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--grey-300)', flexShrink: 0 }}>{tracks[0].duration || '—'}</div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
