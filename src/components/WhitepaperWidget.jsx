@@ -3,7 +3,7 @@ import { X, ChevronDown, ChevronUp, FileText, ExternalLink } from 'lucide-react'
 
 const WP = {
   title: 'TUNEZ9JA WHITEPAPER',
-  subtitle: 'A Decentralised Music Streaming & Reward Ecosystem for the African Digital Economy',
+  subtitle: 'A Global Music Streaming & Reward Ecosystem — Built in Africa, for the World',
   version: 'Version 1.0 · 2025',
   sections: [
     {
@@ -11,7 +11,7 @@ const WP = {
       heading: 'Executive Summary',
       content: `Nigeria is home to one of the world's most vibrant music industries. Afrobeats, Highlife, Fuji, and a growing wave of Afrofusion genres have earned global recognition — yet the overwhelming majority of Nigerian artists receive no financial benefit from the digital streams their music generates.
 
-Tunez9ja is a Nigerian-built, community-owned music streaming and entertainment platform that fundamentally reimagines this relationship. By combining a native digital token economy (TUNEZ), transparent content monetisation, and a community of editors, bloggers and artists — all hosted on Nigerian-built infrastructure — Tunez9ja creates a closed-loop ecosystem where every participant is rewarded for the value they contribute.`
+Tunez9ja is a global, community-owned music streaming and entertainment platform, built in Nigeria, that fundamentally reimagines this relationship. By combining a native digital token economy (TUNEZ), transparent content monetisation, and a community of editors, bloggers and artists — all hosted on Nigerian-built infrastructure — Tunez9ja creates a closed-loop ecosystem where every participant is rewarded for the value they contribute.`
     },
     {
       id: 'problem',
@@ -35,7 +35,7 @@ Tunez9ja is a Nigerian-built, community-owned music streaming and entertainment 
 • A native reward token (TUNEZ) that compensates every participant
 • Direct artist monetisation through premium content and transparent revenue splits
 • A community editorial layer that professionalises music journalism
-• Local-first infrastructure optimised for Nigerian network conditions
+• Infrastructure optimised for low-bandwidth mobile networks worldwide
 
 **Platform Pillars:**
 Music · Blog · Videos · Artist Portal · Community`

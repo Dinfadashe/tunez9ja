@@ -151,7 +151,7 @@ export default function ArtistAnalytics({ currentUser }) {
     // Build weekly stream data (simulate from play_counts distributed over last 7 days)
     const weekly = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000)
-      const label = d.toLocaleDateString('en-NG', { weekday: 'short' })
+      const label = d.toLocaleDateString(undefined, { weekday: 'short' })
       // Distribute total streams roughly over 7 days with some variance
       const base = Math.round(totalStreams / 7)
       const value = Math.max(0, base + Math.floor((Math.random() - 0.4) * base * 0.6))

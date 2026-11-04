@@ -125,7 +125,7 @@ export default function MyLibrary({ currentUser }) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)' }}>
-                      Unlocked {new Date(unlock.unlocked_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}
+                      Unlocked {new Date(unlock.unlocked_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                     </div>
                     <div style={{ fontSize: 11, color: '#ffb400', fontFamily: 'var(--font-mono)' }}>
                       {unlock.tunez_paid} T

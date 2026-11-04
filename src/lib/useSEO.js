@@ -97,7 +97,7 @@ export function useSEO({
     setMeta('og:url',         pageUrl,    true)
     setMeta('og:type',        type,       true)
     setMeta('og:site_name',   SITE_NAME,  true)
-    setMeta('og:locale',      'en_NG',    true)
+    setMeta('og:locale',      'en_US',    true)
 
     // Twitter / X
     setMeta('twitter:card',        'summary_large_image')

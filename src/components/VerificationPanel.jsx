@@ -123,7 +123,7 @@ export default function VerificationPanel({ currentUser, onRoleSwitch }) {
           You have the Tunez9ja blue tick. Your account has a <strong style={{ color: '#ffb400' }}>1.5× TUNEZ earn multiplier</strong> and priority placement in listings.
         </p>
         <div style={{ marginTop: 20, padding: '14px 20px', background: 'rgba(29,161,242,0.1)', border: '1px solid rgba(29,161,242,0.3)', borderRadius: 10, fontSize: 13, color: '#1DA1F2' }}>
-          ✅ Verification active since {new Date(currentUser?.verified_at || Date.now()).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' })}
+          ✅ Verification active since {new Date(currentUser?.verified_at || Date.now()).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
         </div>
       </div>
     )
@@ -170,7 +170,7 @@ export default function VerificationPanel({ currentUser, onRoleSwitch }) {
           </button>
         ) : (
           <p style={{ color: 'var(--grey-500)', fontSize: 13 }}>
-            You can reapply after <strong>{reapplyDate.toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+            You can reapply after <strong>{reapplyDate.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
           </p>
         )}
       </div>

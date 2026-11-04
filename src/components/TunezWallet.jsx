@@ -268,7 +268,7 @@ export default function TunezWallet({ currentUser, setPage }) {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.description || TX_LABELS[tx.type] || tx.type}</div>
-                      <div style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{new Date(tx.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                      <div style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{new Date(tx.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: isEarn ? '#00c864' : 'var(--red-text)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
                       {isEarn ? '+' : '-'}{Math.abs(tx.amount).toFixed(2)}

@@ -109,7 +109,7 @@ export default function AdminAnalytics() {
                 <div style={{ fontSize:11, color:'var(--grey-500)', fontFamily:'var(--font-mono)', textTransform:'uppercase' }}>{u.role}</div>
               </div>
               <div style={{ fontSize:11, color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>
-                {new Date(u.created_at).toLocaleDateString('en-NG', { day:'numeric', month:'short' })}
+                {new Date(u.created_at).toLocaleDateString(undefined, { day:'numeric', month:'short' })}
               </div>
             </div>
           ))}

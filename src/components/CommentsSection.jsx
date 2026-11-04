@@ -112,7 +112,7 @@ function Comment({ comment, currentUser, onReply, onDelete, depth = 0 }) {
   const [showReplies, setShowReplies] = useState(depth === 0)
   const isOwner = currentUser?.id === comment.user_id
   const isAdmin = currentUser?.role === 'admin'
-  const date    = new Date(comment.created_at).toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' })
+  const date    = new Date(comment.created_at).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' })
 
   return (
     <div style={{ marginLeft: depth > 0 ? 32 : 0 }}>

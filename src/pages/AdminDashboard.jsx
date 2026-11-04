@@ -1058,7 +1058,7 @@ function KYCReview() {
               <div style={{ fontSize:13, marginBottom:4 }}><strong>Legal Name:</strong> {app.kyc_legal_name}</div>
               {app.kyc_social_links && <div style={{ fontSize:13, marginBottom:4 }}><strong>Social:</strong> {app.kyc_social_links}</div>}
               <div style={{ fontSize:12, color:'var(--grey-500)', fontFamily:'var(--font-mono)', marginTop:8 }}>
-                Submitted: {new Date(app.kyc_submitted_at).toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' })}
+                Submitted: {new Date(app.kyc_submitted_at).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' })}
                 {app.kyc_fee_paid ? ' · ₦2,000 fee paid ✅' : ' · Fee NOT paid ⚠️'}
               </div>
             </div>
@@ -1240,7 +1240,7 @@ function EditorReview() {
             {[
               { label:'Posts Reviewed', value: selected.editor_posts_reviewed || 0 },
               { label:'TUNEZ Earned', value: Number(selected.editor_total_earned||0).toFixed(1)+'T' },
-              { label:'Approved Since', value: selected.editor_approved_at ? new Date(selected.editor_approved_at).toLocaleDateString('en-NG') : '—' },
+              { label:'Approved Since', value: selected.editor_approved_at ? new Date(selected.editor_approved_at).toLocaleDateString(undefined) : '—' },
             ].map((s,i) => (
               <div key={i} style={{ background:'var(--bg-surface)', borderRadius:8, padding:'14px 16px' }}>
                 <div style={{ fontFamily:'var(--font-display)', fontSize:22 }}>{s.value}</div>
@@ -1289,7 +1289,7 @@ function EditorReview() {
                     </div>
                     <div style={{ fontSize:11, color:'var(--grey-500)', marginTop:2 }}>
                       {a.action === 'approved' ? 'Approved' : `Rejected — ${a.reason || ''}`}
-                      {' · '}{new Date(a.created_at).toLocaleDateString('en-NG')}
+                      {' · '}{new Date(a.created_at).toLocaleDateString(undefined)}
                     </div>
                   </div>
                   {a.action === 'approved' && (

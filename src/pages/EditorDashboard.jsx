@@ -349,7 +349,7 @@ function Activity({ user }) {
                 {a.post ? a.post.title : 'Unknown post'}
               </div>
               <div style={{ fontSize: 11, color: 'var(--grey-500)', marginTop: 2 }}>
-                {a.action} - {new Date(a.created_at).toLocaleDateString('en-NG')}
+                {a.action} - {new Date(a.created_at).toLocaleDateString(undefined)}
               </div>
             </div>
             {a.action === 'approved' && (

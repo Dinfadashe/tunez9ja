@@ -1,4 +1,4 @@
-# TUNEZ9JA: A DECENTRALISED MUSIC STREAMING AND REWARD ECOSYSTEM FOR THE AFRICAN DIGITAL ECONOMY
+# TUNEZ9JA: A GLOBAL MUSIC STREAMING AND REWARD ECOSYSTEM — BUILT IN AFRICA, FOR THE WORLD
 
 **White Paper — Version 2.0**  
 Tunez9ja Entertainment | Web3.0 Alliance Ltd (RC: 7919874) | Jos, Nigeria | 2025
@@ -11,7 +11,7 @@ Nigeria is home to one of the world's most vibrant music industries. Afrobeats, 
 
 Royalties are collected by foreign intermediaries, distributed with little transparency, and often never reach the creators at all.
 
-Tunez9ja is a Nigerian-built, community-owned music streaming and entertainment platform that fundamentally reimagines this relationship. By combining a native digital token economy (TUNEZ), a transparent content monetisation system, and a community of editors, bloggers and artists — all hosted on infrastructure built and operated from Nigeria — Tunez9ja creates a closed-loop ecosystem where every participant is rewarded for the value they contribute.
+Tunez9ja is a global, community-owned music streaming and entertainment platform, built in Nigeria, that fundamentally reimagines this relationship. By combining a native digital token economy (TUNEZ), a transparent content monetisation system, and a community of editors, bloggers and artists — all hosted on infrastructure built and operated from Nigeria — Tunez9ja creates a closed-loop ecosystem where every participant is rewarded for the value they contribute.
 
 This white paper outlines the problem, the solution, the token economy, the governance model, the technology infrastructure, and the long-term roadmap for Tunez9ja as it scales across Nigeria and the African continent.
 
@@ -49,13 +49,13 @@ Nigeria's digital music infrastructure is almost entirely foreign. There is no m
 
 ## 2. The Solution: Tunez9ja
 
-Tunez9ja is a full-stack, Nigerian-built music streaming and entertainment platform that addresses these structural problems through five interlocking mechanisms:
+Tunez9ja is a full-stack, global music streaming and entertainment platform, built in Nigeria, that addresses these structural problems through five interlocking mechanisms:
 
 1. A native reward token (TUNEZ) that compensates every participant for their contribution
 2. Direct artist monetisation through premium content and transparent revenue splits
 3. A community editorial layer that professionalises music journalism and rewards bloggers and editors
-4. A local-first infrastructure built on modern, scalable technology optimised for Nigerian network conditions
-5. An AI-powered music intelligence engine that understands Nigerian music culture deeply
+4. A modern, scalable infrastructure optimised for low-bandwidth mobile networks worldwide
+5. An AI-powered music intelligence engine with deep knowledge of African and global music culture
 
 ### 2.1 Platform Overview
 
@@ -64,9 +64,9 @@ Tunez9ja is accessible via web browser and as a Progressive Web Application (PWA
 | Pillar | Description |
 |---|---|
 | Music | Stream approved tracks, discover new artists, build playlists, save favourites, play offline |
-| Blog | Read music news, reviews, interviews and features written by verified Nigerian bloggers |
+| Blog | Read music news, reviews, interviews and features written by verified bloggers |
 | Videos | Watch music videos, interviews and live performances |
-| Charts | Live Naija Top 50, trending tracks, new entries and genre-specific charts |
+| Charts | Live Top 50, trending tracks, new entries and genre-specific charts |
 | Artist Portal | Upload and manage tracks, videos and albums; track earnings, streams and analytics |
 | Community | Follow artists, comment, react, share and refer friends |
 
@@ -256,11 +256,11 @@ Tunez9ja is built on a modern, scalable, Nigerian-operated technology stack:
 | AI Engine | Custom DJBrain.js (Nigerian music scoring engine) |
 | Offline | Service Worker (audio caching, 5-minute background sync) |
 
-The platform is designed to be fast and resilient on Nigerian mobile networks. It functions as a Progressive Web Application — meaning users can install it on their home screen without visiting an app store, receive notifications and access saved music with no data connection.
+The platform is designed to be fast and resilient on mobile networks everywhere, including low-bandwidth markets. It functions as a Progressive Web Application — meaning users can install it on their home screen without visiting an app store, receive notifications and access saved music with no data connection.
 
 ---
 
-## 8. The Nigerian Market Opportunity
+## 8. Market Opportunity: Launching from Nigeria, Built for the World
 
 ### 8.1 Scale
 
@@ -294,7 +294,7 @@ What works in Nigeria can scale across Africa. Ghana, Kenya, South Africa, Tanza
 - AI Party DJ (19 event types, 12-factor scoring engine)
 - Follow system and public profiles
 - Real-time notifications
-- Naija Charts (Top 50, Trending, New Entries, Genre charts)
+- Charts (Top 50, Trending, New Entries, Genre charts)
 - Artist analytics dashboard
 - Error boundary and performance optimisation
 

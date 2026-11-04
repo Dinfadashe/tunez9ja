@@ -182,7 +182,7 @@ export default function ProfileEditor({ currentUser, onUpdated }) {
       {/* Fields */}
       {[
         { label: 'Display Name *', val: name,     set: setName,     max: 80,  ph: 'Your name' },
-        { label: 'Location',       val: location, set: setLocation, max: 100, ph: 'Lagos, Nigeria' },
+        { label: 'Location',       val: location, set: setLocation, max: 100, ph: 'City, Country' },
         { label: 'Website',        val: website,  set: setWebsite,  max: 200, ph: 'https://yoursite.com' },
       ].map(f => (
         <div key={f.label} style={{ marginBottom: 16 }}>

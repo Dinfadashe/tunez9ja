@@ -22,20 +22,20 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // ── Pages ────────────────────────────────────────────────────────────────────
 const PAGES = {
-  home:   { index: true,  title: `${NAME} — Stream Nigerian Music, Download & Earn`, h1: 'The beat of every culture',
-            description: 'Stream Afrobeats, Highlife, Street Pop and more from Nigerian and African artists. Download songs for offline, follow your favourite artists and earn TUNEZ rewards.' },
+  home:   { index: true,  title: `${NAME} — Stream Music from Independent Artists, Download & Earn`, h1: 'The beat of every culture',
+            description: 'Stream Afrobeats, Hip-Hop, Highlife, Amapiano, Gospel and more from independent artists around the world. Download songs for offline, follow your favourite artists and earn TUNEZ rewards.' },
   music:  { index: true,  title: `New Music — Afrobeats, Highlife & Street Pop | ${NAME}`, h1: 'Music',
-            description: 'Stream the latest Afrobeats, Highlife, Street Pop, Gospel and Hip-Hop songs from independent Nigerian artists on Tunez9ja.' },
+            description: 'Stream the latest songs from independent artists worldwide — Afrobeats, Hip-Hop, Highlife, Amapiano, Gospel, R&B and more — on Tunez9ja.' },
   blog:   { index: true,  title: `Music News, Artist Stories & Gist | ${NAME} Blog`, h1: 'Blog',
-            description: 'Nigerian music news, new releases, artist interviews and stories from the Tunez9ja blog.' },
+            description: 'Music news, new releases, artist interviews and stories from the Tunez9ja blog.' },
   videos: { index: true,  title: `Music Videos | ${NAME}`, h1: 'Music videos',
-            description: 'Watch music videos from Nigerian and African artists on Tunez9ja.' },
+            description: 'Watch music videos from artists around the world on Tunez9ja.' },
   charts: { index: true,  title: `Top Charts — Most-Played Songs | ${NAME}`, h1: 'Top charts',
             description: 'The most-played songs on Tunez9ja right now, updated as listeners stream.' },
   albums: { index: true,  title: `Albums | ${NAME}`, h1: 'Albums',
             description: 'Albums and EPs from independent artists on Tunez9ja.' },
   about:  { index: true,  title: `About ${NAME}`, h1: 'About Tunez9ja',
-            description: 'Tunez9ja is a music streaming platform built in Jos, Nigeria, where listeners discover new music and artists earn from their work.' },
+            description: 'Tunez9ja is a global music streaming platform, built in Jos, Nigeria, where listeners everywhere discover new music and artists earn from their work.' },
   terms:  { index: true,  title: `Terms of Service | ${NAME}`, h1: 'Terms of Service', description: 'Terms of Service for using Tunez9ja.' },
   privacy:{ index: true,  title: `Privacy Policy | ${NAME}`, h1: 'Privacy Policy', description: 'How Tunez9ja collects, uses and protects your information.' },
 }
@@ -292,7 +292,7 @@ function albumPage(a) {
 
 function genrePage(genre, slug, tracks) {
   const path = `/genre/${slug}`
-  const desc = `Stream the newest ${genre} songs from Nigerian and African artists on Tunez9ja. ${tracks.length} ${tracks.length === 1 ? 'song' : 'songs'} — free to stream and download for offline.`
+  const desc = `Stream the newest ${genre} songs from artists around the world on Tunez9ja. ${tracks.length} ${tracks.length === 1 ? 'song' : 'songs'} — free to stream and download for offline.`
   return {
     path, ogType: 'website', image: tracks.find(t => t.cover_url)?.cover_url || null,
     title: `${genre} Songs — Stream New ${genre} Music | ${NAME}`, ogTitle: `${genre} songs on Tunez9ja`, description: desc,

@@ -1,4 +1,4 @@
-# Tunez9ja — Nigeria's music streaming platform
+# Tunez9ja — global music streaming platform
 # https://tunez9ja.com
 
 User-agent: *

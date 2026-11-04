@@ -94,7 +94,7 @@ export default function ReferralTab({ currentUser }) {
                   {r.referred?.name || 'Unknown user'}{r.referred?.is_verified ? ' ✅' : ''}
                 </div>
                 <div style={{ fontSize:11, color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>
-                  Joined {new Date(r.created_at).toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' })}
+                  Joined {new Date(r.created_at).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' })}
                   {r.referred?.role && <span style={{ marginLeft:6, textTransform:'capitalize' }}>· {r.referred.role}</span>}
                 </div>
               </div>
