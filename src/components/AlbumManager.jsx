@@ -231,7 +231,7 @@ export default function AlbumManager({ currentUser }) {
       )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 4 }}>DISCOGRAPHY</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 3, marginBottom: 4 }}>DISCOGRAPHY</div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 32 }}>MY ALBUMS</h2>
         </div>
         <button onClick={() => setCreating(true)} className="btn btn-primary" style={{ gap: 8 }}>
@@ -302,7 +302,7 @@ export default function AlbumManager({ currentUser }) {
               )}
             </div>
 
-            {error && <div role="alert" style={{ color: 'var(--red)', fontSize: 13, margin: '4px 0 12px' }}>{error}</div>}
+            {error && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 13, margin: '4px 0 12px' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 12 }}>
               <button type="submit" className="btn btn-primary" style={{ gap: 8 }} disabled={saving}>
                 <Check size={15} /> {saving ? 'Creating...' : 'Create Album'}

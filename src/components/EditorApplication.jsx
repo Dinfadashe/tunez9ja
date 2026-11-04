@@ -156,7 +156,7 @@ export default function EditorApplication({ currentUser, onSwitchToEditor }) {
           style={{ display:'none' }} onChange={e => pickCv(e.target.files?.[0] || null)} />
       </div>
 
-      {error && <div style={{ color:'var(--red)', fontSize:13, marginBottom:16 }}>{error}</div>}
+      {error && <div style={{ color:'var(--red-text)', fontSize:13, marginBottom:16 }}>{error}</div>}
 
       <button onClick={submit} disabled={uploading} className="btn btn-primary"
         style={{ width:'100%', justifyContent:'center', padding:14 }}>

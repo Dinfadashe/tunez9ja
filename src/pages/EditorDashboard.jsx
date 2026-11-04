@@ -68,7 +68,7 @@ export default function EditorDashboard({ setPage, currentUser: propUser, onRole
         isOpen={sidebarOpen}
         onClose={function() { setSidebarOpen(false) }}
       />
-      <main className="dashboard-main">
+      <div className="dashboard-main">
         <div className="dashboard-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
@@ -78,7 +78,7 @@ export default function EditorDashboard({ setPage, currentUser: propUser, onRole
               &#9776;
             </button>
             <div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>EDITOR PORTAL</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 2 }}>EDITOR PORTAL</div>
               <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, margin: 0 }}>
                 {NAV.find(function(n) { return n.key === active }) ? NAV.find(function(n) { return n.key === active }).label : ''}
               </h1>
@@ -96,7 +96,7 @@ export default function EditorDashboard({ setPage, currentUser: propUser, onRole
           {active === 'referral' && <ReferralTab currentUser={user} />}
           {active === 'profile'  && <ProfileEditor currentUser={user} onUpdated={function(u) { setFreshUser(function(p) { return Object.assign({}, p, u) }) }} />}
         </div>
-      </main>
+      </div>
     </div>
   )
 }
@@ -243,7 +243,7 @@ function ReviewPosts({ user }) {
             padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13,
             background: msgIsError ? 'rgba(200,16,46,0.08)' : 'rgba(0,200,100,0.08)',
             border: '1px solid ' + (msgIsError ? 'var(--red)' : '#00c864'),
-            color: msgIsError ? 'var(--red)' : '#00c864'
+            color: msgIsError ? 'var(--red-text)' : '#00c864'
           }}>{msg}</div>
         )}
 

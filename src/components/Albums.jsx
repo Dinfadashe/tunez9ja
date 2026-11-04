@@ -1,5 +1,6 @@
 import TrackMenu from './TrackMenu.jsx'
 import React, { useState, useEffect } from 'react'
+import { openItem, closeItem, parseLocation, onUrlChange, takeCachedItem, settleItemUrl } from '../lib/urlState.js'
 import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { Play, Music, ChevronLeft, Clock, Disc } from 'lucide-react'
@@ -21,6 +22,28 @@ export default function Albums({ currentUser, setPage }) {
       .order('created_at', { ascending: false })
       .then(({ data }) => { setAlbums(data || []); setLoading(false) })
   }, [])
+
+  // /album/<id>/<slug> opens an album; Back returns to the list
+  useEffect(() => {
+    const sync = async () => {
+      const { item } = parseLocation()
+      if (item?.type !== 'album') { setSelected(null); setTracks([]); return }
+      if (selected?.id === item.id) return
+      const cached = takeCachedItem('album', item.id)
+      let album = cached || albums.find(a => a.id === item.id)
+      if (!album) {
+        const { data } = await supabase.from('albums').select('*, profiles:artist_id(name, is_verified)')
+          .eq('id', item.id).eq('status', 'approved').maybeSingle()
+        album = data
+      }
+      if (!album) { closeItem('albums'); return }
+      openAlbum(album)
+      settleItemUrl('album', album.id, album)
+    }
+    sync()
+    return onUrlChange(sync)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [albums.length])
 
   const openAlbum = async (album) => {
     setSelected(album)
@@ -56,7 +79,7 @@ export default function Albums({ currentUser, setPage }) {
   if (selected) return (
     <div>
       {/* Album detail */}
-      <button onClick={() => { setSelected(null); setTracks([]) }}
+      <button onClick={() => closeItem('albums')}
         style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--grey-300)', cursor: 'pointer', fontSize: 14, marginBottom: 24 }}>
         <ChevronLeft size={18} /> Back to Albums
       </button>
@@ -71,7 +94,7 @@ export default function Albums({ currentUser, setPage }) {
         </div>
         {/* Info */}
         <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 8 }}>ALBUM</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 3, marginBottom: 8 }}>ALBUM</div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 40, lineHeight: 1.1, marginBottom: 8 }}>{selected.title}</h1>
           <div style={{ fontSize: 16, color: 'var(--grey-300)', marginBottom: 4 }}>
             {selected.profiles?.name}{selected.profiles?.is_verified && ' ✅'}
@@ -140,8 +163,8 @@ export default function Albums({ currentUser, setPage }) {
   return (
     <div>
       <div style={{ marginBottom: 28 }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 8 }}>COLLECTIONS</div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 36 }}>ALBUMS</h2>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 3, marginBottom: 8 }}>COLLECTIONS</div>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 36 }}>ALBUMS</h1>
       </div>
 
       {albums.length === 0 ? (
@@ -153,7 +176,7 @@ export default function Albums({ currentUser, setPage }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}>
           {albums.map(album => (
             <div key={album.id}
-              onClick={() => openAlbum(album)}
+              onClick={() => openItem('album', album.id, album)}
               style={{ cursor: 'pointer', transition: 'all 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}

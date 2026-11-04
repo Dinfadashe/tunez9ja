@@ -71,7 +71,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
           setPage={setPage}
           currentUser={currentUser}
           onRoleSwitch={onRoleSwitch} />
-      <main className="dashboard-main">
+      <div className="dashboard-main">
         <div className="dashboard-header">
           <div>
             <div style={{ display:'flex', alignItems:'center', gap:12 }}>
@@ -81,7 +81,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
                 style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--grey-300)', cursor:'pointer', fontSize:18, lineHeight:1 }}>
                 ☰
               </button>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>ARTIST PORTAL</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 2 }}>ARTIST PORTAL</span>
             </div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>{NAV.find(n => n.key === active)?.label}</h1>
           </div>
@@ -104,7 +104,7 @@ export default function ArtistDashboard({ setPage, currentUser: propUser, onRole
           {active === 'referral'     && <ReferralTab currentUser={currentUser} />}
           {active === 'library'      && <MyLibrary   currentUser={currentUser} />}
         </div>
-      </main>
+      </div>
     </div>
   )
 }
@@ -131,7 +131,7 @@ function ArtistOverview({ setActive, currentUser }) {
         <Avatar profile={currentUser} size={64} />
         <div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 32 }}>{currentUser.name}</div>
-          <div style={{ color: 'var(--red)', fontSize: 13, fontFamily: 'var(--font-mono)' }}>{currentUser.genre || 'Artist'} {currentUser.is_verified && '· ✅ Verified'}</div>
+          <div style={{ color: 'var(--red-text)', fontSize: 13, fontFamily: 'var(--font-mono)' }}>{currentUser.genre || 'Artist'} {currentUser.is_verified && '· ✅ Verified'}</div>
           {currentUser.bio && <div style={{ color: 'var(--grey-300)', fontSize: 14, marginTop: 4 }}>{currentUser.bio}</div>}
         </div>
         <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={() => setActive('upload')}><Upload size={15} /> Upload Track</button>
@@ -207,7 +207,7 @@ function MyMusic({ currentUser }) {
       <Modal open={!!preview} onClose={() => setPreview(null)} title={preview?.title || ''}>
         {preview && (
           <div>
-            <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}><MusicArt title={preview.title} size={80} /><div><div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{preview.title}</div><div style={{ color: 'var(--red)', fontSize: 14, margin: '4px 0' }}>{preview.genre}</div><StatusBadge status={preview.status} /></div></div>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}><MusicArt title={preview.title} size={80} /><div><div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{preview.title}</div><div style={{ color: 'var(--red-text)', fontSize: 14, margin: '4px 0' }}>{preview.genre}</div><StatusBadge status={preview.status} /></div></div>
             {preview.description && <p style={{ color: 'var(--grey-300)', fontSize: 14, lineHeight: 1.7 }}>{preview.description}</p>}
             {preview.review_note && <div style={{ background: 'var(--red-glow)', border: '1px solid var(--border-red)', borderRadius: 6, padding: 14, marginTop: 16 }}><strong style={{ fontSize: 12, fontFamily: 'var(--font-mono)' }}>ADMIN FEEDBACK:</strong><p style={{ fontSize: 14, marginTop: 6 }}>{preview.review_note}</p></div>}
           </div>
@@ -244,7 +244,7 @@ function ArtistKYCAndVerify({ currentUser, setCurrentUser }) {
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             padding: '10px 20px', background: 'none', border: 'none',
             borderBottom: tab === t.key ? '2px solid var(--red)' : '2px solid transparent',
-            color: tab === t.key ? 'var(--red)' : 'var(--grey-400)',
+            color: tab === t.key ? 'var(--red-text)' : 'var(--grey-400)',
             fontWeight: tab === t.key ? 700 : 400,
             cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap',
           }}>
@@ -266,7 +266,7 @@ function ArtistKYCAndVerify({ currentUser, setCurrentUser }) {
 }
 
 function UploadTrack({ currentUser, onSuccess, onGoToKYC }) {
-  const [form, setForm] = useState({ title: '', genre: '', duration: '', description: '', tags: '', is_premium: false, tunez_price: '' })
+  const [form, setForm] = useState({ title: '', performer_name: '', genre: '', duration: '', description: '', tags: '', is_premium: false, tunez_price: '' })
   const [audioFile, setAudioFile] = useState(null)
   const [coverFile, setCoverFile] = useState(null)
   const [copyrightAgreed, setCopyrightAgreed] = useState(false)
@@ -454,6 +454,9 @@ const handleAudioChange = (e) => {
     const { error } = await supabase.from('music_tracks').insert({
       artist_id:   currentUser.id,
       title:       form.title,
+      // Credited performer, only when it isn't the uploader (correct credit in
+      // the app, in Google results and in the song's structured data)
+      performer_name: form.performer_name?.trim() ? form.performer_name.trim().slice(0, 120) : null,
       genre:       form.genre,
       duration:    form.duration || null,
       description: form.description || null,
@@ -468,7 +471,7 @@ const handleAudioChange = (e) => {
     setLoading(false)
     if (error) { setMessage('❌ ' + error.message); return }
     setMessage('✅ Track submitted for review! Admin will review it shortly.')
-    setForm({ title: '', genre: '', duration: '', description: '', tags: '' })
+    setForm({ title: '', performer_name: '', genre: '', duration: '', description: '', tags: '' })
     setAudioFile(null); setCoverFile(null)
     setCopyrightAgreed(false)
     setTimeout(() => onSuccess(), 1500)
@@ -515,6 +518,14 @@ const handleAudioChange = (e) => {
             <input className="form-control" placeholder="e.g. Lagos Nights" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required />
           </div>
           <div className="form-group">
+            <label className="form-label" htmlFor="performer-name">Performing artist <span style={{ color: 'var(--grey-500)', fontWeight: 400 }}>(only if it isn't you)</span></label>
+            <input id="performer-name" className="form-control" placeholder="e.g. Ice Prince ft. Ladipoe" maxLength={120}
+              value={form.performer_name} onChange={e => setForm(p => ({ ...p, performer_name: e.target.value }))} />
+            <div style={{ fontSize: 12, color: 'var(--grey-500)', marginTop: 6 }}>
+              Leave empty if you are the artist. Only upload songs you own or have permission to share.
+            </div>
+          </div>
+          <div className="form-group">
             <label className="form-label">Genre *</label>
             <select className="form-control" value={form.genre} onChange={e => setForm(p => ({ ...p, genre: e.target.value }))} required>
               <option value="">Select genre</option>
@@ -544,7 +555,7 @@ const handleAudioChange = (e) => {
               <div style={{ fontSize: 24, marginBottom: 8 }}>
                 {audioFile ? '✅' : fileError ? '❌' : '🎵'}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: audioFile ? '#00c864' : fileError ? 'var(--red)' : 'var(--grey-300)' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: audioFile ? '#00c864' : fileError ? 'var(--red-text)' : 'var(--grey-300)' }}>
                 {audioFile ? audioFile.name : fileError ? 'Invalid file — click to try again' : 'Click to upload audio file'}
               </div>
               {audioFile && (
@@ -579,7 +590,7 @@ const handleAudioChange = (e) => {
                 style={{ display: 'none' }}
                 onChange={handleCoverChange}
               />
-              <div style={{ fontSize: 14, color: coverFile ? '#00c864' : coverError ? 'var(--red)' : 'var(--grey-300)' }}>
+              <div style={{ fontSize: 14, color: coverFile ? '#00c864' : coverError ? 'var(--red-text)' : 'var(--grey-300)' }}>
                 {coverFile ? `✅ ${coverFile.name}` : coverError ? '❌ Invalid image — click to retry' : '🖼 Upload cover art (JPG, PNG, WebP — max 5MB)'}
               </div>
             </div>

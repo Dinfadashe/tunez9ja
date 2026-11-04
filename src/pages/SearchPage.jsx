@@ -1,4 +1,4 @@
-import { openItem } from '../lib/urlState.js'
+import { artistOf, openItem } from '../lib/urlState.js'
 import TrackMenu from '../components/TrackMenu.jsx'
 import React, { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
@@ -65,8 +65,8 @@ export default function SearchPage({ setPage, currentUser }) {
       {/* Search hero */}
       <div style={{ background: 'linear-gradient(180deg,#1a0a0d,var(--bg-deep))', padding: '60px 0 0', borderBottom: '1px solid var(--border)' }}>
         <div className="container">
-          <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red)', letterSpacing:3, marginBottom:12 }}>SEARCH</div>
-          <h1 style={{ fontFamily:'var(--font-display)', fontSize:48, marginBottom:24 }}>FIND<br /><span style={{ color:'var(--red)' }}>ANYTHING</span></h1>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red-text)', letterSpacing:3, marginBottom:12 }}>SEARCH</div>
+          <h1 style={{ fontFamily:'var(--font-display)', fontSize:48, marginBottom:24 }}>FIND<br /><span style={{ color:'var(--red-text)' }}>ANYTHING</span></h1>
           <div style={{ position:'relative', maxWidth:600, marginBottom:0 }}>
             <Search size={20} style={{ position:'absolute', left:18, top:'50%', transform:'translateY(-50%)', color:'var(--grey-500)', pointerEvents:'none' }} />
             <input
@@ -128,7 +128,7 @@ export default function SearchPage({ setPage, currentUser }) {
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{track.title}</div>
-                        <div style={{ fontSize:12, color:'var(--grey-300)', marginTop:2 }}>{track.profiles?.name}{track.profiles?.is_verified && ' ✅'}</div>
+                        <div style={{ fontSize:12, color:'var(--grey-300)', marginTop:2 }}>{artistOf(track)}{(track.profiles?.is_verified && !track.performer_name) && ' ✅'}</div>
                       </div>
                       <span style={{ fontSize:11, color:'var(--grey-500)', fontFamily:'var(--font-mono)' }}>{track.genre}</span>
                     {track.play_count > 0 && <span style={{ fontSize:11, color:'var(--grey-500)', display:'flex', alignItems:'center', gap:3 }}><Play size={10}/>{track.play_count >= 1000 ? (track.play_count/1000).toFixed(1)+'K':track.play_count}</span>}

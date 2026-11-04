@@ -256,7 +256,7 @@ export default function PrivacyPage() {
           <p style={{ color: 'var(--grey-300)', marginTop: 12, fontSize: 15 }}>
             Last updated June 2026 · We respect your data and your privacy.
           </p>
-          <a href="mailto:privacy@tunez9ja.com" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--red)', marginTop: 16 }}>
+          <a href="mailto:privacy@tunez9ja.com" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--red-text)', marginTop: 16 }}>
             <Mail size={14} /> privacy@tunez9ja.com
           </a>
         </div>

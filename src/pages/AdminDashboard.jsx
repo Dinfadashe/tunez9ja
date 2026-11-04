@@ -86,7 +86,7 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           items={NAV(pending)} activePage={active} setActivePage={setActive} setPage={setPage} currentUser={currentUser} onRoleSwitch={onRoleSwitch} />
-      <main className="dashboard-main">
+      <div className="dashboard-main">
         <div className="dashboard-header">
           <div>
             <div style={{ display:'flex', alignItems:'center', gap:12 }}>
@@ -96,7 +96,7 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
                 style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--grey-300)', cursor:'pointer', fontSize:18, lineHeight:1 }}>
                 ☰
               </button>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>ADMIN PORTAL</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 2 }}>ADMIN PORTAL</span>
             </div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>
               {NAV(pending).find(n => n.key === active)?.label}
@@ -124,7 +124,7 @@ export default function AdminDashboard({ setPage, currentUser: propUser, setCurr
           {active === 'editor-review' && <EditorReview />}
           {active === 'album-review'   && <AlbumReview />}
         </div>
-      </main>
+      </div>
     </div>
   )
 }
@@ -334,7 +334,7 @@ function MusicReview({ fetchPending }) {
                         <button className="btn btn-ghost" onClick={() => setPreview(m)} style={{ padding: '6px' }}><Eye size={15} /></button>
                         {m.status === 'pending' && <>
                           <button className="btn" onClick={() => approve(m)} style={{ padding: '6px 10px', background: 'rgba(0,200,100,0.1)', color: '#00c864', border: '1px solid rgba(0,200,100,0.3)', borderRadius: 4 }}><CheckCircle size={15} /></button>
-                          <button className="btn" onClick={() => { setRejectModal(m); setRejectNote('') }} style={{ padding: '6px 10px', background: 'var(--red-glow)', color: 'var(--red)', border: '1px solid var(--border-red)', borderRadius: 4 }}><XCircle size={15} /></button>
+                          <button className="btn" onClick={() => { setRejectModal(m); setRejectNote('') }} style={{ padding: '6px 10px', background: 'var(--red-glow)', color: 'var(--red-text)', border: '1px solid var(--border-red)', borderRadius: 4 }}><XCircle size={15} /></button>
                         </>}
                         {m.status === 'rejected' && (
                           <button className="btn" onClick={() => approve(m)} style={{ padding: '6px 10px', background: 'rgba(0,200,100,0.1)', color: '#00c864', border: '1px solid rgba(0,200,100,0.3)', borderRadius: 4 }}><CheckCircle size={15} /></button>
@@ -357,7 +357,7 @@ function MusicReview({ fetchPending }) {
               <MusicArt title={preview.title} size={80} />
               <div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{preview.title}</div>
-                <div style={{ color: 'var(--red)', fontSize: 14, margin: '4px 0' }}>{preview.artist_name}</div>
+                <div style={{ color: 'var(--red-text)', fontSize: 14, margin: '4px 0' }}>{preview.artist_name}</div>
                 <div style={{ display: 'flex', gap: 8 }}><span className="badge badge-music">{preview.genre}</span><StatusBadge status={preview.status} /></div>
               </div>
             </div>
@@ -496,7 +496,7 @@ function PostsReview({ fetchPending }) {
                         </button>
                         {p.status === 'pending' && <>
                           <button className="btn" onClick={() => approve(p)} style={{ padding: '6px 10px', background: 'rgba(0,200,100,0.1)', color: '#00c864', border: '1px solid rgba(0,200,100,0.3)', borderRadius: 4 }} title="Approve"><CheckCircle size={15} /></button>
-                          <button className="btn" onClick={() => setRejectModal(p)} style={{ padding: '6px 10px', background: 'var(--red-glow)', color: 'var(--red)', border: '1px solid var(--border-red)', borderRadius: 4 }} title="Reject"><XCircle size={15} /></button>
+                          <button className="btn" onClick={() => setRejectModal(p)} style={{ padding: '6px 10px', background: 'var(--red-glow)', color: 'var(--red-text)', border: '1px solid var(--border-red)', borderRadius: 4 }} title="Reject"><XCircle size={15} /></button>
                         </>}
                         {p.status === 'rejected' && (
                           <button className="btn" onClick={() => approve(p)} style={{ padding: '6px 10px', background: 'rgba(0,200,100,0.1)', color: '#00c864', border: '1px solid rgba(0,200,100,0.3)', borderRadius: 4 }}><CheckCircle size={15} /></button>
@@ -823,7 +823,7 @@ function VideoReview({ fetchPending }) {
                           <button className="btn btn-ghost" onClick={() => setPreview(v)} style={{ padding:'6px' }}><Eye size={15} /></button>
                           {v.status === 'pending' && <>
                             <button className="btn" onClick={() => approve(v)} style={{ padding:'6px 10px', background:'rgba(0,200,100,0.1)', color:'#00c864', border:'1px solid rgba(0,200,100,0.3)', borderRadius:4 }}><CheckCircle size={15} /></button>
-                            <button className="btn" onClick={() => { setRejectModal(v); setRejectNote('') }} style={{ padding:'6px 10px', background:'var(--red-glow)', color:'var(--red)', border:'1px solid var(--border-red)', borderRadius:4 }}><XCircle size={15} /></button>
+                            <button className="btn" onClick={() => { setRejectModal(v); setRejectNote('') }} style={{ padding:'6px 10px', background:'var(--red-glow)', color:'var(--red-text)', border:'1px solid var(--border-red)', borderRadius:4 }}><XCircle size={15} /></button>
                           </>}
                           {v.status === 'rejected' && (
                             <button className="btn" onClick={() => approve(v)} style={{ padding:'6px 10px', background:'rgba(0,200,100,0.1)', color:'#00c864', border:'1px solid rgba(0,200,100,0.3)', borderRadius:4 }}><CheckCircle size={15} /></button>
@@ -975,14 +975,14 @@ function AlbumReview() {
                 <div style={{ fontWeight: 700 }}>{album.title}</div>
                 <div style={{ fontSize: 12, color: 'var(--grey-300)' }}>{album.profiles?.name} · {album.genre}</div>
               </div>
-              <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', padding: '3px 10px', borderRadius: 20, background: album.status === 'approved' ? 'rgba(0,200,100,0.1)' : album.status === 'rejected' ? 'var(--red-glow)' : 'rgba(255,180,0,0.1)', color: album.status === 'approved' ? '#00c864' : album.status === 'rejected' ? 'var(--red)' : '#ffb400' }}>
+              <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', padding: '3px 10px', borderRadius: 20, background: album.status === 'approved' ? 'rgba(0,200,100,0.1)' : album.status === 'rejected' ? 'var(--red-glow)' : 'rgba(255,180,0,0.1)', color: album.status === 'approved' ? '#00c864' : album.status === 'rejected' ? 'var(--red-text)' : '#ffb400' }}>
                 {album.status.toUpperCase()}
               </span>
               <div className="adm-row-actions" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 <button onClick={() => updateStatus(album.id, 'approved')} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: 12, gap: 4 }}>
                   <CheckCircle size={12} /> Approve
                 </button>
-                <button onClick={() => updateStatus(album.id, 'rejected')} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 12, gap: 4, borderColor: 'var(--red)', color: 'var(--red)' }}>
+                <button onClick={() => updateStatus(album.id, 'rejected')} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 12, gap: 4, borderColor: 'var(--red)', color: 'var(--red-text)' }}>
                   <XCircle size={12} /> Reject
                 </button>
               </div>
@@ -1074,7 +1074,7 @@ function KYCReview() {
                 🔵 Approve — Grant Blue Tick
               </button>
               <button onClick={() => reject(app.id)}
-                style={{ fontSize:13, padding:'8px 14px', borderRadius:8, background:'transparent', border:'1px solid var(--red)', color:'var(--red)', cursor:'pointer' }}>
+                style={{ fontSize:13, padding:'8px 14px', borderRadius:8, background:'transparent', border:'1px solid var(--red)', color:'var(--red-text)', cursor:'pointer' }}>
                 ✕ Reject
               </button>
             </div>
@@ -1216,7 +1216,7 @@ function EditorReview() {
                 ✅ Approve Editor
               </button>
               <button onClick={() => reject(selected.id)}
-                style={{ padding:'9px 16px', borderRadius:8, background:'transparent', border:'1px solid var(--red)', color:'var(--red)', cursor:'pointer', fontSize:13 }}>
+                style={{ padding:'9px 16px', borderRadius:8, background:'transparent', border:'1px solid var(--red)', color:'var(--red-text)', cursor:'pointer', fontSize:13 }}>
                 ✕ Reject
               </button>
             </>}

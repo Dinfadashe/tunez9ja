@@ -171,7 +171,7 @@ export default function VideoUpload({ currentUser, onSuccess, onGoToKYC }) {
                   onChange={e => handleYoutubeUrl(e.target.value)} />
               </div>
               {urlError && (
-                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red)' }}>{urlError}</div>
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red-text)' }}>{urlError}</div>
               )}
 
               {/* YouTube preview */}
@@ -224,7 +224,7 @@ export default function VideoUpload({ currentUser, onSuccess, onGoToKYC }) {
                 <div style={{ fontSize: 32, marginBottom: 10 }}>
                   {videoFile ? '✅' : fileError ? '❌' : '🎬'}
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: videoFile ? '#00c864' : fileError ? 'var(--red)' : 'var(--grey-300)' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: videoFile ? '#00c864' : fileError ? 'var(--red-text)' : 'var(--grey-300)' }}>
                   {videoFile ? videoFile.name : fileError ? 'Invalid file — click to try again' : 'Click to upload your video'}
                 </div>
                 {videoFile && (

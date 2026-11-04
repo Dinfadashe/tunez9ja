@@ -119,7 +119,7 @@ export async function downloadTrack(track) {
     meta[track.id] = {
       id: track.id,
       title: track.title || 'Untitled',
-      artist: track.profiles?.name || track.artist_name || '',
+      artist: (track.performer_name && String(track.performer_name).trim()) || track.profiles?.name || '',
       artist_id: track.artist_id || null,
       cover_url: track.cover_url || null,
       audio_url: track.audio_url,

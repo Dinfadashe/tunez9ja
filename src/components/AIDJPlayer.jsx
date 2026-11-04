@@ -246,7 +246,7 @@ export default function AIDJPlayer({ currentUser, onClose }) {
             </div>
             <div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, letterSpacing: 1 }}>
-                TUNEZ<span style={{ color: 'var(--red)' }}>9JA</span> AI DJ
+                TUNEZ<span style={{ color: 'var(--red-text)' }}>9JA</span> AI DJ
               </div>
               <div style={{ fontSize: 10, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', letterSpacing: 1 }}>
                 {timeCtx.label} · {event.label}
@@ -312,7 +312,7 @@ export default function AIDJPlayer({ currentUser, onClose }) {
                   { label: 'Progress', value: Math.round(progress * 100) + '%' },
                 ].map(s => (
                   <div key={s.label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--red)' }}>{s.value}</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--red-text)' }}>{s.value}</div>
                     <div style={{ fontSize: 10, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{s.label}</div>
                   </div>
                 ))}
@@ -326,7 +326,7 @@ export default function AIDJPlayer({ currentUser, onClose }) {
                       <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
                         <div style={{ height: '100%', width: v + '%', background: 'var(--red)', borderRadius: 2 }} />
                       </div>
-                      <div style={{ fontSize: 10, color: 'var(--red)', fontFamily: 'var(--font-mono)', minWidth: 24 }}>{Math.round(v)}</div>
+                      <div style={{ fontSize: 10, color: 'var(--red-text)', fontFamily: 'var(--font-mono)', minWidth: 24 }}>{Math.round(v)}</div>
                     </div>
                   ))}
                 </div>
@@ -353,7 +353,7 @@ export default function AIDJPlayer({ currentUser, onClose }) {
             {/* DJ Comment */}
             {djComment && djActive && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 12px', background: 'rgba(200,16,46,0.08)', border: '1px solid rgba(200,16,46,0.2)', borderRadius: 10 }}>
-                <Mic2 size={13} style={{ color: 'var(--red)', flexShrink: 0 }} />
+                <Mic2 size={13} style={{ color: 'var(--red-text)', flexShrink: 0 }} />
                 <span style={{ fontSize: 12, color: 'var(--grey-300)', fontStyle: 'italic' }}>{djComment}</span>
               </div>
             )}
@@ -363,7 +363,7 @@ export default function AIDJPlayer({ currentUser, onClose }) {
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {nowPlaying && nowPlaying.cover_url
                   ? <img src={nowPlaying.cover_url} alt={nowPlaying.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--grey-700)' }}>
+                  : <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--text-faint)' }}>
                       <Music2 size={48} />
                       <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)' }}>{djActive ? 'AI DJ is selecting...' : 'Set up your AI DJ'}</span>
                     </div>
@@ -377,7 +377,7 @@ export default function AIDJPlayer({ currentUser, onClose }) {
                 {/* Energy badge */}
                 {nowPlaying && (
                   <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', borderRadius: 8, padding: '4px 10px', display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <Zap size={11} style={{ color: 'var(--red)' }} />
+                    <Zap size={11} style={{ color: 'var(--red-text)' }} />
                     <span style={{ fontSize: 11, color: 'var(--grey-200)', fontFamily: 'var(--font-mono)' }}>{Math.round(trackEnergy)}</span>
                     <span style={{ fontSize: 9, color: 'var(--grey-600)' }}>·</span>
                     <span style={{ fontSize: 11, color: 'var(--grey-200)', fontFamily: 'var(--font-mono)' }}>{trackBPM} BPM</span>
@@ -391,7 +391,7 @@ export default function AIDJPlayer({ currentUser, onClose }) {
               <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>
                 {nowPlaying ? nowPlaying.title : 'No track playing'}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--red)' }}>
+              <div style={{ fontSize: 13, color: 'var(--red-text)' }}>
                 {nowPlaying ? nowPlaying.profiles?.name || 'Unknown artist' : '—'}
               </div>
             </div>
@@ -412,7 +412,7 @@ export default function AIDJPlayer({ currentUser, onClose }) {
                 {isPlaying ? <Pause size={24} fill="white" color="white" /> : <Play size={24} fill="white" color="white" style={{ marginLeft: 2 }} />}
               </button>
               <button onClick={handleSkip}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: djActive ? 'var(--red)' : 'var(--grey-400)', cursor: 'pointer', padding: 10, borderRadius: '50%', display: 'flex', position: 'relative' }}>
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: djActive ? 'var(--red-text)' : 'var(--grey-400)', cursor: 'pointer', padding: 10, borderRadius: '50%', display: 'flex', position: 'relative' }}>
                 <SkipForward size={22} />
                 {djActive && (
                   <span style={{ position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderRadius: '50%', background: 'var(--red)', border: '2px solid #060a14' }} />
@@ -436,7 +436,7 @@ export default function AIDJPlayer({ currentUser, onClose }) {
             {/* Up next */}
             {djActive && upNext && (
               <div style={{ padding: '10px 14px', background: 'rgba(200,16,46,0.06)', border: '1px solid rgba(200,16,46,0.15)', borderRadius: 10 }}>
-                <div style={{ fontSize: 9, color: 'var(--red)', fontFamily: 'var(--font-mono)', letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' }}>AI Selected · Up Next</div>
+                <div style={{ fontSize: 9, color: 'var(--red-text)', fontFamily: 'var(--font-mono)', letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' }}>AI Selected · Up Next</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 6, background: '#1a1a1a', overflow: 'hidden', flexShrink: 0 }}>
                     {upNext.cover_url
@@ -450,7 +450,7 @@ export default function AIDJPlayer({ currentUser, onClose }) {
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ fontSize: 9, color: 'var(--grey-600)', fontFamily: 'var(--font-mono)' }}>ENERGY</div>
-                    <div style={{ fontSize: 13, color: 'var(--red)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{Math.round(inferTrackEnergy(upNext))}</div>
+                    <div style={{ fontSize: 13, color: 'var(--red-text)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{Math.round(inferTrackEnergy(upNext))}</div>
                   </div>
                 </div>
               </div>
@@ -468,12 +468,12 @@ export default function AIDJPlayer({ currentUser, onClose }) {
 
         {/* ── Footer: catalogue count ── */}
         <div style={{ padding: '10px 20px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <span style={{ fontSize: 10, color: 'var(--grey-700)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}>
             {catalogue.length} tracks in catalogue
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <EQBars active={isPlaying && djActive} count={4} color={djActive ? 'var(--red)' : 'var(--grey-700)'} />
-            <span style={{ fontSize: 10, color: djActive ? 'var(--red)' : 'var(--grey-700)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+            <span style={{ fontSize: 10, color: djActive ? 'var(--red-text)' : 'var(--grey-700)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
               {djActive ? 'DJ LIVE' : 'DJ OFF'}
             </span>
           </div>

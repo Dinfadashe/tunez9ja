@@ -17,10 +17,14 @@ const STATIC_PAGES = [
 ]
 
 const xml = (s = '') => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+// Same rules as the app and seo.js: cut at a word, max 70 chars
 function slugify(text) {
   return String(text || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-    .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 70).replace(/-+$/g, '')
+    .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 71)
+    .replace(/-[^-]*$/, m => (m.length > 1 && String(text).length > 71 ? '' : m))
+    .slice(0, 70).replace(/-+$/g, '')
 }
+const artistOf = (row) => (row?.performer_name && String(row.performer_name).trim()) || row?.profiles?.name || ''
 const path = (seg, id, ...words) => {
   const slug = slugify(words.filter(Boolean).join(' '))
   return `/${seg}/${id}${slug ? '/' + slug : ''}`
@@ -41,10 +45,11 @@ export default async () => {
         .then(r => (r.ok ? r.json() : [])).catch(() => [])
     : Promise.resolve([]))
 
-  const [tracks, posts, videos] = await Promise.all([
-    get(`music_tracks?status=eq.approved&select=${encodeURIComponent('id,title,cover_url,created_at,updated_at,artist_id,profiles:artist_id(name)')}&order=created_at.desc&limit=10000`),
+  const [tracks, posts, videos, albums] = await Promise.all([
+    get(`music_tracks?status=eq.approved&select=${encodeURIComponent('id,title,performer_name,genre,cover_url,created_at,updated_at,artist_id,profiles:artist_id(name)')}&order=created_at.desc&limit=10000`),
     get(`blog_posts?status=eq.approved&select=id,title,cover_url,published_at,created_at,updated_at&order=created_at.desc&limit=10000`),
     get(`videos?status=eq.approved&select=*&order=created_at.desc&limit=5000`),
+    get(`albums?status=eq.approved&select=${encodeURIComponent('*,profiles:artist_id(name)')}&order=created_at.desc&limit=5000`),
   ])
 
   const urls = STATIC_PAGES.map(p => entry({ loc: p.path, changefreq: p.changefreq, priority: p.priority }))
@@ -59,8 +64,22 @@ export default async () => {
   }
   for (const [id, a] of artists) urls.push(entry({ loc: path('artist', id, a.name), lastmod: a.lastmod, changefreq: 'weekly', priority: '0.7' }))
 
+  // Genres with at least one approved song
+  const genres = new Map()
+  for (const t of tracks) {
+    if (!t.genre) continue
+    const d = day(t.updated_at || t.created_at), slug = slugify(t.genre)
+    if (!genres.has(slug) || (d && d > genres.get(slug))) genres.set(slug, d)
+  }
+  for (const [slug, lastmod] of genres) urls.push(entry({ loc: `/genre/${slug}`, lastmod, changefreq: 'daily', priority: '0.8' }))
+
+  for (const a of albums) urls.push(entry({
+    loc: path('album', a.id, a.title, artistOf(a)), lastmod: day(a.updated_at || a.created_at),
+    changefreq: 'weekly', priority: '0.7', image: a.cover_url, title: a.title,
+  }))
+
   for (const t of tracks) urls.push(entry({
-    loc: path('track', t.id, t.title, t.profiles?.name), lastmod: day(t.updated_at || t.created_at),
+    loc: path('track', t.id, t.title, artistOf(t)), lastmod: day(t.updated_at || t.created_at),
     changefreq: 'weekly', priority: '0.8', image: t.cover_url, title: t.title,
   }))
   for (const p of posts) urls.push(entry({

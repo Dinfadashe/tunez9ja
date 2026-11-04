@@ -175,7 +175,7 @@ export default function WhitepaperWidget() {
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <FileText size={16} color="white" />
                     </div>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--red)', letterSpacing: 2, textTransform: 'uppercase' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--red-text)', letterSpacing: 2, textTransform: 'uppercase' }}>
                       Official Document
                     </span>
                   </div>
@@ -209,11 +209,11 @@ export default function WhitepaperWidget() {
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
                   >
-                    <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, letterSpacing: 0.5, color: expanded[sec.id] ? 'var(--red)' : 'var(--grey-100)' }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, letterSpacing: 0.5, color: expanded[sec.id] ? 'var(--red-text)' : 'var(--grey-100)' }}>
                       {sec.heading}
                     </span>
                     {expanded[sec.id]
-                      ? <ChevronUp size={16} style={{ color: 'var(--red)', flexShrink: 0 }} />
+                      ? <ChevronUp size={16} style={{ color: 'var(--red-text)', flexShrink: 0 }} />
                       : <ChevronDown size={16} style={{ color: 'var(--grey-500)', flexShrink: 0 }} />
                     }
                   </button>

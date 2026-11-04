@@ -57,7 +57,7 @@ export default function UserDashboard({ setPage, currentUser: propUser, onRoleSw
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
-      <main className="dashboard-main">
+      <div className="dashboard-main">
         <div className="dashboard-header">
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
             <button
@@ -67,7 +67,7 @@ export default function UserDashboard({ setPage, currentUser: propUser, onRoleSw
               ☰
             </button>
             <div>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red)', letterSpacing:2 }}>USER PORTAL</span>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red-text)', letterSpacing:2 }}>USER PORTAL</span>
               <h1 style={{ fontFamily:'var(--font-display)', fontSize:22 }}>
                 {NAV.find(n => n.key === active)?.label}
               </h1>
@@ -86,7 +86,7 @@ export default function UserDashboard({ setPage, currentUser: propUser, onRoleSw
           {active === 'profile'   && <ProfileEditor currentUser={currentUser} onUpdated={(u) => setCurrentUser(prev => ({ ...prev, ...u }))} />}
           {active === 'editor'    && <EditorApplication currentUser={currentUser} />}
         </div>
-      </main>
+      </div>
     </div>
   )
 }
@@ -121,7 +121,7 @@ function UserOverview({ currentUser, setActive, setPage }) {
           </div>
         </div>
         <div style={{ textAlign:'right', flexShrink:0 }}>
-          <div style={{ fontFamily:'var(--font-display)', fontSize:32, color:'var(--red)' }}>
+          <div style={{ fontFamily:'var(--font-display)', fontSize:32, color:'var(--red-text)' }}>
             {balance !== null ? Number(balance?.balance || 0).toFixed(0) : '…'}
           </div>
           <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--grey-500)', letterSpacing:1 }}>TUNEZ</div>

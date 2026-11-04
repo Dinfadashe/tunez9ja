@@ -16,7 +16,7 @@ import {
 import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { useApp } from '../context/AppContext.jsx'
-import { openItem, shareLinkFor } from '../lib/urlState.js'
+import { openItem, shareLinkFor, artistOf } from '../lib/urlState.js'
 import { isUnlocked } from '../lib/tunez.js'
 import {
   useDownloads, downloadTrack, removeDownload, cancelDownload, canDownload, isDownloadSupported, formatBytes,
@@ -120,7 +120,7 @@ function MenuPanel({ track, currentUser, view, setView, isMobile, pos, sheetRef,
   const [unlocked, setUnlocked] = useState(!track.is_premium)
   const dl = progress(track.id)
   const downloaded = isDownloaded(track.id)
-  const artistName = track.profiles?.name || track.artist_name || ''
+  const artistName = artistOf(track)
 
   useEffect(() => {
     if (!currentUser?.id) return
@@ -215,7 +215,7 @@ function MenuPanel({ track, currentUser, view, setView, isMobile, pos, sheetRef,
         onClick={e => { e.preventDefault(); onClose() }}
         onContextMenu={e => { e.preventDefault(); onClose() }}
         style={{ position: 'absolute', inset: 0, background: isMobile ? 'rgba(0,0,0,0.6)' : 'transparent' }} />
-      <div ref={sheetRef} role="menu" aria-label={`Options for ${track.title}`} style={{ ...panelStyle, pointerEvents: 'auto' }}
+      <div ref={sheetRef} role="dialog" aria-modal="true" aria-label={`Options for ${track.title}`} style={{ ...panelStyle, pointerEvents: 'auto' }}
         onClick={e => e.stopPropagation()}>
         {isMobile && <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--grey-700, #444)', margin: '10px auto 2px' }} />}
 
@@ -240,7 +240,7 @@ function MenuPanel({ track, currentUser, view, setView, isMobile, pos, sheetRef,
         </div>
 
         {view === 'main' ? (
-          <div style={{ padding: '6px 0' }}>
+          <div role="menu" aria-label="Track actions" style={{ padding: '6px 0' }}>
             <Row icon={ListPlus} label="Play next" onClick={playNext} big={isMobile} />
             <Row icon={ListEnd} label="Add to queue" onClick={queue} big={isMobile} />
             <Row icon={Plus} label="Add to playlist" onClick={() => { if (requireLogin('add to playlists')) setView('playlists') }} big={isMobile} />
@@ -316,13 +316,13 @@ function PlaylistPicker({ track, currentUser, big, onDone }) {
           </button>
         </form>
       ) : (
-        <Row icon={Plus} label="New playlist" onClick={() => setCreating(true)} big={big} accent />
+        <Row icon={Plus} label="New playlist" onClick={() => setCreating(true)} big={big} accent plain />
       )}
       {playlists.length === 0 && !creating && (
         <div style={{ padding: big ? '6px 18px 14px' : '6px 14px 12px', fontSize: 13, color: 'var(--grey-500)' }}>You don't have any playlists yet.</div>
       )}
       {playlists.map(pl => (
-        <Row key={pl.id} icon={busy === pl.id ? Loader2 : ListMusic} spin={busy === pl.id} label={pl.name} onClick={() => !busy && addTo(pl)} big={big} />
+        <Row key={pl.id} plain icon={busy === pl.id ? Loader2 : ListMusic} spin={busy === pl.id} label={pl.name} onClick={() => !busy && addTo(pl)} big={big} />
       ))}
     </div>
   )
@@ -333,9 +333,9 @@ const iconBtn = {
   minWidth: 40, minHeight: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, flexShrink: 0,
 }
 
-function Row({ icon: Icon, label, onClick, big, active, accent, spin, progress }) {
+function Row({ icon: Icon, label, onClick, big, active, accent, spin, progress, plain }) {
   return (
-    <button type="button" role="menuitem" onClick={onClick}
+    <button type="button" role={plain ? undefined : 'menuitem'} onClick={onClick}
       style={{
         position: 'relative', width: '100%', display: 'flex', alignItems: 'center', gap: 16,
         padding: big ? '0 20px' : '0 14px', minHeight: big ? 52 : 42,

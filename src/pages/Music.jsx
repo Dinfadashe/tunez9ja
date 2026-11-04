@@ -11,7 +11,7 @@ import { Play, Pause, Music, Heart, Plus, ListMusic, Disc, Headphones } from 'lu
 import ShareButton from '../components/ShareButton.jsx'
 import TrackPage   from '../components/TrackPage.jsx'
 import TrackMenu   from '../components/TrackMenu.jsx'
-import { openItem, closeItem, takeCachedItem, shareLinkFor, settleItemUrl } from '../lib/urlState.js'
+import { artistOf, openItem, closeItem, takeCachedItem, shareLinkFor, settleItemUrl, navigateToGenre, parseLocation, onUrlChange, slugify } from '../lib/urlState.js'
 import Albums from '../components/Albums.jsx'
 
 
@@ -44,7 +44,7 @@ const SaveButton = React.memo(function SaveButton({ track, currentUser }) {
   return (
     <button onClick={toggle} disabled={loading}
       title={saved ? 'Remove from library' : 'Save to library'}
-      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: saved ? 'var(--red)' : 'var(--grey-500)', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: saved ? 'var(--red-text)' : 'var(--grey-500)', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
       <Heart size={15} fill={saved ? 'currentColor' : 'none'} />
     </button>
   )
@@ -94,6 +94,9 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
   const [loading, setLoading]         = useState(true)
   const [search, setSearch]           = useState('')
   const [activeGenre, setActiveGenre] = useState('All')
+  // /genre/<slug> picks the genre (a real, shareable, crawlable address)
+  const [genreSlug, setGenreSlug] = useState(() => parseLocation().genre || null)
+  React.useEffect(() => onUrlChange(() => setGenreSlug(parseLocation().genre || null)), [])
   const { nowPlaying, isPlaying, playTrack, togglePlay, addToPlayNext } = usePlayer()
   const [unlockTarget, setUnlockTarget] = React.useState(null)
   const [unlockedIds, setUnlockedIds] = React.useState(new Set())
@@ -173,8 +176,13 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
   }, [])
 
   const genres   = ['All', ...new Set(tracks.map(t => t.genre).filter(Boolean))]
+  React.useEffect(() => {
+    if (!genreSlug) { setActiveGenre('All'); return }
+    const match = genres.find(g => g !== 'All' && slugify(g) === genreSlug)
+    if (match) setActiveGenre(match)
+  }, [genreSlug, tracks.length])
   const filtered = tracks.filter(t => {
-    const artist = t.profiles?.name || ''
+    const artist = artistOf(t)
     const matchSearch = t.title?.toLowerCase().includes(search.toLowerCase()) ||
       artist.toLowerCase().includes(search.toLowerCase())
     const matchGenre = activeGenre === 'All' || t.genre === activeGenre
@@ -229,7 +237,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
       <div style={{ background: 'linear-gradient(180deg,#1a0a0d 0%,var(--bg-deep) 100%)', padding: '60px 0 40px', borderBottom: '1px solid var(--border)' }}>
         <div className="container">
           <div className="section-label">Music Library</div>
-          <h1 className="page-title">STREAM THE<br /><span style={{ color: 'var(--red)' }}>CULTURE</span></h1>
+          <h1 className="page-title">STREAM THE<br /><span style={{ color: 'var(--red-text)' }}>CULTURE</span></h1>
           <p style={{ color: 'var(--grey-300)', marginTop: 12, fontSize: 15 }}>
             {loading ? 'Loading...' : `${tracks.length} track${tracks.length !== 1 ? 's' : ''} from independent artists worldwide`}
           </p>
@@ -262,7 +270,7 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', overflowX: 'auto', paddingBottom: 4 }}>
                 {genres.map(g => (
-                  <button key={g} onClick={() => setActiveGenre(g)}
+                  <button key={g} onClick={() => navigateToGenre(g)}
                     style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontFamily: 'var(--font-mono)', border: '1px solid', cursor: 'pointer', transition: 'all 0.2s', background: activeGenre === g ? 'var(--red)' : 'transparent', borderColor: activeGenre === g ? 'var(--red)' : 'var(--border)', color: activeGenre === g ? 'white' : 'var(--grey-300)' }}>
                     {g}
                   </button>
@@ -345,12 +353,12 @@ export default function MusicPage({ setPage, currentUser, deepLink }) {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div
                               onClick={() => openTrack(track)}
-                              style={{ fontWeight: 700, fontSize: 14, color: playing ? 'var(--red)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                              style={{ fontWeight: 700, fontSize: 14, color: playing ? 'var(--red-text)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
                               title={track.title}>
                               {track.title}
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--grey-400)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {track.profiles?.name}{track.profiles?.is_verified ? ' ✅' : ''}
+                              {artistOf(track)}{(track.profiles?.is_verified && !track.performer_name) ? ' ✅' : ''}
                             </div>
                           </div>
                           <span style={{ fontSize: 11, color: 'var(--grey-600)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>

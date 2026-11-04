@@ -215,13 +215,13 @@ export default function TermsPage() {
             Last updated June 2026 · Effective since January 2021
           </p>
           <div style={{ display: 'flex', gap: 16, marginTop: 20, flexWrap: 'wrap' }}>
-            <a href="mailto:legal@tunez9ja.com" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--red)' }}>
+            <a href="mailto:legal@tunez9ja.com" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--red-text)' }}>
               <Mail size={14} /> legal@tunez9ja.com
             </a>
-            <a href="mailto:dmca@tunez9ja.com" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--red)' }}>
+            <a href="mailto:dmca@tunez9ja.com" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--red-text)' }}>
               <AlertTriangle size={14} /> dmca@tunez9ja.com
             </a>
-            <a href="mailto:billing@tunez9ja.com" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--red)' }}>
+            <a href="mailto:billing@tunez9ja.com" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--red-text)' }}>
               <Coins size={14} /> billing@tunez9ja.com
             </a>
           </div>

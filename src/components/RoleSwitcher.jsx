@@ -3,7 +3,7 @@ import { ChevronDown, Shield, Mic2, Newspaper, PenLine, LogOut, User as UserIcon
 
 // Single source of truth for role metadata and where each role lands.
 export const ROLES = [
-  { key: 'admin',   label: 'Admin',   icon: Shield,    color: 'var(--red)', page: 'admin-dashboard'   },
+  { key: 'admin',   label: 'Admin',   icon: Shield,    color: 'var(--red-text)', page: 'admin-dashboard'   },
   { key: 'artist',  label: 'Artist',  icon: Mic2,      color: '#7b4fff',    page: 'artist-dashboard'  },
   { key: 'blogger', label: 'Blogger', icon: Newspaper, color: '#00b4dc',    page: 'blogger-dashboard' },
   { key: 'editor',  label: 'Editor',  icon: PenLine,   color: '#f59e0b',    page: 'editor-dashboard'  },
@@ -76,7 +76,7 @@ export default function RoleSwitcher({
   if (variant === 'list') {
     return (
       <div>
-        <div style={{ padding: '0.375rem 1.25rem 0.25rem', fontSize: '0.625rem', color: 'var(--grey-700)', fontFamily: 'var(--font-mono)', letterSpacing: 1, textTransform: 'uppercase' }}>
+        <div style={{ padding: '0.375rem 1.25rem 0.25rem', fontSize: '0.625rem', color: 'var(--text-faint)', fontFamily: 'var(--font-mono)', letterSpacing: 1, textTransform: 'uppercase' }}>
           Switch role
         </div>
         <div style={{ paddingLeft: '0.25rem' }}>{roles.map(item)}</div>

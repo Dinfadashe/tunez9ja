@@ -283,7 +283,7 @@ export default function VerificationPanel({ currentUser, onRoleSwitch }) {
           <br /><br />
           If your application is rejected, you may reapply after <strong>60 days</strong> and must pay the fee again.
         </p>
-        {error && <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 16 }}>{error}</div>}
+        {error && <div style={{ color: 'var(--red-text)', fontSize: 13, marginBottom: 16 }}>{error}</div>}
         <div style={{ display: 'flex', gap: 12 }}>
           <button onClick={payVerificationFee} className="btn btn-primary" style={{ flex: 1, justifyContent: 'center', padding: '12px' }}>
             Pay ₦2,000 & Continue
@@ -371,7 +371,7 @@ export default function VerificationPanel({ currentUser, onRoleSwitch }) {
           By submitting, you confirm that all information provided is accurate and that you are the rightful owner of the submitted identity document. False submissions result in permanent account suspension.
         </div>
 
-        {error && <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 16 }}>{error}</div>}
+        {error && <div style={{ color: 'var(--red-text)', fontSize: 13, marginBottom: 16 }}>{error}</div>}
 
         <div style={{ display: 'flex', gap: 12 }}>
           <button onClick={submitKYC} disabled={uploading} className="btn btn-primary"

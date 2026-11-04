@@ -56,6 +56,8 @@ export function ReactionBar({ targetType, targetId, currentUser, compact = false
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <button
         onClick={() => react('like')}
+        aria-label={`Like${likes > 0 ? ` (${likes})` : ''}`}
+        aria-pressed={myReaction === 'like'}
         disabled={loading}
         style={{
           display: 'flex', alignItems: 'center', gap: 5,
@@ -74,6 +76,8 @@ export function ReactionBar({ targetType, targetId, currentUser, compact = false
 
       <button
         onClick={() => react('dislike')}
+        aria-label={`Dislike${dislikes > 0 ? ` (${dislikes})` : ''}`}
+        aria-pressed={myReaction === 'dislike'}
         disabled={loading}
         style={{
           display: 'flex', alignItems: 'center', gap: 5,
@@ -81,7 +85,7 @@ export function ReactionBar({ targetType, targetId, currentUser, compact = false
           borderRadius: 20, border: '1px solid',
           background: myReaction === 'dislike' ? 'var(--red-glow)' : 'transparent',
           borderColor: myReaction === 'dislike' ? 'var(--border-red)' : 'var(--border)',
-          color: myReaction === 'dislike' ? 'var(--red)' : 'var(--grey-300)',
+          color: myReaction === 'dislike' ? 'var(--red-text)' : 'var(--grey-300)',
           cursor: 'pointer', fontSize: compact ? 12 : 13, fontWeight: 600,
           transition: 'all 0.2s',
         }}
@@ -92,7 +96,7 @@ export function ReactionBar({ targetType, targetId, currentUser, compact = false
 
       {needLogin && (
         <span style={{
-          fontSize: 12, color: 'var(--red)', fontFamily: 'var(--font-mono)',
+          fontSize: 12, color: 'var(--red-text)', fontFamily: 'var(--font-mono)',
           animation: 'fadeUp 0.3s ease', background: 'var(--red-glow)',
           padding: '3px 10px', borderRadius: 20, border: '1px solid var(--border-red)',
         }}>
@@ -336,9 +340,9 @@ export default function CommentsSection({ targetType, targetId, currentUser }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
         <MessageCircle size={20} color="var(--red)" />
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: 0.5 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: 0.5 }}>
           {count > 0 ? count + ' COMMENT' + (count !== 1 ? 'S' : '') : 'COMMENTS'}
-        </h3>
+        </h2>
       </div>
 
       {/* New comment input */}
@@ -376,7 +380,7 @@ export default function CommentsSection({ targetType, targetId, currentUser }) {
               {/* Reply input for this comment */}
               {replyingTo?.id === comment.id && (
                 <div style={{ marginLeft: 32, marginBottom: 16, padding: '14px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10 }}>
-                  <div style={{ fontSize: 12, color: 'var(--red)', fontFamily: 'var(--font-mono)', letterSpacing: 1, marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, color: 'var(--red-text)', fontFamily: 'var(--font-mono)', letterSpacing: 1, marginBottom: 10 }}>
                     REPLYING TO {replyingTo.profiles?.name?.toUpperCase()}
                   </div>
                   <CommentInput

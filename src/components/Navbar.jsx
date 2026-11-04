@@ -45,7 +45,7 @@ function Breadcrumb({ history, historyIndex, setPage }) {
     }}>
       {trail.map((p, i) => (
         <React.Fragment key={p + i}>
-          {i > 0 && <Sep size={12} style={{ color: 'var(--grey-700)', flexShrink: 0 }} />}
+          {i > 0 && <Sep size={12} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />}
           <button onClick={() => setPage(p)}
             style={{
               background: 'none', border: 'none', padding: '0.125rem 0.375rem', borderRadius: 5,
@@ -149,7 +149,7 @@ export default function Navbar({
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flexShrink: 0, minWidth: 0 }}>
             <Logo size={28} />
             <span style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1rem, 0.9rem + 0.4vw, 1.2rem)', letterSpacing: 1, whiteSpace: 'nowrap' }}>
-              TUNEZ<span style={{ color: 'var(--red)' }}>9JA</span>
+              TUNEZ<span style={{ color: 'var(--red-text)' }}>9JA</span>
             </span>
           </div>
 
@@ -160,7 +160,7 @@ export default function Navbar({
                 padding: '0.3rem 0.7rem', borderRadius: 20,
                 background: 'rgba(200,16,46,0.12)',
                 border: '1px solid rgba(200,16,46,0.35)',
-                color: 'var(--red)', cursor: 'pointer',
+                color: 'var(--red-text)', cursor: 'pointer',
                 fontSize: '0.75rem', fontWeight: 700, flexShrink: 0,
                 minHeight: '2rem',
               }}
@@ -178,7 +178,7 @@ export default function Navbar({
                     padding: '0.4rem 0.7rem', borderRadius: 7,
                     background: active ? 'rgba(200,16,46,0.12)' : 'none',
                     border: 'none',
-                    color: active ? 'var(--red)' : 'var(--grey-400)',
+                    color: active ? 'var(--red-text)' : 'var(--grey-400)',
                     fontWeight: active ? 700 : 400,
                     cursor: 'pointer', fontSize: 'clamp(0.8rem, 0.75rem + 0.15vw, 0.875rem)',
                     transition: 'all 0.15s',
@@ -204,7 +204,7 @@ export default function Navbar({
                 title="Launch AI DJ" aria-label="Launch AI DJ"
                 style={{
                   background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.3)', borderRadius: 8,
-                  color: 'var(--red)', cursor: 'pointer', padding: '0.35rem 0.6rem',
+                  color: 'var(--red-text)', cursor: 'pointer', padding: '0.35rem 0.6rem',
                   display: 'flex', alignItems: 'center', gap: 5,
                   fontSize: '0.7rem', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: 0.5,
                   minHeight: '2.25rem', whiteSpace: 'nowrap',
@@ -331,7 +331,7 @@ export default function Navbar({
                           background: active ? 'rgba(200,16,46,0.1)' : 'none',
                           border: 'none',
                           borderLeft: active ? '3px solid var(--red)' : '3px solid transparent',
-                          color: active ? 'var(--red)' : 'var(--grey-300)',
+                          color: active ? 'var(--red-text)' : 'var(--grey-300)',
                           cursor: 'pointer', fontSize: '0.875rem', fontWeight: active ? 700 : 400,
                           textAlign: 'left', transition: 'all 0.15s',
                         }}>
@@ -350,7 +350,7 @@ export default function Navbar({
                 )}
 
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
-                  <div style={{ padding: '0.375rem 1.25rem 0.25rem', fontSize: '0.625rem', color: 'var(--grey-700)', fontFamily: 'var(--font-mono)', letterSpacing: 1, textTransform: 'uppercase' }}>Explore</div>
+                  <div style={{ padding: '0.375rem 1.25rem 0.25rem', fontSize: '0.625rem', color: 'var(--text-faint)', fontFamily: 'var(--font-mono)', letterSpacing: 1, textTransform: 'uppercase' }}>Explore</div>
                   {NAV_LINKS.filter(l => l.page !== 'home').map(l => {
                     const Icon = l.icon
                     const active = page === l.page
@@ -360,7 +360,7 @@ export default function Navbar({
                           width: '100%', display: 'flex', alignItems: 'center', gap: '0.875rem',
                           padding: '0.7rem 1.25rem', minHeight: '2.75rem', background: 'none',
                           border: 'none', borderLeft: '3px solid transparent',
-                          color: active ? 'var(--red)' : 'var(--grey-500)',
+                          color: active ? 'var(--red-text)' : 'var(--grey-500)',
                           cursor: 'pointer', fontSize: '0.8rem', fontWeight: active ? 700 : 400,
                           textAlign: 'left',
                         }}>
@@ -379,7 +379,7 @@ export default function Navbar({
                   </button>
                   {onLogout && (
                     <button onClick={() => { onLogout(); setMenuOpen(false) }}
-                      style={{ background: 'none', border: '1px solid rgba(200,16,46,0.3)', borderRadius: 8, color: 'var(--red)', cursor: 'pointer', padding: '0.45rem 0.75rem', display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.75rem', minHeight: '2.5rem' }}>
+                      style={{ background: 'none', border: '1px solid rgba(200,16,46,0.3)', borderRadius: 8, color: 'var(--red-text)', cursor: 'pointer', padding: '0.45rem 0.75rem', display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.75rem', minHeight: '2.5rem' }}>
                       <LogOut size={13} /> Sign out
                     </button>
                   )}
@@ -396,7 +396,7 @@ export default function Navbar({
                         width: '100%', display: 'flex', alignItems: 'center', gap: '0.875rem',
                         padding: '0.8rem 1.25rem', minHeight: '2.75rem', background: active ? 'rgba(200,16,46,0.1)' : 'none',
                         border: 'none', borderLeft: active ? '3px solid var(--red)' : '3px solid transparent',
-                        color: active ? 'var(--red)' : 'var(--grey-300)',
+                        color: active ? 'var(--red-text)' : 'var(--grey-300)',
                         cursor: 'pointer', fontSize: '0.9rem', fontWeight: active ? 700 : 400,
                         textAlign: 'left',
                       }}>

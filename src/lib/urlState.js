@@ -9,6 +9,8 @@
 //           /blog/<id>/<slug>         a blog post in full read mode
 //           /video/<id>/<slug>        a video, playing
 //           /artist/<id>/<slug>       a public profile
+//           /album/<id>/<slug>        an album
+//           /genre/<slug>             the Music page, filtered to a genre
 //
 // The slug (song/post title, artist name) is for people and search engines;
 // only the id is used to load the item. Old links (/?page=music, /?track=<id>,
@@ -16,14 +18,14 @@
 // server redirects them permanently, and the app rewrites them too.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const ITEM_TYPES = ['post', 'track', 'video', 'profile', 'artist']
+export const ITEM_TYPES = ['post', 'track', 'video', 'profile', 'artist', 'album']
 
 // Which page shows each kind of item
-export const ITEM_PAGE = { post: 'blog', track: 'music', video: 'videos', profile: 'profile' }
+export const ITEM_PAGE = { post: 'blog', track: 'music', video: 'videos', profile: 'profile', album: 'albums' }
 
 // Item type ↔ first path segment
-const SEGMENT_FOR = { post: 'blog', track: 'track', video: 'video', profile: 'artist' }
-const TYPE_FOR = { blog: 'post', post: 'post', track: 'track', video: 'video', artist: 'profile', profile: 'profile' }
+const SEGMENT_FOR = { post: 'blog', track: 'track', video: 'video', profile: 'artist', album: 'album' }
+const TYPE_FOR = { blog: 'post', post: 'post', track: 'track', video: 'video', artist: 'profile', profile: 'profile', album: 'album' }
 
 export const SITE = 'https://tunez9ja.com'
 const EVENT = 't9:urlchange'
@@ -37,15 +39,22 @@ export function slugify(text) {
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+    .slice(0, 71)
+    .replace(/-[^-]*$/, m => (m.length > 1 && String(text).length > 71 ? '' : m))  // cut at a word, not mid-word
     .slice(0, 70)
     .replace(/-+$/g, '')
+}
+
+/** The performing artist: the credited name if set, otherwise the uploader. */
+export function artistOf(track) {
+  return (track?.performer_name && String(track.performer_name).trim()) || track?.profiles?.name || track?.artist_name || track?.artist || ''
 }
 
 /** A readable slug for an item object (title, plus artist for tracks). */
 export function slugFor(type, obj) {
   if (!obj) return ''
   if (type === 'profile') return slugify(obj.name)
-  const by = type === 'track' ? (obj.profiles?.name || obj.artist_name || '') : ''
+  const by = type === 'track' || type === 'album' ? artistOf(obj) : ''
   return slugify([obj.title, by].filter(Boolean).join(' '))
 }
 
@@ -81,11 +90,17 @@ export function parseLocation(loc = window.location) {
   const parts = loc.pathname.split('/').filter(Boolean).map(decodeURIComponent)
   if (!parts.length) return { page: 'home', item: null }
   const [first, second] = parts
+  if (first === 'genre' && second) return { page: 'music', item: null, genre: second }
   const type = TYPE_FOR[first]
   if (type && second && UUID.test(second)) {
     return { page: ITEM_PAGE[type], item: { type, id: second } }
   }
   return { page: first, item: null }
+}
+
+/** Show the Music page filtered to a genre (/genre/<slug>), or all music. */
+export function navigateToGenre(genre) {
+  go(!genre || genre === 'All' ? '/music' : `/genre/${slugify(genre)}`)
 }
 
 /** True when the address bar still shows an old-style link. */

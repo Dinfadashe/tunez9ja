@@ -1,5 +1,6 @@
 import TrackMenu from './TrackMenu.jsx'
 import React, { useState, useEffect } from 'react'
+import { artistOf } from '../lib/urlState.js'
 import { supabase } from '../lib/supabase.js'
 import { Heart } from 'lucide-react'
 import { getMyLibrary } from '../lib/tunez.js'
@@ -52,7 +53,7 @@ export default function MyLibrary({ currentUser }) {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 8 }}>PREMIUM UNLOCKS</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 3, marginBottom: 8 }}>PREMIUM UNLOCKS</div>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 32, marginBottom: 8 }}>MY LIBRARY</h2>
         <p style={{ fontSize: 14, color: 'var(--grey-300)' }}>
           {unlocks.length} premium {unlocks.length === 1 ? 'item' : 'items'} unlocked · Access these forever, free.
@@ -120,7 +121,7 @@ export default function MyLibrary({ currentUser }) {
                 <div style={{ padding: '12px 14px' }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</div>
                   <div style={{ fontSize: 12, color: 'var(--grey-300)', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {item.profiles?.name || '—'}
+                    {artistOf(item) || '—'}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)' }}>
@@ -171,7 +172,7 @@ export default function MyLibrary({ currentUser }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
                   <div style={{ fontSize: 12, color: 'var(--grey-300)', marginTop: 2 }}>
-                    {track.profiles?.name}{track.profiles?.is_verified && ' ✅'}
+                    {artistOf(track)}{(track.profiles?.is_verified && !track.performer_name) && ' ✅'}
                   </div>
                 </div>
                 <span style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{track.genre}</span>
@@ -182,7 +183,7 @@ export default function MyLibrary({ currentUser }) {
                     await supabase.from('saved_tracks').delete().eq('user_id', currentUser.id).eq('track_id', track.id)
                     setSavedTracks(prev => prev.filter(t => t.id !== track.id))
                   }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4, flexShrink: 0 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red-text)', padding: 4, flexShrink: 0 }}
                   title="Remove from library">
                   <Heart size={14} fill="var(--red)" />
                 </button>

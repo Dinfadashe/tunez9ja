@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
+import { artistOf } from '../lib/urlState.js'
 import { usePlayer, usePlayerTime } from '../context/PlayerContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { earnStream } from '../lib/tunez.js'
@@ -125,7 +126,7 @@ export default function FloatingPlayer({ currentUser }) {
 
   const btnStyle = (active = false, color = 'var(--grey-400)') => ({
     background: 'none', border: 'none', cursor: 'pointer',
-    color: active ? 'var(--red)' : color,
+    color: active ? 'var(--red-text)' : color,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 7, borderRadius: 6,
     transition: 'color 0.15s, transform 0.1s',
@@ -204,7 +205,7 @@ export default function FloatingPlayer({ currentUser }) {
             position: 'relative',
           }}>
             {nowPlaying.cover_url
-              ? <img src={nowPlaying.cover_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img src={nowPlaying.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Music size={12} style={{ opacity: 0.3 }} />
                 </div>
@@ -223,7 +224,9 @@ export default function FloatingPlayer({ currentUser }) {
 
           {/* Title + artist — click to open track page */}
           <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-            onClick={() => setFullOpen(true)} role="button" aria-label="Open full player">
+            onClick={() => setFullOpen(true)} role="button" tabIndex={0} title="Open full player"
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFullOpen(true) } }}
+>
             <div style={{
               fontSize: 12, fontWeight: 700,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -232,16 +235,16 @@ export default function FloatingPlayer({ currentUser }) {
               {nowPlaying.title}
             </div>
             <div style={{ fontSize: 10, color: 'var(--grey-500)', marginTop: 1 }}>
-              {nowPlaying.profiles?.name || ''}
+              {artistOf(nowPlaying)}
             </div>
           </div>
 
           {/* Mini controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-            <button onClick={skipPrev} style={btnStyle()}>
+            <button aria-label="Previous" onClick={skipPrev} style={btnStyle()}>
               <SkipBack size={15} />
             </button>
-            <button onClick={togglePlay} style={{
+            <button aria-label={isPlaying ? 'Pause' : 'Play'} onClick={togglePlay} style={{
               width: 34, height: 34, borderRadius: '50%',
               background: 'var(--red)', border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -251,7 +254,7 @@ export default function FloatingPlayer({ currentUser }) {
                 : <Play  size={14} fill="white" color="white" style={{ marginLeft: 1 }} />
               }
             </button>
-            <button onClick={skipNext} style={btnStyle()}>
+            <button aria-label="Next" onClick={skipNext} style={btnStyle()}>
               <SkipForward size={15} />
             </button>
             <button onClick={openNowPlaying} title="Now playing (Q)" aria-label="Now playing"
@@ -282,7 +285,7 @@ export default function FloatingPlayer({ currentUser }) {
               overflow: 'hidden', background: 'var(--bg-surface)',
             }}>
               {nowPlaying.cover_url
-                ? <img src={nowPlaying.cover_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ? <img src={nowPlaying.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Music size={18} style={{ opacity: 0.3 }} />
                   </div>
@@ -302,7 +305,9 @@ export default function FloatingPlayer({ currentUser }) {
 
           {/* Track info — click to open track page */}
           <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-            onClick={() => setFullOpen(true)} role="button" aria-label="Open full player">
+            onClick={() => setFullOpen(true)} role="button" tabIndex={0} title="Open full player"
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFullOpen(true) } }}
+>
             <div style={{
               fontWeight: 700, fontSize: 13,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -316,7 +321,7 @@ export default function FloatingPlayer({ currentUser }) {
               fontSize: 11, color: 'var(--grey-400)', marginTop: 2,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              {nowPlaying.profiles?.name || ''}
+              {artistOf(nowPlaying)}
             </div>
           </div>
 
@@ -333,7 +338,7 @@ export default function FloatingPlayer({ currentUser }) {
               <SkipBack size={20} />
             </button>
 
-            <button onClick={togglePlay}
+            <button aria-label={isPlaying ? 'Pause' : 'Play'} onClick={togglePlay}
               style={{
                 width: 42, height: 42, borderRadius: '50%',
                 background: 'var(--red)', border: 'none', cursor: 'pointer',

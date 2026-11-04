@@ -67,7 +67,7 @@ export default function AdminAnalytics() {
   return (
     <div>
       <div style={{ marginBottom:28 }}>
-        <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red)', letterSpacing:3, marginBottom:8 }}>OVERVIEW</div>
+        <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red-text)', letterSpacing:3, marginBottom:8 }}>OVERVIEW</div>
         <h2 style={{ fontFamily:'var(--font-display)', fontSize:32 }}>ANALYTICS</h2>
       </div>
 

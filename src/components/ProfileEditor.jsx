@@ -164,7 +164,7 @@ export default function ProfileEditor({ currentUser, onUpdated }) {
           <div style={{ fontSize: 12, color: 'var(--grey-500)', marginTop: 3, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: 1 }}>
             {currentUser?.role}{currentUser?.is_verified ? ' · ✅ Verified' : ''}
           </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red)', cursor: 'pointer' }}
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red-text)', cursor: 'pointer' }}
             onClick={() => !uploading && fileRef.current?.click()}>
             📷 {uploading ? 'Uploading...' : 'Change profile photo'}
           </div>
@@ -219,7 +219,7 @@ export default function ProfileEditor({ currentUser, onUpdated }) {
       </div>
 
       {msg && (
-        <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13, background: msg.type === 'success' ? 'rgba(0,200,100,0.1)' : 'rgba(200,16,46,0.1)', border: `1px solid ${msg.type === 'success' ? '#00c864' : 'var(--red)'}`, color: msg.type === 'success' ? '#00c864' : 'var(--red)' }}>
+        <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13, background: msg.type === 'success' ? 'rgba(0,200,100,0.1)' : 'rgba(200,16,46,0.1)', border: `1px solid ${msg.type === 'success' ? '#00c864' : 'var(--red)'}`, color: msg.type === 'success' ? '#00c864' : 'var(--red-text)' }}>
           {msg.text}
         </div>
       )}

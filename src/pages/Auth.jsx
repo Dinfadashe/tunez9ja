@@ -14,7 +14,7 @@ const sanitizeEmail = (email) => { if (!email) return ''; var e = email.trim().t
 const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
 
 const ROLE_CONFIG = {
-  admin:   { label: 'Admin',   icon: Shield,    color: 'var(--red)',  page: 'admin-dashboard'   },
+  admin:   { label: 'Admin',   icon: Shield,    color: 'var(--red-text)',  page: 'admin-dashboard'   },
   artist:  { label: 'Artist',  icon: Mic2,      color: '#7b4fff',     page: 'artist-dashboard'  },
   blogger: { label: 'Blogger', icon: Newspaper, color: '#00b4dc',     page: 'blogger-dashboard' },
   user:    { label: 'User',    icon: User2,     color: '#00c864',     page: 'user-dashboard'    },
@@ -83,7 +83,7 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
       <div className="auth-page">
         <div className="auth-card" style={{ maxWidth: 440 }}>
           <div className="auth-logo"><Logo size={48} /><span className="auth-logo-text">TUNEZ<span>9JA</span></span></div>
-          <h2 className="auth-title">Enter as...</h2>
+          <h1 className="auth-title">Enter as...</h1>
           <p className="auth-sub" style={{ marginBottom: 28 }}>Your account has multiple roles. Choose which dashboard to open.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {rolePicker.roles.map(role => {
@@ -123,7 +123,7 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo"><Logo size={48} /><span className="auth-logo-text">TUNEZ<span>9JA</span></span></div>
-        <h2 className="auth-title">Sign In</h2>
+        <h1 className="auth-title">Sign In</h1>
         <p className="auth-sub">Welcome back to Nigeria's #1 music blog</p>
 
         {error && (
@@ -149,7 +149,8 @@ export function LoginPage({ setPage, setProfile, setActiveRole }) {
               <input className="form-control" type={showPass ? 'text' : 'password'} placeholder="••••••••"
                 value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required style={{ paddingRight: 44 }} />
               <button type="button" onClick={() => setShowPass(p => !p)}
-                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--grey-500)', cursor: 'pointer' }}>
+                aria-label={showPass ? 'Hide password' : 'Show password'} aria-pressed={showPass}
+                style={{ position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--grey-500)', cursor: 'pointer', minWidth: 40, minHeight: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
@@ -287,7 +288,7 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
 
         {step === 1 ? (
           <>
-            <h2 className="auth-title">Join as...</h2>
+            <h1 className="auth-title">Join as...</h1>
             <p className="auth-sub">Choose your role on the platform</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 16, marginTop: 8 }}>
               <RoleCard icon={<Mic2 size={32} color="var(--red)" />} title="Artist"
@@ -306,9 +307,9 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
               <button className="btn btn-ghost" onClick={() => setStep(1)} style={{ padding: '6px 0', fontSize: 13 }}>← Back</button>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 2 }}>{form.role?.toUpperCase()} ACCOUNT</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 2 }}>{form.role?.toUpperCase()} ACCOUNT</div>
             </div>
-            <h2 className="auth-title">Create Account</h2>
+            <h1 className="auth-title">Create Account</h1>
             <p className="auth-sub" style={{ marginBottom: 24 }}>Join Tunez9ja for free</p>
 
             {error && (
@@ -368,9 +369,9 @@ export function RegisterPage({ setPage, setProfile, setActiveRole }) {
                     style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--red)', flexShrink: 0 }} />
                   <span style={{ fontSize: 13, color: 'var(--grey-300)', lineHeight: 1.6 }}>
                     By creating an account I agree to Tunez9ja's{' '}
-                    <a onClick={() => setPage('terms')} style={{ color: 'var(--red)', cursor: 'pointer', textDecoration: 'underline' }}>Terms of Service</a>{' '}
+                    <a onClick={() => setPage('terms')} style={{ color: 'var(--red-text)', cursor: 'pointer', textDecoration: 'underline' }}>Terms of Service</a>{' '}
                     and{' '}
-                    <a onClick={() => setPage('privacy')} style={{ color: 'var(--red)', cursor: 'pointer', textDecoration: 'underline' }}>Privacy Policy</a>.
+                    <a onClick={() => setPage('privacy')} style={{ color: 'var(--red-text)', cursor: 'pointer', textDecoration: 'underline' }}>Privacy Policy</a>.
                     I understand that all content I submit must comply with copyright law and that infringing content will result in account suspension.
                   </span>
                 </label>

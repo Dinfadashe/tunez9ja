@@ -111,7 +111,7 @@ export default function VideosPage({ setPage, currentUser, deepLink }) {
       <div style={{ background: 'linear-gradient(180deg,#1a0a0d 0%,var(--bg-deep) 100%)', padding: '60px 0 40px', borderBottom: '1px solid var(--border)' }}>
         <div className="container">
           <div className="section-label"><Video size={12} style={{ display:'inline', marginRight:6 }} />Video</div>
-          <h1 className="page-title">WATCH THE<br /><span style={{ color:'var(--red)' }}>CULTURE</span></h1>
+          <h1 className="page-title">WATCH THE<br /><span style={{ color:'var(--red-text)' }}>CULTURE</span></h1>
           <p style={{ color:'var(--grey-300)', marginTop:12, fontSize:15 }}>
             {videos.length} videos from independent artists and creators
           </p>
@@ -147,7 +147,7 @@ export default function VideosPage({ setPage, currentUser, deepLink }) {
             {/* Featured video */}
             {featured && !playing && (
               <div style={{ marginBottom:40 }}>
-                <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red)', letterSpacing:3, textTransform:'uppercase', marginBottom:16 }}>Featured</div>
+                <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red-text)', letterSpacing:3, textTransform:'uppercase', marginBottom:16 }}>Featured</div>
                 <FeaturedVideoCard video={featured} onPlay={() => playVideo(featured)} />
               </div>
             )}
@@ -227,7 +227,7 @@ function VideoPlayer({ video, currentUser }) {
           <div onClick={e => e.stopPropagation()} style={{ marginLeft:'auto' }}>
             <ReactionBar targetType="video" targetId={video.id} currentUser={currentUser} compact />
           </div>
-          {video.youtube_url && <span style={{ display:'flex', alignItems:'center', gap:4, color:'#ff0000' }}><Youtube size={13} /> YouTube</span>}
+          {video.youtube_url && <span style={{ display:'flex', alignItems:'center', gap:4, color:'#ff5555' }}><Youtube size={13} /> YouTube</span>}
         </div>
         {video.description && <p style={{ color:'var(--grey-300)', fontSize:14, lineHeight:1.7 }}>{video.description}</p>}
         {video.tags?.length > 0 && (
@@ -267,7 +267,7 @@ function FeaturedVideoCard({ video, onPlay }) {
         )}
       </div>
       <div style={{ padding:32, display:'flex', flexDirection:'column', justifyContent:'center' }}>
-        <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red)', letterSpacing:2, marginBottom:12 }}>NOW PLAYING</div>
+        <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--red-text)', letterSpacing:2, marginBottom:12 }}>NOW PLAYING</div>
         <h2 style={{ fontFamily:'var(--font-display)', fontSize:36, lineHeight:1.1, marginBottom:12 }}>{video.title}</h2>
         <div style={{ color:'var(--grey-300)', fontSize:14, marginBottom:16 }}>
           By <strong>{video.profiles?.name}</strong>

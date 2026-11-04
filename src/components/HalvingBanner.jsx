@@ -30,7 +30,7 @@ export function HalvingBanner({ compact = false }) {
       }}>
         <Zap size={11} />
         {era.name} · {(era.multiplier * 100).toFixed(0)}% earn rate
-        {urgency && <span style={{ color: 'var(--red)', marginLeft: 4 }}>⚠️ Halving soon</span>}
+        {urgency && <span style={{ color: 'var(--red-text)', marginLeft: 4 }}>⚠️ Halving soon</span>}
       </div>
     )
   }
@@ -54,7 +54,7 @@ export function HalvingBanner({ compact = false }) {
               TUNEZ MINTING — {era.name.toUpperCase()}
             </span>
             {urgency && (
-              <span style={{ fontSize: 10, background: 'rgba(200,16,46,0.15)', color: 'var(--red)',
+              <span style={{ fontSize: 10, background: 'rgba(200,16,46,0.15)', color: 'var(--red-text)',
                 borderRadius: 10, padding: '2px 8px', fontFamily: 'var(--font-mono)', letterSpacing: 1 }}>
                 ⚠️ HALVING SOON
               </span>
@@ -117,7 +117,7 @@ export function HalvingInfo() {
     { era: 1, name: 'Era 1',    threshold: '1,000',   mult: '0.75×', cap: 60, color: '#00b4dc' },
     { era: 2, name: 'Era 2',    threshold: '5,000',   mult: '0.5×',  cap: 40, color: '#7b4fff' },
     { era: 3, name: 'Era 3',    threshold: '20,000',  mult: '0.25×', cap: 20, color: '#ffb400' },
-    { era: 4, name: 'Era 4',    threshold: '100,000', mult: '0.125×',cap: 10, color: 'var(--red)' },
+    { era: 4, name: 'Era 4',    threshold: '100,000', mult: '0.125×',cap: 10, color: 'var(--red-text)' },
     { era: 5, name: 'Era 5+',   threshold: '500,000', mult: '0.0625×',cap: 5, color: 'var(--grey-500)' },
   ]
 
@@ -127,7 +127,7 @@ export function HalvingInfo() {
 
   return (
     <div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 12 }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 3, marginBottom: 12 }}>
         TUNEZ HALVING
       </div>
       <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,4vw,34px)', marginBottom: 8 }}>

@@ -1,5 +1,6 @@
 import TrackMenu from '../components/TrackMenu.jsx'
 import React, { useState, useEffect } from 'react'
+import { artistOf } from '../lib/urlState.js'
 import { supabase } from '../lib/supabase.js'
 import { useSEO } from '../lib/useSEO.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
@@ -100,13 +101,13 @@ const ChartRow = React.memo(function ChartRow({ track, position, currentUser, is
 
       {/* Title + artist */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 14, color: isCurrentTrack ? 'var(--red)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontWeight: 600, fontSize: 14, color: isCurrentTrack ? 'var(--red-text)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {track.title}
           {track.is_premium && <span style={{ marginLeft: 6, fontSize: 9, background: '#ffb400', color: '#000', padding: '1px 5px', borderRadius: 3, fontWeight: 700, verticalAlign: 'middle' }}>PREMIUM</span>}
         </div>
         <div style={{ fontSize: 12, color: 'var(--grey-500)', marginTop: 2 }}>
-          {track.profiles?.name || '—'}{track.profiles?.is_verified ? ' ✅' : ''}
-          {track.genre && <span style={{ marginLeft: 8, color: 'var(--grey-700)', fontSize: 10 }}>· {track.genre}</span>}
+          {artistOf(track) || '—'}{(track.profiles?.is_verified && !track.performer_name) ? ' ✅' : ''}
+          {track.genre && <span style={{ marginLeft: 8, color: 'var(--text-faint)', fontSize: 10 }}>· {track.genre}</span>}
         </div>
       </div>
 
@@ -117,11 +118,12 @@ const ChartRow = React.memo(function ChartRow({ track, position, currentUser, is
             ? (track.play_count / 1000).toFixed(1) + 'K'
             : track.play_count || 0}
         </div>
-        <div style={{ fontSize: 9, color: 'var(--grey-700)', fontFamily: 'var(--font-mono)' }}>streams</div>
+        <div style={{ fontSize: 9, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}>streams</div>
       </div>
 
       {/* Play button */}
       <button
+        aria-label={isCurrentTrack && isPlaying ? `Pause ${track.title}` : `Play ${track.title}`}
         onClick={e => { e.stopPropagation(); onPlay(track) }}
         style={{
           width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
@@ -263,7 +265,7 @@ export default function ChartsPage({
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '10px 16px', background: 'none', border: 'none',
                     borderBottom: active ? '2px solid var(--red)' : '2px solid transparent',
-                    color: active ? 'var(--red)' : 'var(--grey-500)',
+                    color: active ? 'var(--red-text)' : 'var(--grey-500)',
                     cursor: 'pointer', fontSize: 13, fontWeight: active ? 700 : 400,
                     whiteSpace: 'nowrap', transition: 'all 0.15s', marginBottom: -1,
                   }}>
@@ -313,11 +315,11 @@ export default function ChartsPage({
         {/* Column headers */}
         {!isLoadingDisplay && displayTracks.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '6px 20px 6px', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ width: 32, fontSize: 9, color: 'var(--grey-700)', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>#</div>
+            <div style={{ width: 32, fontSize: 9, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>#</div>
             <div style={{ width: 28 }} />
             <div style={{ width: 46 }} />
-            <div style={{ flex: 1, fontSize: 9, color: 'var(--grey-700)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: 1 }}>Track</div>
-            <div style={{ fontSize: 9, color: 'var(--grey-700)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: 1, marginRight: 46 }}>Streams</div>
+            <div style={{ flex: 1, fontSize: 9, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: 1 }}>Track</div>
+            <div style={{ fontSize: 9, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: 1, marginRight: 46 }}>Streams</div>
           </div>
         )}
 

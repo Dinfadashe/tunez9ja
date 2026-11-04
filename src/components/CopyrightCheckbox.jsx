@@ -100,7 +100,7 @@ export function DMCANotice() {
       <AlertTriangle size={14} color="#ffb400" style={{ flexShrink: 0, marginTop: 2 }} />
       <p style={{ fontSize: 12, color: 'var(--grey-300)', lineHeight: 1.6, margin: 0 }}>
         All submissions are reviewed for copyright compliance. Infringing content will be rejected.
-        To report a copyright violation, email <a href="mailto:dmca@tunez9ja.com" style={{ color: 'var(--red)' }}>dmca@tunez9ja.com</a>.
+        To report a copyright violation, email <a href="mailto:dmca@tunez9ja.com" style={{ color: 'var(--red-text)' }}>dmca@tunez9ja.com</a>.
       </p>
     </div>
   )

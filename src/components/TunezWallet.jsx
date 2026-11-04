@@ -196,7 +196,7 @@ export default function TunezWallet({ currentUser, setPage }) {
       <div style={{ background: 'linear-gradient(135deg,#1a0a0d,#0f0a1a)', border: '1px solid var(--border-red)', borderRadius: 16, padding: 28, marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(200,16,46,0.08)', border: '1px solid rgba(200,16,46,0.15)' }} />
         <div style={{ position: 'absolute', top: 10, right: 10, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--grey-500)', letterSpacing: 1 }}>IN-APP TOKEN</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 8 }}>YOUR TUNEZ BALANCE</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 3, marginBottom: 8 }}>YOUR TUNEZ BALANCE</div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(34px, 10vw, 56px)', letterSpacing: 1, color: 'var(--white)', lineHeight: 1.05, overflowWrap: 'anywhere' }}>
           {balance?.balance?.toFixed(2) || '0.00'}
           <span style={{ fontSize: 'clamp(14px, 4vw, 20px)', color: 'var(--grey-500)', marginLeft: 8, whiteSpace: 'nowrap' }}>TUNEZ</span>
@@ -270,7 +270,7 @@ export default function TunezWallet({ currentUser, setPage }) {
                       <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.description || TX_LABELS[tx.type] || tx.type}</div>
                       <div style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{new Date(tx.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: isEarn ? '#00c864' : 'var(--red)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: isEarn ? '#00c864' : 'var(--red-text)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
                       {isEarn ? '+' : '-'}{Math.abs(tx.amount).toFixed(2)}
                       <span style={{ fontSize: 10, color: 'var(--grey-500)', marginLeft: 4 }}>T</span>
                     </div>
@@ -322,10 +322,10 @@ export default function TunezWallet({ currentUser, setPage }) {
                     BEST VALUE
                   </div>
                 )}
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: pkg.highlight ? 'var(--red)' : 'var(--grey-500)', letterSpacing: 2, marginBottom: 8 }}>{pkg.label.toUpperCase()}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: pkg.highlight ? 'var(--red-text)' : 'var(--grey-500)', letterSpacing: 2, marginBottom: 8 }}>{pkg.label.toUpperCase()}</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 36, lineHeight: 1, marginBottom: 4 }}>{pkg.tunez.toLocaleString()}</div>
                 <div style={{ fontSize: 12, color: 'var(--grey-500)', marginBottom: 16 }}>TUNEZ · ₦{(pkg.ngn/pkg.tunez).toFixed(2)}/T</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: pkg.highlight ? 'var(--red)' : 'var(--white)', marginBottom: 16 }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: pkg.highlight ? 'var(--red-text)' : 'var(--white)', marginBottom: 16 }}>
                   ₦{pkg.ngn.toLocaleString()}
                 </div>
                 <button onClick={() => initPaystack(pkg)} disabled={!!buying}
@@ -358,7 +358,7 @@ export default function TunezWallet({ currentUser, setPage }) {
                 <div style={{ fontWeight: 700, fontSize: 14 }}>
                   {entry.profiles?.name || 'Anonymous'}
                   {entry.profiles?.is_verified && ' ✅'}
-                  {entry.user_id === currentUser?.id && <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--red)', fontFamily: 'var(--font-mono)' }}>YOU</span>}
+                  {entry.user_id === currentUser?.id && <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--red-text)', fontFamily: 'var(--font-mono)' }}>YOU</span>}
                 </div>
               </div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#00c864', fontFamily: 'var(--font-mono)' }}>

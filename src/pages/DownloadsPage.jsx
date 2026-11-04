@@ -2,6 +2,7 @@
 // Downloaded music — works with no internet. Everything shown here comes from
 // this device (localStorage records + Cache API), never from the server.
 import React, { useEffect, useState } from 'react'
+import { artistOf } from '../lib/urlState.js'
 import { Download, Play, Pause, Trash2, WifiOff, ListMusic, HardDrive } from 'lucide-react'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { useDownloads, removeDownload, removeAllDownloads, formatBytes } from '../lib/downloads.js'
@@ -42,7 +43,7 @@ export default function DownloadsPage({ setPage }) {
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px 120px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
         <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 6 }}>YOUR MUSIC, OFFLINE</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 3, marginBottom: 6 }}>YOUR MUSIC, OFFLINE</div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 9vw, 56px)', lineHeight: 1, margin: 0 }}>DOWNLOADS</h1>
           <div style={{ marginTop: 8, fontSize: 13, color: 'var(--grey-500)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>{downloads.length} {downloads.length === 1 ? 'track' : 'tracks'} · {formatBytes(totalSize)}</span>
@@ -66,7 +67,7 @@ export default function DownloadsPage({ setPage }) {
       {downloads.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px dashed var(--border)', borderRadius: 14 }}>
           <Download size={40} color="var(--grey-700)" />
-          <h3 style={{ margin: '14px 0 6px' }}>No downloads yet</h3>
+          <h2 style={{ margin: '14px 0 6px', fontSize: 18 }}>No downloads yet</h2>
           <p style={{ color: 'var(--grey-500)', fontSize: 14, maxWidth: 360, margin: '0 auto 18px', lineHeight: 1.6 }}>
             Tap <strong>⋮</strong> on any track and choose <strong>Download for offline</strong>. Downloaded music plays anywhere, even with no data.
           </p>
@@ -88,9 +89,9 @@ export default function DownloadsPage({ setPage }) {
                   </span>
                 </button>
                 <div onClick={() => play(t)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: active ? 'var(--red)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: active ? 'var(--red-text)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
                   <div style={{ fontSize: 12, color: 'var(--grey-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {t.profiles?.name}{t.duration ? ' · ' + fmtTime(t.duration) : ''} · {formatBytes(downloads[i].size)}
+                    {artistOf(t)}{t.duration ? ' · ' + fmtTime(t.duration) : ''} · {formatBytes(downloads[i].size)}
                   </div>
                 </div>
                 <button onClick={() => removeDownload(t.id)} aria-label={`Remove download ${t.title}`}

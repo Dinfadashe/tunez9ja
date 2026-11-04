@@ -48,7 +48,7 @@ export default function PremiumUnlockModal({ content, contentType, currentUser, 
                 <Lock size={24} color="var(--red)" />
               </div>
               <div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--red)', letterSpacing: 2, marginBottom: 4 }}>PREMIUM CONTENT</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--red-text)', letterSpacing: 2, marginBottom: 4 }}>PREMIUM CONTENT</div>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, lineHeight: 1.2 }}>{content.title}</h3>
                 <div style={{ fontSize: 13, color: 'var(--grey-300)', marginTop: 4 }}>
                   by {content.profiles?.name || 'Unknown'}
@@ -60,13 +60,13 @@ export default function PremiumUnlockModal({ content, contentType, currentUser, 
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10, padding: 20, marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: 13, color: 'var(--grey-300)' }}>Unlock price</span>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--red)' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--red-text)' }}>
                   {content.tunez_price} <span style={{ fontSize: 14 }}>TUNEZ</span>
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 13, color: 'var(--grey-300)' }}>Your balance</span>
-                <span style={{ fontSize: 18, fontWeight: 700, color: canAfford ? '#00c864' : 'var(--red)' }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: canAfford ? '#00c864' : 'var(--red-text)' }}>
                   {balance?.balance?.toFixed(2) || '...'} <span style={{ fontSize: 12, color: 'var(--grey-500)' }}>TUNEZ</span>
                 </span>
               </div>

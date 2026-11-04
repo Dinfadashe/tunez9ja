@@ -1,4 +1,4 @@
-import { shareLinkFor } from '../lib/urlState.js'
+import { artistOf, shareLinkFor } from '../lib/urlState.js'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
@@ -96,7 +96,7 @@ export default function TrackPage({ track, currentUser, onBack, onPlay, isPlayin
           {track.title}
         </h1>
         <div style={{ fontSize: 16, color: 'var(--grey-300)' }}>
-          {track.profiles?.name}{track.profiles?.is_verified && <span style={{ marginLeft: 6 }}>✅</span>}
+          {artistOf(track)}{(track.profiles?.is_verified && !track.performer_name) && <span style={{ marginLeft: 6 }}>✅</span>}
         </div>
         <div style={{ fontSize: 13, color: 'var(--grey-500)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
           {track.genre}{track.duration ? ' · ' + fmtDur(track.duration) : ''} · {(track.play_count || 0) >= 1000 ? ((track.play_count||0)/1000).toFixed(1)+'K' : (track.play_count||0)} plays
@@ -112,7 +112,7 @@ export default function TrackPage({ track, currentUser, onBack, onPlay, isPlayin
         </button>
 
         <button onClick={toggleSave}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid var(--border)', borderRadius: 40, padding: '12px 20px', color: saved ? 'var(--red)' : 'var(--grey-300)', cursor: 'pointer', fontSize: 14 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid var(--border)', borderRadius: 40, padding: '12px 20px', color: saved ? 'var(--red-text)' : 'var(--grey-300)', cursor: 'pointer', fontSize: 14 }}>
           <Heart size={16} fill={saved ? 'var(--red)' : 'none'} /> {saved ? 'Saved' : 'Save'}
         </button>
 
@@ -133,7 +133,7 @@ export default function TrackPage({ track, currentUser, onBack, onPlay, isPlayin
 
       {/* Comments */}
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: 28 }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, marginBottom: 20 }}>COMMENTS</h3>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, marginBottom: 20 }}>COMMENTS</h2>
         <CommentsSection targetType="track" targetId={track.id} currentUser={currentUser} />
       </div>
 
@@ -168,11 +168,11 @@ const QueueTrackRow = React.memo(function QueueTrackRow({ t, isNow, isPlaying, c
           : <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--bg-surface)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>♪</div>
         }
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 14, color: isNow ? 'var(--red)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontWeight: 600, fontSize: 14, color: isNow ? 'var(--red-text)' : 'var(--white)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {isNow && isPlaying ? '▶ ' : ''}{t.title}
           </div>
           <div style={{ fontSize: 12, color: 'var(--grey-400)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {t.profiles?.name}{t.profiles?.is_verified ? ' ✅' : ''}{t.genre ? ' · ' + t.genre : ''}
+            {artistOf(t)}{(t.profiles?.is_verified && !t.performer_name) ? ' ✅' : ''}{t.genre ? ' · ' + t.genre : ''}
           </div>
         </div>
       </div>
@@ -208,7 +208,7 @@ function QueuePanel({ currentUser, onClose, onBack, nowPlaying, onPlay, isPlayin
   const dedupe = (arr) => arr.filter((t, i, self) => self.findIndex(x => x.id === t.id) === i)
   const filtered = dedupe(tab === 'queue' ? queue : allTracks).filter(t =>
     !search || t.title?.toLowerCase().includes(search.toLowerCase()) ||
-    (t.profiles?.name || '').toLowerCase().includes(search.toLowerCase())
+    (artistOf(t)).toLowerCase().includes(search.toLowerCase())
   )
 
 
@@ -231,12 +231,12 @@ function QueuePanel({ currentUser, onClose, onBack, nowPlaying, onPlay, isPlayin
             : <div style={{ width: 52, height: 52, borderRadius: 8, background: 'var(--bg-surface)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>♪</div>
           }
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--red)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--red-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {isPlaying ? '▶ ' : '⏸ '}{nowPlaying.title}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--grey-400)', marginTop: 2 }}>{nowPlaying.profiles?.name}</div>
+            <div style={{ fontSize: 12, color: 'var(--grey-400)', marginTop: 2 }}>{artistOf(nowPlaying)}</div>
           </div>
-          <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--red)', letterSpacing: 1 }}>PLAYING</span>
+          <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--red-text)', letterSpacing: 1 }}>PLAYING</span>
         </div>
       )}
 

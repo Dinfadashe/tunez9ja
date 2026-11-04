@@ -385,7 +385,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
         [contenteditable] li { margin-bottom: 6px; line-height: 1.7; }
         [contenteditable] blockquote { border-left: 3px solid var(--red); margin: 16px 0; padding: 12px 20px; background: var(--red-glow); border-radius: 0 6px 6px 0; font-style: italic; }
         [contenteditable] hr  { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 24px 0; }
-        [contenteditable] a   { color: var(--red); text-decoration: underline; }
+        [contenteditable] a   { color: var(--red-text); text-decoration: underline; }
         [contenteditable] img { max-width: 100%; height: auto; border-radius: 8px; }
         [contenteditable] figure { margin: 24px 0; text-align: center; }
         [contenteditable] video { max-width: 100%; border-radius: 8px; }
@@ -399,7 +399,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
         .post-content ul, .post-content ol { margin: 12px 0 12px 24px; }
         .post-content li { margin-bottom: 6px; line-height: 1.7; }
         .post-content blockquote { border-left: 3px solid var(--red); margin: 16px 0; padding: 12px 20px; background: var(--red-glow); border-radius: 0 6px 6px 0; font-style: italic; }
-        .post-content a   { color: var(--red); text-decoration: underline; }
+        .post-content a   { color: var(--red-text); text-decoration: underline; }
         .post-content code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
         .post-content hr  { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
         .post-content video { max-width: 100%; border-radius: 8px; }

@@ -1,5 +1,6 @@
 import TrackMenu from './TrackMenu.jsx'
 import React, { useState, useEffect } from 'react'
+import { artistOf } from '../lib/urlState.js'
 import { supabase } from '../lib/supabase.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import { queuedMutation } from '../lib/syncQueue.js'
@@ -165,7 +166,7 @@ export default function Playlists({ currentUser }) {
               </div>
               <div style={{ flex: 1, minWidth: 0 }} onClick={() => playTrack(track, tracks)}>
                 <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
-                <div style={{ fontSize: 12, color: 'var(--grey-300)', marginTop: 2 }}>{track.profiles?.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--grey-300)', marginTop: 2 }}>{artistOf(track)}</div>
               </div>
               <div style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{track.genre}</div>
               <div style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', width: 40, textAlign: 'right', flexShrink: 0 }}>{track.duration || '—'}</div>
@@ -186,7 +187,7 @@ export default function Playlists({ currentUser }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)', letterSpacing: 3, marginBottom: 4 }}>YOUR MUSIC</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red-text)', letterSpacing: 3, marginBottom: 4 }}>YOUR MUSIC</div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 32 }}>PLAYLISTS</h2>
         </div>
         <button onClick={() => setCreating(true)} className="btn btn-primary" style={{ gap: 8 }}>

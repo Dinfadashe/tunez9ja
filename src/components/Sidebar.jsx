@@ -75,7 +75,7 @@ export default function Sidebar({ items, activePage, setActivePage, setPage, cur
         <button
           onClick={handleLogout}
           disabled={signingOut}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 4px', fontSize: 13, background: 'none', border: 'none', color: signingOut ? 'var(--grey-500)' : 'var(--red)', cursor: 'pointer', fontWeight: 600 }}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 4px', fontSize: 13, background: 'none', border: 'none', color: signingOut ? 'var(--grey-500)' : 'var(--red-text)', cursor: 'pointer', fontWeight: 600 }}
         >
           <LogOut size={15} /> {signingOut ? 'Signing out...' : 'Sign Out'}
         </button>

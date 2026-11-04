@@ -17,7 +17,7 @@ import {
 import { usePlayer, usePlayerTime } from '../context/PlayerContext.jsx'
 import { useApp } from '../context/AppContext.jsx'
 import { supabase } from '../lib/supabase.js'
-import { openItem, shareLinkFor } from '../lib/urlState.js'
+import { artistOf, openItem, shareLinkFor } from '../lib/urlState.js'
 import { useDownloads } from '../lib/downloads.js'
 import TrackMenu from './TrackMenu.jsx'
 
@@ -90,7 +90,7 @@ function FullPlayerView({ onClose, currentUser, startOnQueue }) {
   const RepeatIcon = repeat === 'one' ? Repeat1 : Repeat
   const idx = queue.findIndex(t => t.id === nowPlaying.id)
   const upNext = idx >= 0 ? queue.slice(idx + 1) : []
-  const artist = nowPlaying.profiles?.name || ''
+  const artist = artistOf(nowPlaying)
 
   const toggleSave = async () => {
     if (!currentUser?.id) { addToast('Sign in to save tracks', 'info'); return }
@@ -186,7 +186,7 @@ function FullPlayerView({ onClose, currentUser, startOnQueue }) {
             </button>
           </div>
           <button type="button" onClick={toggleSave} aria-label={saved ? 'Remove from library' : 'Save to library'} aria-pressed={saved}
-            style={{ ...iconBtn, color: saved ? 'var(--red)' : '#fff' }}>
+            style={{ ...iconBtn, color: saved ? 'var(--red-text)' : '#fff' }}>
             <Heart size={26} fill={saved ? 'currentColor' : 'none'} />
           </button>
         </div>
@@ -212,7 +212,7 @@ function FullPlayerView({ onClose, currentUser, startOnQueue }) {
         {/* Controls */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 0 6px' }}>
           <button type="button" onClick={toggleShuffle} aria-label="Shuffle" aria-pressed={shuffle}
-            style={{ ...iconBtn, color: shuffle ? 'var(--red)' : 'rgba(255,255,255,0.8)' }}><Shuffle size={22} /></button>
+            style={{ ...iconBtn, color: shuffle ? 'var(--red-text)' : 'rgba(255,255,255,0.8)' }}><Shuffle size={22} /></button>
           <button type="button" onClick={skipPrev} aria-label="Previous" style={{ ...iconBtn, color: '#fff' }}><SkipBack size={34} fill="currentColor" /></button>
           <button type="button" onClick={togglePlay} aria-label={isPlaying ? 'Pause' : 'Play'}
             style={{ width: 76, height: 76, borderRadius: '50%', border: 'none', background: '#fff', color: '#0b0b0b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 8px 30px rgba(0,0,0,0.45)', flexShrink: 0 }}>
@@ -221,12 +221,12 @@ function FullPlayerView({ onClose, currentUser, startOnQueue }) {
           <button type="button" onClick={skipNext} aria-label="Next" style={{ ...iconBtn, color: '#fff' }}><SkipForward size={34} fill="currentColor" /></button>
           <button type="button" onClick={cycleRepeat}
             aria-label={repeat === 'none' ? 'Repeat off' : repeat === 'all' ? 'Repeat all' : 'Repeat one'} aria-pressed={repeat !== 'none'}
-            style={{ ...iconBtn, color: repeat !== 'none' ? 'var(--red)' : 'rgba(255,255,255,0.8)' }}><RepeatIcon size={22} /></button>
+            style={{ ...iconBtn, color: repeat !== 'none' ? 'var(--red-text)' : 'rgba(255,255,255,0.8)' }}><RepeatIcon size={22} /></button>
         </div>
 
         {/* Bottom row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-          <button type="button" onClick={() => setShowQueue(true)} aria-label="Now playing queue"
+          <button type="button" onClick={() => setShowQueue(true)} title="Open the queue"
             style={{ ...pillBtn }}>
             <ListMusic size={18} /> Now playing{upNext.length ? ` · ${upNext.length} next` : ''}
           </button>
@@ -264,10 +264,10 @@ const QueueRow = React.memo(function QueueRow({ t, current, isPlaying, onPlay, o
           {t.cover_url ? <img src={t.cover_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Music size={18} style={{ opacity: 0.4 }} />}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 14, color: current ? 'var(--red)' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontWeight: 600, fontSize: 14, color: current ? 'var(--red-text)' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {current && isPlaying ? '▶ ' : ''}{t.title}
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.profiles?.name || ''}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{artistOf(t)}</div>
         </div>
       </button>
       {!current && (

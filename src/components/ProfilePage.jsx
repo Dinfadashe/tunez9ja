@@ -190,7 +190,7 @@ export default function ProfilePage({ profileId, currentUser, setPage }) {
                 {profile.name || profile.username || 'Unknown'}
               </h1>
               {profile.is_verified && <span title="Verified" style={{ fontSize: 18 }}>✅</span>}
-              <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', background: 'rgba(200,16,46,0.15)', color: 'var(--red)', padding: '2px 8px', borderRadius: 10, letterSpacing: 0.5 }}>
+              <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', background: 'rgba(200,16,46,0.15)', color: 'var(--red-text)', padding: '2px 8px', borderRadius: 10, letterSpacing: 0.5 }}>
                 {roleLabel}
               </span>
             </div>
@@ -229,7 +229,7 @@ export default function ProfilePage({ profileId, currentUser, setPage }) {
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '10px 16px', background: 'none', border: 'none',
                     borderBottom: isActive ? '2px solid var(--red)' : '2px solid transparent',
-                    color: isActive ? 'var(--red)' : 'var(--grey-500)',
+                    color: isActive ? 'var(--red-text)' : 'var(--grey-500)',
                     cursor: 'pointer', fontSize: 13, fontWeight: isActive ? 700 : 400,
                     transition: 'all 0.15s', marginBottom: -1,
                   }}>
@@ -354,7 +354,7 @@ function PostCard({ post, setPage }) {
         <img src={post.cover_url} alt={post.title} style={{ width: 72, height: 72, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}  loading="lazy" decoding="async" />
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 10, color: 'var(--red)', fontFamily: 'var(--font-mono)', marginBottom: 4, letterSpacing: 1, textTransform: 'uppercase' }}>{post.category}</div>
+        <div style={{ fontSize: 10, color: 'var(--red-text)', fontFamily: 'var(--font-mono)', marginBottom: 4, letterSpacing: 1, textTransform: 'uppercase' }}>{post.category}</div>
         <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--white)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{post.title}</div>
         <div style={{ fontSize: 11, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)' }}>
           {post.published_at ? post.published_at.slice(0, 10) : '—'}

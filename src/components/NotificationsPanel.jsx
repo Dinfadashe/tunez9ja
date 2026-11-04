@@ -181,7 +181,7 @@ export default function NotificationsPanel({ userId }) {
       flexShrink: 0,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Bell size={16} style={{ color: 'var(--red)' }} />
+        <Bell size={16} style={{ color: 'var(--red-text)' }} />
         <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--grey-100)' }}>Notifications</span>
         {unread > 0 && (
           <span style={{

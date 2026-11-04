@@ -60,7 +60,7 @@ function TrackRow({ track, rank }) {
   const pct = track._pct || 0
   return (
     <div style={{ padding: '12px 0', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ width: 24, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 13, color: rank <= 3 ? 'var(--red)' : 'var(--grey-600)', fontWeight: 700, flexShrink: 0 }}>{rank}</div>
+      <div style={{ width: 24, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 13, color: rank <= 3 ? 'var(--red-text)' : 'var(--grey-600)', fontWeight: 700, flexShrink: 0 }}>{rank}</div>
       <div style={{ width: 40, height: 40, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: 'var(--bg-surface)' }}>
         {track.cover_url
           ? <img src={track.cover_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -229,7 +229,7 @@ export default function ArtistAnalytics({ currentUser }) {
         <MiniBarChart data={weeklyData} height={72} />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
           {weeklyData.map((d, i) => (
-            <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 9, color: 'var(--grey-700)', fontFamily: 'var(--font-mono)' }}>
+            <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 9, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}>
               {d.label}
             </div>
           ))}

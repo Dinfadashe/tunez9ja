@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase.js'
 import { useSEO, websiteJsonLd, organizationJsonLd } from '../lib/useSEO.js'
 import { MusicArt } from '../components/UI.jsx'
 import HeroHQ from '../components/HeroHQ.jsx'
+import { artistOf } from '../lib/urlState.js'
 import { Play, TrendingUp, Mic2, Newspaper, ArrowRight, Music, Video, Youtube } from 'lucide-react'
 
 const TICKER_ITEMS = ['🎵 Afrobeats','🔥 New Drops','🎤 Artist Spotlight','📰 Latest Gist','🌍 Global Sound','🎵 Top Charts','🔥 Hot Takes','🎤 Studio Sessions']
@@ -154,7 +155,7 @@ export default function Home({
               { label: 'Articles',        value: stats.posts   > 0 ? stats.posts   + '+' : '—' },
             ].map(s => (
               <div key={s.label} style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 40, lineHeight: 1, color: 'var(--red)' }}>{s.value}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 40, lineHeight: 1, color: 'var(--red-text)' }}>{s.value}</div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--grey-300)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 4 }}>{s.label}</div>
               </div>
             ))}
@@ -277,8 +278,8 @@ const MusicCard = React.memo(function MusicCard({ track, setPage }) {
       <div style={{ padding: '14px 16px 16px' }}>
         <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {track.profiles ? track.profiles.name : '—'}{track.profiles && track.profiles.is_verified ? ' ✅' : ''}
+          <span style={{ fontSize: 13, color: 'var(--red-text)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {artistOf(track) || '—'}{track.profiles && !track.performer_name && track.profiles.is_verified ? ' ✅' : ''}
           </span>
           <span style={{ fontSize: 12, color: 'var(--grey-500)', fontFamily: 'var(--font-mono)', flexShrink: 0, marginLeft: 8 }}>{track.duration || '—'}</span>
         </div>
@@ -368,7 +369,7 @@ function CTA({ icon, title, desc, action, onClick, accent }) {
       <div style={{ marginBottom: 16 }}>{icon}</div>
       <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 32, letterSpacing: 1, marginBottom: 12 }}>{title}</h3>
       <p style={{ color: 'var(--grey-300)', fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>{desc}</p>
-      <button className="btn btn-primary" onClick={onClick} style={{ background: color, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <button className="btn btn-primary" onClick={onClick} style={{ background: color, color: accent && accent !== 'var(--red-text)' ? '#0a0a0a' : undefined, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
         {action} <ArrowRight size={15} />
       </button>
     </div>

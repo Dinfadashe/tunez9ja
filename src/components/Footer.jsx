@@ -12,7 +12,7 @@ export default function Footer({ setPage }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Logo size={28} />
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 16 }}>
-            TUNEZ<span style={{ color: 'var(--red)' }}>9JA</span>
+            TUNEZ<span style={{ color: 'var(--red-text)' }}>9JA</span>
           </span>
         </div>
         <div style={{ fontSize: 12, color: 'var(--grey-600)' }}>

@@ -46,8 +46,8 @@ const PRIVATE_PAGES = new Set([
 ])
 
 // Item addresses: first path segment → kind
-const ITEM_SEGMENTS = { track: 'track', blog: 'post', post: 'post', video: 'video', artist: 'profile', profile: 'profile' }
-const SEGMENT_FOR = { track: 'track', post: 'blog', video: 'video', profile: 'artist' }
+const ITEM_SEGMENTS = { track: 'track', blog: 'post', post: 'post', video: 'video', artist: 'profile', profile: 'profile', album: 'album' }
+const SEGMENT_FOR = { track: 'track', post: 'blog', video: 'video', profile: 'artist', album: 'album' }
 const LEGACY_KEYS = { track: 'track', post: 'post', video: 'video', profile: 'profile', artist: 'profile' }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -60,15 +60,20 @@ const stripHtml = (html = '') => String(html || '')
   .replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n\n').trim()
 const clip = (s, n) => (s && s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : (s || ''))
 
+// Same rules as the app (src/lib/urlState.js): cut at a word, max 70 chars
 function slugify(text) {
   return String(text || '')
     .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '').slice(0, 70).replace(/-+$/g, '')
+    .replace(/^-+|-+$/g, '').slice(0, 71)
+    .replace(/-[^-]*$/, m => (m.length > 1 && String(text).length > 71 ? '' : m))
+    .slice(0, 70).replace(/-+$/g, '')
 }
+// The performing artist: credited name if set, otherwise the uploader
+const artistOf = (row) => (row?.performer_name && String(row.performer_name).trim()) || row?.profiles?.name || ''
 function slugFor(kind, row) {
   if (kind === 'profile') return slugify(row.name)
-  const by = kind === 'track' ? (row.profiles?.name || '') : ''
+  const by = kind === 'track' || kind === 'album' ? artistOf(row) : ''
   return slugify([row.title, by].filter(Boolean).join(' '))
 }
 const itemPath = (kind, row) => {
@@ -116,13 +121,19 @@ function supabase() {
   return { get, rpc }
 }
 
-const TRACK_FIELDS = 'id,title,genre,duration,cover_url,description,created_at,updated_at,play_count,is_premium,artist_id,profiles:artist_id(name)'
+const TRACK_FIELDS = 'id,title,performer_name,genre,duration,cover_url,description,created_at,updated_at,play_count,is_premium,artist_id,profiles:artist_id(name)'
 const POST_FIELDS = 'id,title,excerpt,content,cover_url,category,tags,published_at,created_at,updated_at,is_premium,author_id,profiles:author_id(name)'
 
 async function loadItem(db, kind, id) {
   if (kind === 'track') return (await db.get(`music_tracks?id=eq.${id}&status=eq.approved&select=${encodeURIComponent(TRACK_FIELDS)}&limit=1`))?.[0] || null
   if (kind === 'post') return (await db.get(`blog_posts?id=eq.${id}&status=eq.approved&select=${encodeURIComponent(POST_FIELDS)}&limit=1`))?.[0] || null
   if (kind === 'video') return (await db.get(`videos?id=eq.${id}&status=eq.approved&select=*&limit=1`))?.[0] || null
+  if (kind === 'album') {
+    const a = (await db.get(`albums?id=eq.${id}&status=eq.approved&select=${encodeURIComponent('*,profiles:artist_id(name)')}&limit=1`))?.[0]
+    if (!a) return null
+    a.tracks = await db.get(`music_tracks?album_id=eq.${id}&status=eq.approved&select=${encodeURIComponent(TRACK_FIELDS)}&order=track_number.asc`)
+    return a
+  }
   if (kind === 'profile') {
     const p = await db.rpc('public_profile', { p_id: id })
     const row = Array.isArray(p) ? p[0] : p
@@ -138,14 +149,16 @@ function linkList(items) {
   if (!items?.length) return ''
   return `<ul>${items.map(i => `<li><a href="${esc(i.href)}">${esc(i.text)}</a>${i.note ? ` <span>${esc(i.note)}</span>` : ''}</li>`).join('')}</ul>`
 }
-const trackLinks = (rows) => (rows || []).map(t => ({ href: itemPath('track', t), text: t.title, note: [t.profiles?.name, t.genre].filter(Boolean).join(' · ') }))
+const trackLinks = (rows) => (rows || []).map(t => ({ href: itemPath('track', t), text: t.title, note: [artistOf(t), t.genre].filter(Boolean).join(' · ') }))
+const albumLinks = (rows) => (rows || []).map(a => ({ href: itemPath('album', a), text: a.title, note: artistOf(a) }))
+const genreLinks = (genres) => genres.map(g => ({ href: `/genre/${slugify(g)}`, text: `${g} songs` }))
 const postLinks = (rows) => (rows || []).map(p => ({ href: itemPath('post', p), text: p.title, note: p.profiles?.name || '' }))
 const videoLinks = (rows) => (rows || []).map(v => ({ href: itemPath('video', v), text: v.title }))
 
 function trackPage(t) {
-  const artist = t.profiles?.name || ''
+  const artist = artistOf(t)
   const path = itemPath('track', t)
-  const artistPath = t.artist_id ? itemPath('profile', { id: t.artist_id, name: artist }) : null
+  const artistPath = t.artist_id && !t.performer_name ? itemPath('profile', { id: t.artist_id, name: artist }) : null
   const desc = clip(stripHtml(t.description), 200) ||
     `Listen to "${t.title}"${artist ? ` by ${artist}` : ''}${t.genre ? `, a ${t.genre} song,` : ''} on Tunez9ja. Stream it, download it for offline and earn TUNEZ rewards.`
   return {
@@ -251,6 +264,57 @@ function profilePage(p) {
   }
 }
 
+function albumPage(a) {
+  const artist = artistOf(a)
+  const path = itemPath('album', a)
+  const tracks = a.tracks || []
+  const desc = clip(stripHtml(a.description), 200) ||
+    `Stream the album "${a.title}"${artist ? ` by ${artist}` : ''} on Tunez9ja — ${tracks.length} ${tracks.length === 1 ? 'track' : 'tracks'}${a.genre ? `, ${a.genre}` : ''}.`
+  return {
+    path, ogType: 'music.album', image: a.cover_url,
+    title: `${a.title}${artist ? ` — ${artist}` : ''} (Album) | ${NAME}`, ogTitle: artist ? `${a.title} — ${artist}` : a.title, description: desc,
+    ld: [
+      {
+        '@context': 'https://schema.org', '@type': 'MusicAlbum', name: a.title, url: SITE + path,
+        ...(a.cover_url && { image: a.cover_url }), ...(a.genre && { genre: a.genre }),
+        ...(a.created_at && { datePublished: a.created_at.slice(0, 10) }),
+        ...(artist && { byArtist: { '@type': 'MusicGroup', name: artist, ...(a.artist_id && { url: SITE + itemPath('profile', { id: a.artist_id, name: a.profiles?.name || artist }) }) } }),
+        numTracks: tracks.length,
+        ...(tracks.length && { track: { '@type': 'ItemList', numberOfItems: tracks.length, itemListElement: tracks.map((t, i) => ({ '@type': 'ListItem', position: i + 1, item: { '@type': 'MusicRecording', name: t.title, url: SITE + itemPath('track', t), ...(isoDuration(t.duration) && { duration: isoDuration(t.duration) }) } })) } }),
+      },
+      breadcrumbs([{ name: 'Home', path: '/' }, { name: 'Albums', path: '/albums' }, { name: a.title, path }]),
+    ],
+    body: `<h1>${esc(a.title)}</h1>${artist ? `<p>Album by ${esc(artist)}</p>` : ''}<p>${esc(desc)}</p>
+      ${tracks.length ? `<h2>Tracks</h2><ol>${tracks.map(t => `<li><a href="${esc(itemPath('track', t))}">${esc(t.title)}</a></li>`).join('')}</ol>` : ''}
+      <p><a href="/albums">More albums</a></p>`,
+  }
+}
+
+function genrePage(genre, slug, tracks) {
+  const path = `/genre/${slug}`
+  const desc = `Stream the newest ${genre} songs from Nigerian and African artists on Tunez9ja. ${tracks.length} ${tracks.length === 1 ? 'song' : 'songs'} — free to stream and download for offline.`
+  return {
+    path, ogType: 'website', image: tracks.find(t => t.cover_url)?.cover_url || null,
+    title: `${genre} Songs — Stream New ${genre} Music | ${NAME}`, ogTitle: `${genre} songs on Tunez9ja`, description: desc,
+    ld: [
+      {
+        '@context': 'https://schema.org', '@type': 'CollectionPage', name: `${genre} songs`, url: SITE + path, description: desc,
+        mainEntity: { '@type': 'ItemList', numberOfItems: tracks.length, itemListElement: tracks.slice(0, 50).map((t, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + itemPath('track', t), name: t.title })) },
+      },
+      breadcrumbs([{ name: 'Home', path: '/' }, { name: 'Music', path: '/music' }, { name: genre, path }]),
+    ],
+    body: `<h1>${esc(genre)} songs</h1><p>${esc(desc)}</p>${linkList(trackLinks(tracks))}<p><a href="/music">All music</a></p>`,
+  }
+}
+
+// Genre names in use (approved songs), keyed by slug
+async function genresInUse(db) {
+  const rows = await db.get('music_tracks?status=eq.approved&select=genre&limit=5000')
+  const map = new Map()
+  for (const r of rows || []) if (r.genre) map.set(slugify(r.genre), (map.get(slugify(r.genre)) || r.genre))
+  return map
+}
+
 async function listPage(db, key, meta) {
   const base = { path: key === 'home' ? '/' : `/${key}`, ogType: 'website', title: meta.title, ogTitle: meta.title, description: meta.description, image: null, ld: [] }
   let links = ''
@@ -261,7 +325,13 @@ async function listPage(db, key, meta) {
     ])
     links = `<h2>New music</h2>${linkList(trackLinks(tracks))}<h2>From the blog</h2>${linkList(postLinks(posts))}`
   } else if (db && key === 'music') {
-    links = linkList(trackLinks(await db.get(`music_tracks?status=eq.approved&select=${encodeURIComponent(TRACK_FIELDS)}&order=created_at.desc&limit=60`)))
+    const [tracks, genres] = await Promise.all([
+      db.get(`music_tracks?status=eq.approved&select=${encodeURIComponent(TRACK_FIELDS)}&order=created_at.desc&limit=60`),
+      genresInUse(db),
+    ])
+    links = `${genres.size ? `<h2>Browse by genre</h2>${linkList(genreLinks([...genres.values()]))}` : ''}<h2>New songs</h2>${linkList(trackLinks(tracks))}`
+  } else if (db && key === 'albums') {
+    links = linkList(albumLinks(await db.get(`albums?status=eq.approved&select=${encodeURIComponent('id,title,profiles:artist_id(name)')}&order=created_at.desc&limit=60`)))
   } else if (db && key === 'charts') {
     links = linkList(trackLinks(await db.get(`music_tracks?status=eq.approved&select=${encodeURIComponent(TRACK_FIELDS)}&order=play_count.desc&limit=50`)))
   } else if (db && key === 'blog') {
@@ -374,11 +444,26 @@ export default async (request, context) => {
     if (url.pathname !== canonical) {
       return new Response(null, { status: 301, headers: { location: canonical + url.search, 'cache-control': 'public, max-age=3600' } })
     }
-    const page = kind === 'track' ? trackPage(row) : kind === 'post' ? postPage(row) : kind === 'video' ? videoPage(row) : profilePage(row)
+    const page = kind === 'track' ? trackPage(row) : kind === 'post' ? postPage(row) : kind === 'video' ? videoPage(row)
+      : kind === 'album' ? albumPage(row) : profilePage(row)
     return finish(response, render(html, page), 200, true)
   }
 
-  // 3. Pages
+  // 3. Genre pages: /genre/<slug>
+  if (parts[0] === 'genre' && parts[1] && parts.length === 2) {
+    const [response, genres] = await Promise.all([context.next(), db ? genresInUse(db) : new Map()])
+    if (!(response.headers.get('content-type') || '').includes('text/html')) return response
+    const html = await response.text()
+    const genre = genres.get(parts[1])
+    if (!genre) {
+      const nf = { path: url.pathname, title: `Genre not found | ${NAME}`, description: PAGES.music.description, ld: [], body: `<h1>Genre not found</h1><p><a href="/music">Browse all music</a></p>` }
+      return finish(response, render(html, nf, { noindex: true }), 404, false)
+    }
+    const tracks = await db.get(`music_tracks?status=eq.approved&genre=eq.${encodeURIComponent(genre)}&select=${encodeURIComponent(TRACK_FIELDS)}&order=created_at.desc&limit=100`)
+    return finish(response, render(html, genrePage(genre, parts[1], tracks)), 200, true)
+  }
+
+  // 4. Pages
   const key = parts[0] || 'home'
   const response = await context.next()
   if (!(response.headers.get('content-type') || '').includes('text/html')) return response

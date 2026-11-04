@@ -1,6 +1,7 @@
 import { isDownloadedUrl, getDownloadedBlobUrl } from '../lib/downloads.js'
 import { getPlayableUrl, resolvePlayableUrl, presignTracks, premiumPath } from '../lib/audioUrl.js'
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { artistOf } from '../lib/urlState.js'
 
 const PlayerContext = createContext(null)
 // Playback position changes several times a second. It lives in its own
@@ -298,7 +299,7 @@ export function PlayerProvider({ children }) {
       : [{ src: '/logo.png', sizes: '512x512', type: 'image/png' }]
     ms.metadata = new MediaMetadata({
       title:  nowPlaying.title || 'Unknown',
-      artist: nowPlaying.profiles?.name || '',
+      artist: artistOf(nowPlaying),
       album:  'Tunez9ja',
       artwork: art,
     })
@@ -386,7 +387,7 @@ export function PlayerProvider({ children }) {
   const slim = (t) => t && ({
     id: t.id, title: t.title, audio_url: t.audio_url, cover_url: t.cover_url || null,
     artist_id: t.artist_id || null, is_premium: !!t.is_premium, duration: t.duration || null,
-    genre: t.genre || null, profiles: t.profiles ? { name: t.profiles.name, is_verified: !!t.profiles.is_verified } : null,
+    genre: t.genre || null, performer_name: t.performer_name || null, profiles: t.profiles ? { name: t.profiles.name, is_verified: !!t.profiles.is_verified } : null,
   })
   const saveSession = useCallback(() => {
     try {
